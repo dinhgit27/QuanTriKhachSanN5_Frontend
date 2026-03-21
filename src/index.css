@@ -109,3 +109,80 @@ code {
   padding: 4px 8px;
   background: var(--code-bg);
 }
+
+/* Fix table overflow issues */
+.ant-table-wrapper {
+  overflow-x: auto;
+  width: 100%;
+}
+
+.ant-table {
+  min-width: 100%;
+}
+
+.ant-table-content {
+  overflow-x: auto !important;
+  max-width: 100%;
+}
+
+/* Ensure tables are responsive */
+.ant-table-tbody > tr > td {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 200px;
+}
+
+/* Allow word wrap for long text */
+.ant-table-tbody > tr > td.word-wrap {
+  white-space: normal;
+  word-wrap: break-word;
+  max-width: none;
+}
+
+/* Responsive table for mobile */
+@media (max-width: 768px) {
+  .ant-table-wrapper {
+    font-size: 12px;
+  }
+
+  .ant-table-tbody > tr > td {
+    max-width: 120px;
+    padding: 8px 4px;
+  }
+
+  .ant-table-thead > tr > th {
+    padding: 8px 4px;
+    font-size: 12px;
+  }
+}
+
+/* Admin layout improvements */
+.admin-content {
+  min-height: 100vh;
+}
+
+.admin-content h1 {
+  margin-bottom: 24px;
+  color: #1890ff;
+}
+
+/* Ensure proper spacing for admin pages */
+.ant-layout-sider {
+  background: #fff !important;
+  border-right: 1px solid #f0f0f0;
+}
+
+.ant-menu-dark {
+  background: #001529 !important;
+}
+
+/* Fix modal overflow */
+.ant-modal {
+  max-width: 90vw;
+}
+
+.ant-modal-body {
+  max-height: 70vh;
+  overflow-y: auto;
+}

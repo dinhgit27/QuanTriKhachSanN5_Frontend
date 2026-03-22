@@ -22,17 +22,24 @@ const Login = () => {
         password: values.password
       });
 
+      // Lưu ý: Đảm bảo cấu trúc response của bạn trùng khớp với Backend trả về.
+      // Nếu Backend bọc kết quả trong biến 'data' (ví dụ: { success: true, data: { token: "..." } })
+      // thì phải gọi là response.data.data.token
+      const token = response.data.token;
+      const user = response.data.user;
+
       // Lưu token và thông tin user
-      localStorage.setItem('token', response.data.token);
-      localStorage.setItem('user', JSON.stringify(response.data.user));
+      localStorage.setItem('token', token);
+      localStorage.setItem('user', JSON.stringify(user));
 
       message.success('Đăng nhập thành công!');
 
-      // Redirect dựa trên role
-      if (response.data.user.role === 'admin') {
-        navigate('/admin');
+      // Redirect dựa trên role (Fix lỗi chữ hoa/chữ thường)
+      const userRole = user?.role?.toLowerCase(); // Chuyển "Admin" thành "admin"
+      if (userRole === 'admin' || userRole === 'receptionist' || userRole === 'housekeeping') {
+        navigate('/admin'); // Hoặc '/admin/dashboard'
       } else {
-        navigate('/user');
+        navigate('/user'); // Khách hàng bình thường
       }
     } catch (error) {
       console.error('Login error:', error);

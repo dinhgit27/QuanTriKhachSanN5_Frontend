@@ -18,28 +18,34 @@ const Login = () => {
     setLoading(true);
     try {
       const response = await authAPI.login({
-        username: values.username,
+        email: values.username, 
         password: values.password
       });
 
-      // Lưu ý: Đảm bảo cấu trúc response của bạn trùng khớp với Backend trả về.
-      // Nếu Backend bọc kết quả trong biến 'data' (ví dụ: { success: true, data: { token: "..." } })
-      // thì phải gọi là response.data.data.token
-      const token = response.data.token;
-      const user = response.data.user;
+      // 1. KHÁM XÉT GÓI HÀNG TỪ C#
+      // Lệnh này sẽ in toàn bộ dữ liệu C# trả về ra tab Console
+      console.log("Gói hàng C# trả về là:", response.data);
 
-      // Lưu token và thông tin user
-      localStorage.setItem('token', token);
-      localStorage.setItem('user', JSON.stringify(user));
+      // Lưu token vào máy (Dùng dấu ? để nếu không có cũng không bị sập)
+      if (response.data?.token) {
+         localStorage.setItem('token', response.data.token);
+      }
+      
+      // Nếu có cục user thì lưu, không thì lưu toàn bộ data
+      const userData = response.data?.user || response.data; 
+      localStorage.setItem('user', JSON.stringify(userData));
 
       message.success('Đăng nhập thành công!');
 
-      // Redirect dựa trên role (Fix lỗi chữ hoa/chữ thường)
-      const userRole = user?.role?.toLowerCase(); // Chuyển "Admin" thành "admin"
-      if (userRole === 'admin' || userRole === 'receptionist' || userRole === 'housekeeping') {
-        navigate('/admin'); // Hoặc '/admin/dashboard'
+      // 2. FIX LỖI SẬP WEB
+      // Tìm role ở mọi ngóc ngách có thể, nếu không có thì gán thành chuỗi rỗng
+      const userRole = response.data?.user?.role || response.data?.role || '';
+
+      // Kiểm tra và chuyển hướng
+      if (userRole.toLowerCase() === 'admin') {
+        navigate('/admin');
       } else {
-        navigate('/user'); // Khách hàng bình thường
+        navigate('/user');
       }
     } catch (error) {
       console.error('Login error:', error);
@@ -106,12 +112,12 @@ const Login = () => {
             >
               <Form.Item
                 name="username"
-                label="Tên Đăng Nhập"
-                rules={[{ required: true, message: 'Vui lòng nhập tên đăng nhập!' }]}
+                label="Tên Đăng Nhập (Email)"
+                rules={[{ required: true, message: 'Vui lòng nhập email đăng nhập!' }]}
               >
                 <Input
                   prefix={<UserOutlined />}
-                  placeholder="Nhập tên đăng nhập"
+                  placeholder="Nhập email (vd: admin@test.com)"
                   size="large"
                 />
               </Form.Item>
@@ -269,8 +275,8 @@ const Login = () => {
 
         <div style={{ textAlign: 'center', color: '#666', fontSize: '14px' }}>
           <p><strong>Tài khoản demo:</strong></p>
-          <p>Admin: admin / admin123</p>
-          <p>User: user / user123</p>
+          <p>Admin: admin@test.com / 123456</p>
+          <p>User: user@test.com / 123456</p>
         </div>
       </Card>
     </div>

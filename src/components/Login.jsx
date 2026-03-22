@@ -10,46 +10,68 @@ const Login = () => {
   const [loading, setLoading] = useState(false);
   const [activeTab, setActiveTab] = useState('login');
   const navigate = useNavigate();
-
   const [loginForm] = Form.useForm();
   const [registerForm] = Form.useForm();
+
+  // Hàm helper để giải mã JWT Token (Chuẩn chuyên nghiệp)
+  const decodeToken = (token) => {
+    try {
+      const base64Url = token.split('.')[1];
+      const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+      const jsonPayload = decodeURIComponent(
+        window.atob(base64)
+          .split('')
+          .map((c) => '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2))
+          .join('')
+      );
+      return JSON.parse(jsonPayload);
+    } catch (e) {
+      return null;
+    }
+  };
 
   const onLoginFinish = async (values) => {
     setLoading(true);
     try {
+      // 1. Gọi API Login
       const response = await authAPI.login({
-        email: values.username, 
+        email: values.username, // Backend C# yêu cầu trường 'email'
         password: values.password
       });
 
-      // 1. KHÁM XÉT GÓI HÀNG TỪ C#
-      // Lệnh này sẽ in toàn bộ dữ liệu C# trả về ra tab Console
-      console.log("Gói hàng C# trả về là:", response.data);
+      const token = response.data.token;
 
-      // Lưu token vào máy (Dùng dấu ? để nếu không có cũng không bị sập)
-      if (response.data?.token) {
-         localStorage.setItem('token', response.data.token);
-      }
-      
-      // Nếu có cục user thì lưu, không thì lưu toàn bộ data
-      const userData = response.data?.user || response.data; 
-      localStorage.setItem('user', JSON.stringify(userData));
+      if (token) {
+        // 2. Lưu token vào localStorage
+        localStorage.setItem('token', token);
 
-      message.success('Đăng nhập thành công!');
+        // 3. Giải mã token để lấy thông tin User & Role
+        const payload = decodeToken(token);
+        console.log("Token Payload:", payload);
 
-      // 2. FIX LỖI SẬP WEB
-      // Tìm role ở mọi ngóc ngách có thể, nếu không có thì gán thành chuỗi rỗng
-      const userRole = response.data?.user?.role || response.data?.role || '';
+        // C# Identity thường lưu role trong claim này hoặc 'role'
+        const role = payload?.role || payload?.['http://schemas.microsoft.com/ws/2008/06/identity/claims/role'];
+        
+        if (role) {
+          localStorage.setItem('role', role);
+          message.success(`Chào mừng ${role} quay trở lại!`);
 
-      // Kiểm tra và chuyển hướng
-      if (userRole.toLowerCase() === 'admin') {
-        navigate('/admin');
-      } else {
-        navigate('/user');
+          // 4. CHUYỂN TRANG (Dùng setTimeout để đảm bảo localStorage đã kịp lưu)
+          setTimeout(() => {
+            if (role.toLowerCase() === 'admin') {
+              navigate('/admin');
+            } else {
+              navigate('/user');
+            }
+          }, 100);
+        } else {
+          message.warning('Đăng nhập thành công nhưng không tìm thấy quyền hạn!');
+        }
       }
     } catch (error) {
       console.error('Login error:', error);
-      message.error(error.response?.data?.message || 'Đăng nhập thất bại!');
+      const errorMsg = error.response?.data?.message || 'Email hoặc mật khẩu không đúng!';
+      message.error(errorMsg);
     } finally {
       setLoading(false);
     }
@@ -66,217 +88,90 @@ const Login = () => {
         fullName: values.fullName
       });
 
-      message.success('Đăng ký thành công! Vui lòng đăng nhập.');
+      message.success('Đăng ký thành công! Bạn có thể đăng nhập ngay.');
       setActiveTab('login');
       registerForm.resetFields();
     } catch (error) {
       console.error('Register error:', error);
-      message.error(error.response?.data?.message || 'Đăng ký thất bại!');
+      message.error(error.response?.data?.message || 'Đăng ký thất bại, vui lòng thử lại!');
     } finally {
       setLoading(false);
     }
   };
 
-  const handleForgotPassword = () => {
-    message.info('Tính năng quên mật khẩu đang được phát triển!');
-  };
-
   return (
     <div style={{
-      display: 'flex',
-      justifyContent: 'center',
-      alignItems: 'center',
-      minHeight: '100vh',
-      background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+      display: 'flex', justifyContent: 'center', alignItems: 'center',
+      minHeight: '100vh', background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
       padding: '20px'
     }}>
       <Card
-        style={{
-          width: 450,
-          boxShadow: '0 10px 30px rgba(0,0,0,0.1)',
-          borderRadius: '10px'
-        }}
+        hoverable
+        style={{ width: 450, borderRadius: '15px', overflow: 'hidden' }}
         bodyStyle={{ padding: '40px' }}
       >
-        <Tabs activeKey={activeTab} onChange={setActiveTab} centered>
-          <TabPane tab="Đăng Nhập" key="login">
-            <div style={{ textAlign: 'center', marginBottom: '30px' }}>
-              <h2 style={{ color: '#1890ff', marginBottom: '10px' }}>Đăng Nhập</h2>
-              <p style={{ color: '#666' }}>Chào mừng bạn quay trở lại</p>
+        <Tabs activeKey={activeTab} onChange={setActiveTab} centered size="large">
+          <TabPane tab="ĐĂNG NHẬP" key="login">
+            <div style={{ textAlign: 'center', marginBottom: '25px' }}>
+              <h2 style={{ color: '#1890ff' }}>Hệ Thống Quản Lý</h2>
+              <p style={{ color: '#8c8c8c' }}>Vui lòng đăng nhập để tiếp tục</p>
             </div>
 
-            <Form
-              form={loginForm}
-              onFinish={onLoginFinish}
-              layout="vertical"
-            >
+            <Form form={loginForm} onFinish={onLoginFinish} layout="vertical">
               <Form.Item
                 name="username"
-                label="Tên Đăng Nhập (Email)"
-                rules={[{ required: true, message: 'Vui lòng nhập email đăng nhập!' }]}
+                label="Email / Tên đăng nhập"
+                rules={[{ required: true, message: 'Vui lòng nhập email!' }]}
               >
-                <Input
-                  prefix={<UserOutlined />}
-                  placeholder="Nhập email (vd: admin@test.com)"
-                  size="large"
-                />
+                <Input prefix={<UserOutlined />} placeholder="admin@test.com" size="large" />
               </Form.Item>
 
               <Form.Item
                 name="password"
-                label="Mật Khẩu"
+                label="Mật khẩu"
                 rules={[{ required: true, message: 'Vui lòng nhập mật khẩu!' }]}
               >
-                <Input.Password
-                  prefix={<LockOutlined />}
-                  placeholder="Nhập mật khẩu"
-                  size="large"
-                />
+                <Input.Password prefix={<LockOutlined />} placeholder="123456" size="large" />
               </Form.Item>
 
-              <Form.Item>
-                <Button
-                  type="primary"
-                  htmlType="submit"
-                  loading={loading}
-                  block
-                  size="large"
-                  style={{ height: '50px', fontSize: '16px', marginBottom: '10px' }}
-                >
-                  Đăng Nhập
-                </Button>
-              </Form.Item>
-
-              <div style={{ textAlign: 'center' }}>
-                <Button type="link" onClick={handleForgotPassword}>
-                  Quên mật khẩu?
-                </Button>
-              </div>
+              <Button type="primary" htmlType="submit" loading={loading} block size="large" style={{ height: '45px', marginTop: '10px' }}>
+                ĐĂNG NHẬP
+              </Button>
             </Form>
           </TabPane>
 
-          <TabPane tab="Đăng Ký" key="register">
-            <div style={{ textAlign: 'center', marginBottom: '30px' }}>
-              <h2 style={{ color: '#52c41a', marginBottom: '10px' }}>Đăng Ký Tài Khoản</h2>
-              <p style={{ color: '#666' }}>Tạo tài khoản mới để sử dụng hệ thống</p>
-            </div>
-
-            <Form
-              form={registerForm}
-              onFinish={onRegisterFinish}
-              layout="vertical"
-            >
-              <Form.Item
-                name="fullName"
-                label="Họ và Tên"
-                rules={[{ required: true, message: 'Vui lòng nhập họ và tên!' }]}
-              >
-                <Input
-                  prefix={<UserOutlined />}
-                  placeholder="Nhập họ và tên"
-                  size="large"
-                />
+          <TabPane tab="ĐĂNG KÝ" key="register">
+            <Form form={registerForm} onFinish={onRegisterFinish} layout="vertical">
+              <Form.Item name="fullName" label="Họ và tên" rules={[{ required: true }]}>
+                <Input prefix={<UserOutlined />} placeholder="Nguyễn Văn A" />
               </Form.Item>
-
-              <Form.Item
-                name="email"
-                label="Email"
-                rules={[
-                  { required: true, message: 'Vui lòng nhập email!' },
-                  { type: 'email', message: 'Email không hợp lệ!' }
-                ]}
-              >
-                <Input
-                  prefix={<MailOutlined />}
-                  placeholder="Nhập email"
-                  size="large"
-                />
+              <Form.Item name="email" label="Email" rules={[{ required: true, type: 'email' }]}>
+                <Input prefix={<MailOutlined />} placeholder="example@gmail.com" />
               </Form.Item>
-
-              <Form.Item
-                name="phone"
-                label="Số Điện Thoại"
-                rules={[{ required: true, message: 'Vui lòng nhập số điện thoại!' }]}
-              >
-                <Input
-                  prefix={<PhoneOutlined />}
-                  placeholder="Nhập số điện thoại"
-                  size="large"
-                />
+              <Form.Item name="phone" label="Số điện thoại" rules={[{ required: true }]}>
+                <Input prefix={<PhoneOutlined />} placeholder="090xxxxxxx" />
               </Form.Item>
-
-              <Form.Item
-                name="username"
-                label="Tên Đăng Nhập"
-                rules={[{ required: true, message: 'Vui lòng nhập tên đăng nhập!' }]}
-              >
-                <Input
-                  prefix={<UserOutlined />}
-                  placeholder="Nhập tên đăng nhập"
-                  size="large"
-                />
+              <Form.Item name="username" label="Tên tài khoản" rules={[{ required: true }]}>
+                <Input prefix={<UserOutlined />} placeholder="user123" />
               </Form.Item>
-
-              <Form.Item
-                name="password"
-                label="Mật Khẩu"
-                rules={[
-                  { required: true, message: 'Vui lòng nhập mật khẩu!' },
-                  { min: 6, message: 'Mật khẩu phải có ít nhất 6 ký tự!' }
-                ]}
-              >
-                <Input.Password
-                  prefix={<LockOutlined />}
-                  placeholder="Nhập mật khẩu"
-                  size="large"
-                />
+              <Form.Item name="password" label="Mật khẩu" rules={[{ required: true, min: 6 }]}>
+                <Input.Password prefix={<LockOutlined />} />
               </Form.Item>
-
-              <Form.Item
-                name="confirmPassword"
-                label="Xác Nhận Mật Khẩu"
-                dependencies={['password']}
-                rules={[
-                  { required: true, message: 'Vui lòng xác nhận mật khẩu!' },
-                  ({ getFieldValue }) => ({
-                    validator(_, value) {
-                      if (!value || getFieldValue('password') === value) {
-                        return Promise.resolve();
-                      }
-                      return Promise.reject(new Error('Mật khẩu xác nhận không khớp!'));
-                    },
-                  }),
-                ]}
-              >
-                <Input.Password
-                  prefix={<LockOutlined />}
-                  placeholder="Xác nhận mật khẩu"
-                  size="large"
-                />
-              </Form.Item>
-
-              <Form.Item>
-                <Button
-                  type="primary"
-                  htmlType="submit"
-                  loading={loading}
-                  block
-                  size="large"
-                  style={{ height: '50px', fontSize: '16px' }}
-                >
-                  Đăng Ký
-                </Button>
-              </Form.Item>
+              <Button type="primary" htmlType="submit" loading={loading} block style={{ background: '#52c41a', borderColor: '#52c41a' }}>
+                TẠO TÀI KHOẢN
+              </Button>
             </Form>
           </TabPane>
         </Tabs>
 
-        <Divider />
-
-        <div style={{ textAlign: 'center', color: '#666', fontSize: '14px' }}>
-          <p><strong>Tài khoản demo:</strong></p>
-          <p>Admin: admin@test.com / 123456</p>
-          <p>User: user@test.com / 123456</p>
+        <Divider plain><span style={{ color: '#ccc', fontWeight: 'normal', fontSize: '12px' }}>THÔNG TIN HỖ TRỢ</span></Divider>
+        
+        <div style={{ textAlign: 'center', fontSize: '13px', background: '#f5f5f5', padding: '10px', borderRadius: '8px' }}>
+          <p style={{ marginBottom: '5px' }}><strong>Tài khoản mẫu:</strong></p>
+          <div style={{ display: 'flex', justifyContent: 'space-around' }}>
+             <span>Admin: 123456</span>
+             <span>User: 123456</span>
+          </div>
         </div>
       </Card>
     </div>

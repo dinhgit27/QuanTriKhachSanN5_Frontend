@@ -1,15 +1,18 @@
-import axiosClient from '../api/axios'; // Nhúng cấu hình axios ở bước trước vào đây
+import axiosClient from '../api/axios';
 
-// Khai báo authAPI chứa các hàm liên quan đến đăng nhập, đăng ký
 export const authAPI = {
-    // Hàm gọi API Login
-    login: (data) => {
-        // Gọi xuống endpoint /api/Auth/login của Backend
-        return axiosClient.post('/Auth/login', data);
-    },
-    
-    // Hàm gọi API Register (để dành cho Tab Đăng ký của bạn)
-    register: (data) => {
-        return axiosClient.post('/Auth/register', data);
-    }
+    login: (data) => axiosClient.post('/Auth/login', data),
+    register: (data) => axiosClient.post('/Auth/register', data),
+};
+
+// ĐÂY LÀ THỨ MÀ RoomManagement.jsx ĐANG ĐÒI NÈ NÍ
+export const roomAPI = {
+    getAll: () => axiosClient.get('/Rooms'),
+    create: (data) => axiosClient.post('/Rooms', data),
+    // Thêm các hàm khác nếu cần...
+};
+
+// Cho cả BookingManagement nữa nhé
+export const bookingAPI = {
+    getAll: () => axiosClient.get('/Bookings'),
 };

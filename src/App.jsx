@@ -4,10 +4,10 @@ import ProtectedRoute from './routes/ProtectedRoute';
 import AdminLayout from './layouts/AdminLayout';
 import { useAdminAuthStore } from './store/adminAuthStore';
 import LoginPage from './pages/LoginPage';
+import UserListPage from './pages/UserListPage';
 
 
 const DashboardPage = () => <h1>ĐÂY LÀ TRANG ADMIN 🚀</h1>;
-const UserListPage = () => <h1>Đây là khu vực Quản lý Nhân sự 👥</h1>;
 const NotFoundPage = () => <h1>404 - Đường dẫn này không tồn tại 😢</h1>;
 
 // --- BƯỚC 2: CẤU HÌNH ROUTER CHÍNH ---

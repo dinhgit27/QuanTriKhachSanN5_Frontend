@@ -7,7 +7,8 @@ import LoginPage from './pages/LoginPage';
 
 
 const DashboardPage = () => <h1>ĐÂY LÀ TRANG ADMIN 🚀</h1>;
-const UserListPage = () => <h1>Đây là khu vực Quản lý Nhân sự 👥</h1>;
+import UserListPage from './pages/admin/UserListPage';
+
 const NotFoundPage = () => <h1>404 - Đường dẫn này không tồn tại 😢</h1>;
 
 // --- BƯỚC 2: CẤU HÌNH ROUTER CHÍNH ---
@@ -30,6 +31,7 @@ function App() {
                         {/* Các trang con sẽ được nhét vào thẻ <Outlet /> trong AdminLayout */}
                         <Route path="/admin/dashboard" element={<DashboardPage />} />
                         <Route path="/admin/users" element={<UserListPage />} />
+
                     </Route>
                 </Route>
 

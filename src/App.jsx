@@ -3,27 +3,8 @@ import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import ProtectedRoute from './routes/ProtectedRoute';
 import AdminLayout from './layouts/AdminLayout';
 import { useAdminAuthStore } from './store/adminAuthStore';
+import LoginPage from './pages/LoginPage';
 
-// --- BƯỚC 1: TẠO CÁC COMPONENT GIẢ (PLACEHOLDER) ĐỂ TEST ---
-// Vì mình chưa tạo trang thật, nên tôi làm mấy cái trang giả để ní test luồng chạy trước nhé.
-const LoginPage = () => {
-    const setAuth = useAdminAuthStore((state) => state.setAuth);
-    
-    const handleFakeLogin = () => {
-        // Giả lập hành động đăng nhập thành công, lưu Token giả vào Zustand và localStorage
-        setAuth('fake-jwt-token-123', { fullName: 'Đỉnh Nguyễn' }, ['admin.view']);
-        window.location.href = '/admin/dashboard'; // Chuyển hướng vào trong
-    };
-
-    return (
-        <div style={{ textAlign: 'center', marginTop: '100px' }}>
-            <h1>ĐĂNG NHẬP</h1>
-            <button onClick={handleFakeLogin} style={{ padding: '10px 20px', cursor: 'pointer' }}>
-                Bấm vào đây để giả lập Đăng Nhập
-            </button>
-        </div>
-    );
-};
 
 const DashboardPage = () => <h1>ĐÂY LÀ TRANG ADMIN 🚀</h1>;
 const UserListPage = () => <h1>Đây là khu vực Quản lý Nhân sự 👥</h1>;

@@ -4,11 +4,10 @@ import ProtectedRoute from './routes/ProtectedRoute';
 import AdminLayout from './layouts/AdminLayout';
 import { useAdminAuthStore } from './store/adminAuthStore';
 import LoginPage from './pages/LoginPage';
-import UserListPage from './pages/UserListPage';
+import UserListPage from './pages/admin/UserListPage';
 
 
 const DashboardPage = () => <h1>ĐÂY LÀ TRANG ADMIN 🚀</h1>;
-import UserListPage from './pages/admin/UserListPage';
 
 const NotFoundPage = () => <h1>404 - Đường dẫn này không tồn tại 😢</h1>;
 

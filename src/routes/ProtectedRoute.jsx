@@ -4,12 +4,12 @@ import { useAdminAuthStore } from '../store/adminAuthStore';
 const ProtectedRoute = () => {
     const token = useAdminAuthStore((state) => state.token);
 
-    // Kiểm tra JWT: Nếu không có token, chuyển hướng về /login
+    // Nếu không có Token, "đá" ngay về trang login [cite: 709, 710]
     if (!token) {
         return <Navigate to="/login" replace />;
     }
 
-    // Nếu hợp lệ, cho phép đi tiếp vào các component con (<Outlet />)
+    // Nếu có Token, cho phép truy cập vào các trang con bên trong [cite: 706]
     return <Outlet />;
 };
 

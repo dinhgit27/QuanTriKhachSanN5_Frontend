@@ -4,6 +4,7 @@ import ProtectedRoute from './routes/ProtectedRoute';
 import AdminLayout from './layouts/AdminLayout';
 import { useAdminAuthStore } from './store/adminAuthStore';
 import LoginPage from './pages/LoginPage';
+import UserListPage from './pages/UserListPage';
 
 
 const DashboardPage = () => <h1>ĐÂY LÀ TRANG ADMIN 🚀</h1>;

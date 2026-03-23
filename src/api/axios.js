@@ -1,30 +1,57 @@
 import axios from 'axios';
+import { useLoadingStore } from '../store/loadingStore'; 
 
-// 1. Khởi tạo cấu hình axios cơ bản
 const axiosClient = axios.create({
-    baseURL: import.meta.env.VITE_API_URL, // Lấy đường dẫn từ file .env
-    headers: { 'Content-Type': 'application/json' },
+    baseURL: import.meta.env.VITE_API_URL || 'https://localhost:5070/api', 
+    headers: {
+        'Content-Type': 'application/json',
+    },
 });
 
-// 2. Request Interceptor: Tự động gắn Token trước khi gửi đi
-axiosClient.interceptors.request.use((config) => {
-    const token = localStorage.getItem('token');
-    if (token) {
-        config.headers.Authorization = `Bearer ${token}`; // Nhớ có dấu cách sau Bearer
-    }
-    return config;
-});
-
-// 3. Response Interceptor: Bắt lỗi trả về từ Backend
-axiosClient.interceptors.response.use(
-    (response) => {
-        return response; // Trả về data nếu thành công
+// 1. REQUEST INTERCEPTOR: Chạy TRƯỚC KHI gửi request lên server
+axiosClient.interceptors.request.use(
+    (config) => {
+        // Lấy token từ localStorage
+        const token = localStorage.getItem('token');
+        
+        // Nếu có token thì tự động đính kèm vào Header
+        if (token) {
+            config.headers.Authorization = `Bearer ${token}`;
+        }
+        
+        
+        useLoadingStore.getState().setLoading(true); 
+        
+        return config;
     },
     (error) => {
-        // Nếu lỗi 401 (Hết hạn Token hoặc chưa đăng nhập), có thể code tự động văng ra trang login ở đây
-        if (error.response && error.response.status === 401) {
-             localStorage.removeItem('token');
-             window.location.href = '/login';
+        return Promise.reject(error);
+    }
+);
+
+// 2. RESPONSE INTERCEPTOR: Chạy SAU KHI nhận data từ server về
+axiosClient.interceptors.response.use(
+    (response) => {
+        
+        useLoadingStore.getState().setLoading(false); 
+        return response;
+    },
+    (error) => {
+       
+        useLoadingStore.getState().setLoading(false); 
+
+        // Xử lý lỗi tập trung
+        if (error.response) {
+            const { status } = error.response;
+            if (status === 401) {
+                // Hết hạn token -> Xóa token và đá về trang login
+                localStorage.removeItem('token');
+                localStorage.removeItem('role');
+                window.location.href = '/login';
+            } else if (status === 403) {
+                console.error("Bạn không có quyền thực hiện thao tác này!");
+                // Có thể dùng antd message.error() ở đây
+            }
         }
         return Promise.reject(error);
     }

@@ -1,9 +1,9 @@
 import React, { useState } from 'react';
 import { Form, Input, Button, Card, Typography, message } from 'antd';
 import { UserOutlined, LockOutlined } from '@ant-design/icons';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom'; // Bổ sung import Link ở đây
 import { useAdminAuthStore } from '../store/adminAuthStore';
-import { authAPI } from '../api/authApi'; // Import hàm gọi API vừa tạo
+import { authAPI } from '../api/authApi';
 
 const { Title, Text } = Typography;
 
@@ -19,16 +19,31 @@ const LoginPage = () => {
             // 1. Gọi API thực tế xuống Backend
             const response = await authAPI.login(values);
             
-            // 2. Lấy dữ liệu Backend trả về (Giả sử trả về token, user, permissions)
+            // 2. Lấy dữ liệu Backend trả về
             const { token, user, permissions } = response.data;
 
-            // 3. Lưu vào Zustand Store & LocalStorage
+            // 3. Lưu vào Zustand Store
             setAuth(token, user, permissions);
             
+            // 🚨 [QUAN TRỌNG] Bơm thêm dữ liệu user vào localStorage để ông bảo vệ RoleBasedRoute đọc được
+            localStorage.setItem('user', JSON.stringify(user));
+
             message.success('Đăng nhập thành công! Chào mừng trở lại.');
 
-            // 4. Chuyển hướng thẳng vào trang Dashboard
-            navigate('/admin/dashboard');
+            // 4. CHUYỂN HƯỚNG THÔNG MINH THEO CHỨC VỤ
+            // Kiểm tra xem backend trả về tên chức vụ ở trường nào (thường là roleName hoặc role)
+            const role = user.roleName || user.role; 
+            
+            if (role === 'Admin') {
+                navigate('/admin/dashboard');
+            } else if (role === 'Receptionist' || role === 'Lễ tân') {
+                navigate('/receptionist/dashboard');
+            } else if (role === 'Housekeeper' || role === 'Lao công') {
+                navigate('/housekeeper/dashboard');
+            } else {
+                navigate('/guest/dashboard'); // Khách hàng hoặc chưa có quyền
+            }
+
         } catch (error) {
             // Nếu lỗi (Sai pass, tài khoản khóa...), hiển thị thông báo lỗi
             const errorMsg = error.response?.data?.message || 'Tài khoản hoặc mật khẩu không đúng!';
@@ -75,6 +90,14 @@ const LoginPage = () => {
                             Đăng Nhập
                         </Button>
                     </Form.Item>
+
+                    {/* THÊM KHU VỰC LINK CHUYỂN TRANG Ở ĐÂY NÈ ĐỈNH */}
+                    <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '16px', fontSize: '14px' }}>
+                        <Link to="/forgot-password" style={{ color: '#1890ff' }}>Quên mật khẩu?</Link>
+                        <span style={{ color: '#8c8c8c' }}>
+                            Chưa có tài khoản? <Link to="/register" style={{ fontWeight: 'bold', color: '#1890ff' }}>Đăng ký ngay</Link>
+                        </span>
+                    </div>
                 </Form>
             </Card>
         </div>

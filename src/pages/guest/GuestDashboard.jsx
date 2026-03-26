@@ -1,54 +1,76 @@
 import React from 'react';
-import { Card, Typography, Button, List, Tag, Row, Col } from 'antd';
-import { PlusOutlined, CalendarOutlined } from '@ant-design/icons';
-
-const { Title, Text } = Typography;
+import { Card, Row, Col, Avatar, Descriptions, Tag, Statistic, Table, Tabs } from 'antd';
+import { UserOutlined, WalletOutlined, CheckCircleOutlined, CrownOutlined, HistoryOutlined } from '@ant-design/icons';
 
 const GuestDashboard = () => {
-  const myBookings = [
-    { id: 1, room: 'Phòng Đôi Hướng Biển', checkIn: '28/03/2026', checkOut: '30/03/2026', status: 'Sắp tới', price: '1,200,000 VND' },
-    { id: 2, room: 'Phòng Đơn Tiêu Chuẩn', checkIn: '15/02/2026', checkOut: '17/02/2026', status: 'Đã hoàn thành', price: '800,000 VND' },
-  ];
+    // Dữ liệu hiển thị mẫu
+    const user = {
+        fullName: "Ngô Xuân Kiều", //
+        email: "xuankieu@lhu.edu.vn", //
+        points: 1250,
+        rank: "Thành viên Vàng"
+    };
 
-  return (
-    <div style={{ padding: 24, maxWidth: 800, margin: '0 auto' }}>
-      <Row justify="space-between" align="middle" style={{ marginBottom: 24 }}>
-        <Col>
-          <Title level={2} style={{ margin: 0 }}>👋 Xin chào, Đỉnh!</Title>
-          <Text type="secondary">Chào mừng bạn trở lại hệ thống đặt phòng.</Text>
-        </Col>
-        <Col>
-          <Button type="primary" size="large" icon={<PlusOutlined />}>
-            Đặt phòng mới
-          </Button>
-        </Col>
-      </Row>
+    return (
+        <div style={{ padding: '24px' }}>
+            <h2 style={{ marginBottom: 20 }}>Bảng điều khiển khách hàng</h2>
 
-      <Card title="Lịch sử đặt phòng của tôi" bordered={false} style={{ borderRadius: 12, boxShadow: '0 4px 12px rgba(0,0,0,0.05)' }}>
-        <List
-          itemLayout="horizontal"
-          dataSource={myBookings}
-          renderItem={item => (
-            <List.Item
-              actions={[<Button type="link">Xem chi tiết</Button>]}
-            >
-              <List.Item.Meta
-                avatar={<CalendarOutlined style={{ fontSize: 32, color: '#1890ff' }} />}
-                title={<span style={{ fontSize: '16px', fontWeight: 'bold' }}>{item.room}</span>}
-                description={
-                  <div>
-                    <p style={{ margin: 0 }}>Từ: {item.checkIn} - Đến: {item.checkOut}</p>
-                    <p style={{ margin: 0, fontWeight: 'bold', color: '#ff4d4f' }}>Tổng tiền: {item.price}</p>
-                  </div>
-                }
-              />
-              <Tag color={item.status === 'Sắp tới' ? 'blue' : 'green'}>{item.status}</Tag>
-            </List.Item>
-          )}
-        />
-      </Card>
-    </div>
-  );
+            {/* --- 3 CARD THỐNG KÊ --- */}
+            <Row gutter={[16, 16]} style={{ marginBottom: 24 }}>
+                <Col span={8}>
+                    <Card hoverable style={{ borderRadius: '12px', borderBottom: '4px solid #1890ff' }}>
+                        <Statistic title="Phòng đang ở" value={1} prefix={<WalletOutlined style={{color: '#1890ff'}} />} />
+                    </Card>
+                </Col>
+                <Col span={8}>
+                    <Card hoverable style={{ borderRadius: '12px', borderBottom: '4px solid #52c41a' }}>
+                        <Statistic title="Điểm tích lũy" value={user.points} prefix={<CheckCircleOutlined style={{color: '#52c41a'}} />} />
+                    </Card>
+                </Col>
+                <Col span={8}>
+                    <Card hoverable style={{ borderRadius: '12px', borderBottom: '4px solid #faad14' }}>
+                        <Statistic title="Hạng thành viên" value={user.rank} prefix={<CrownOutlined style={{color: '#faad14'}} />} />
+                    </Card>
+                </Col>
+            </Row>
+
+            <Row gutter={[24, 24]}>
+                {/* --- THÔNG TIN TÀI KHOẢN --- */}
+                <Col span={10}>
+                    <Card title="Hồ sơ cá nhân">
+                        <div style={{ textAlign: 'center', marginBottom: 20 }}>
+                            <Avatar size={80} icon={<UserOutlined />} style={{ backgroundColor: '#1890ff' }} />
+                            <h3 style={{ marginTop: 10 }}>{user.fullName}</h3>
+                            <Tag color="gold">VIP CLIENT</Tag>
+                        </div>
+                        <Descriptions column={1} bordered size="small">
+                            <Descriptions.Item label="Email">{user.email}</Descriptions.Item>
+                        </Descriptions>
+                    </Card>
+                </Col>
+
+                {/* --- LỊCH SỬ --- */}
+                <Col span={14}>
+                    <Card title="Hoạt động">
+                        <Tabs defaultActiveKey="1" items={[
+                            {
+                                key: '1',
+                                label: (<span><HistoryOutlined /> Lịch sử thuê phòng</span>),
+                                children: (
+                                    <Table 
+                                        size="small" 
+                                        pagination={false} 
+                                        dataSource={[{ key: '1', id: 'P101', status: 'Thành công' }]} 
+                                        columns={[{ title: 'Mã phòng', dataIndex: 'id' }, { title: 'Trạng thái', dataIndex: 'status' }]} 
+                                    />
+                                )
+                            }
+                        ]} />
+                    </Card>
+                </Col>
+            </Row>
+        </div>
+    );
 };
 
 export default GuestDashboard;

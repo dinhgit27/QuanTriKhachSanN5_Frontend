@@ -42,11 +42,14 @@ const UserListPage = () => {
     setLoading(true);
     try {
       const response = await userManagementAPI.getUsers();
+      console.log('API Response:', response); // Debug log
       const data = response.data.items || response.data.data || response.data || [];
+      console.log('Processed data:', data); // Debug log
       setUsers(data);
       setFilteredUsers(data); 
       setTotal(data.length);
     } catch (error) {
+      console.error('Error fetching users:', error);
       message.error('Lỗi khi tải danh sách người dùng!');
     } finally {
       setLocalLoading(false);

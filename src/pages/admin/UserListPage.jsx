@@ -220,7 +220,7 @@ const UserListPage = () => {
       )}
 
       {/* Modal dùng chung cho cả Thêm và Sửa */}
-      <Modal title={editingId ? "Cập nhật Người dùng" : "Thêm Người dùng mới"} open={modalVisible} onCancel={() => setModalVisible(false)} footer={null} width={600} destroyOnClose>
+      <Modal title={editingId ? "Cập nhật Người dùng" : "Thêm Người dùng mới"} open={modalVisible} onCancel={() => setModalVisible(false)} footer={null} width={600} destroyOnHidden>
         <Form form={form} layout="vertical" onFinish={handleSubmitForm}>
           <Form.Item name="fullName" label="Họ và tên" rules={[{ required: true, message: 'Vui lòng nhập họ tên!' }]}><Input placeholder="Nguyễn Văn A" /></Form.Item>
           <Form.Item name="email" label="Email" rules={[{ required: true, message: 'Vui lòng nhập email!' }, { type: 'email', message: 'Email không đúng định dạng!' }]}><Input placeholder="example@domain.com" disabled={!!editingId} /></Form.Item>

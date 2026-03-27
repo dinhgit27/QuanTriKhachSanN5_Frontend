@@ -3,7 +3,7 @@ import { Layout, Menu, Button, Spin, Badge, Avatar } from 'antd';
 import { Outlet, useNavigate } from 'react-router-dom';
 import { BellOutlined, UserOutlined, LogoutOutlined } from '@ant-design/icons';
 import { useAdminAuthStore } from '../store/adminAuthStore';
-import { useLoadingStore } from '../store/loadingStore'; // Đảm bảo ní đã tạo file này ở bước trước nha
+import { useLoadingStore } from '../store/loadingStore';
 
 const { Header, Sider, Content } = Layout;
 

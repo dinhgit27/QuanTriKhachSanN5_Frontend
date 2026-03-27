@@ -17,6 +17,7 @@ import {
   DownOutlined,
 } from "@ant-design/icons";
 import { getUserRoles } from "../utils/auth";
+import { useAdminAuthStore } from "../store/adminAuthStore";
 
 const { Header, Content, Sider } = Layout;
 const { Title } = Typography;
@@ -24,6 +25,7 @@ const { Title } = Typography;
 const AdminLayout = () => {
   const [userRoles, setUserRoles] = useState([]);
   const navigate = useNavigate();
+  const clearAuth = useAdminAuthStore((state) => state.clearAuth);
 
   useEffect(() => {
     const roles = getUserRoles();
@@ -31,7 +33,7 @@ const AdminLayout = () => {
   }, []);
 
   const handleLogout = () => {
-    localStorage.removeItem("token");
+    clearAuth();
     message.success("Đăng xuất thành công!");
     navigate("/login");
   };

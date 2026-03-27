@@ -21,6 +21,13 @@ const LoginPage = () => {
 
       const { token, user, permissions } = response.data;
 
+      // --- WORKAROUND: Kiểm tra trạng thái tài khoản ở Frontend ---
+      // Mặc dù backend trả về token, ta vẫn kiểm tra lại ở đây
+      if (user && user.isActive === false) {
+        message.error("Tài khoản của bạn đã bị khóa. Vui lòng liên hệ quản trị viên.");
+        return; // Dừng quá trình đăng nhập
+      }
+
       // ✅ Decode token
       const decoded = jwtDecode(token);
 

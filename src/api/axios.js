@@ -1,5 +1,6 @@
 import axios from 'axios';
 import { useLoadingStore } from '../store/loadingStore'; 
+import { useAdminAuthStore } from '../store/adminAuthStore';
 
 const axiosClient = axios.create({
     baseURL: import.meta.env.VITE_API_URL || 'https://localhost:5070/api', 
@@ -44,10 +45,8 @@ axiosClient.interceptors.response.use(
         if (error.response) {
             const { status } = error.response;
             if (status === 401) {
-                // Hết hạn token -> Xóa token và đá về trang login
-                localStorage.removeItem('token');
-                localStorage.removeItem('role');
-                window.location.href = '/login';
+                useAdminAuthStore.getState().clearAuth();
+                window.location.href = '/login'; // Chuyển hướng về trang đăng nhập
             } else if (status === 403) {
                 console.error("Bạn không có quyền thực hiện thao tác này!");
                 // Có thể dùng antd message.error() ở đây

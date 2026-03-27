@@ -49,7 +49,7 @@ function App() {
           {/* Giả sử Lễ tân cũng xài chung Layout với Admin cho đẹp */}
           <Route
             element={
-              <RoleBasedRoute allowedRoles={["Receptionist", "Lễ tân"]} />
+              <RoleBasedRoute allowedRoles={["Receptionist"]} />
             }
           >
             <Route element={<AdminLayout />}>
@@ -63,7 +63,7 @@ function App() {
           {/* --- KHU VỰC DÀNH CHO HOUSEKEEPER (Lao Công) --- */}
           <Route
             element={
-              <RoleBasedRoute allowedRoles={["Housekeeper", "Lao công"]} />
+              <RoleBasedRoute allowedRoles={["Housekeeping"]} />
             }
           >
             {/* Lao công thường xem trên điện thoại, không cần AdminLayout rườm rà */}
@@ -77,7 +77,7 @@ function App() {
           <Route
             element={
               <RoleBasedRoute
-                allowedRoles={["Guest", "Khách hàng", "Chưa cấp quyền"]}
+                allowedRoles={["Guest"]}
               />
             }
           >

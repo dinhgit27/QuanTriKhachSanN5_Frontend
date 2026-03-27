@@ -15,49 +15,48 @@ const LoginPage = () => {
 
   // Hàm này tự động chạy khi người dùng điền đúng form và bấm Submit
   const onFinish = async (values) => {
-    setLoading(true); // Bật hiệu ứng xoay xoay ở nút Đăng nhập
+    setLoading(true);
     try {
       const response = await authAPI.login(values);
 
-      // ⚠️ Sửa chỗ destruct
       const { token, user, permissions } = response.data;
 
-      // 2. Decode token
+      // ✅ Decode token
       const decoded = jwtDecode(token);
 
-      const roles =
-        decoded[
-          "http://schemas.microsoft.com/ws/2008/06/identity/claims/role"
-        ] || [];
+      let roles =
+        decoded["http://schemas.microsoft.com/ws/2008/06/identity/claims/role"];
 
-      // 3. Lưu localStorage
+      // 🔥 FIX: đảm bảo luôn là array
+      if (!roles) roles = [];
+      if (!Array.isArray(roles)) roles = [roles];
+
+      console.log("Roles:", roles);
+
+      // ✅ Lưu
       localStorage.setItem("token", token);
       localStorage.setItem("user", JSON.stringify(user));
 
       setAuth(token, user, permissions);
 
-      message.success("Đăng nhập thành công! Chào mừng trở lại.");
+      message.success("Đăng nhập thành công!");
 
-      // 4. CHUYỂN HƯỚNG THÔNG MINH THEO CHỨC VỤ
-      // Kiểm tra xem backend trả về tên chức vụ ở trường nào (thường là roleName hoặc role)
-      const role = user.roleName || user.role;
-
-      if (role === "Admin") {
+      // ✅ 🔥 DÙNG roles (KHÔNG dùng user.role nữa)
+      if (roles.includes("Admin")) {
         navigate("/admin/dashboard");
-      } else if (role === "Receptionist" || role === "Lễ tân") {
+      } else if (roles.includes("Receptionist")) {
         navigate("/receptionist/dashboard");
-      } else if (role === "Housekeeper" || role === "Lao công") {
+      } else if (roles.includes("Housekeeping")) {
         navigate("/housekeeper/dashboard");
       } else {
-        navigate("/guest/dashboard"); // Khách hàng hoặc chưa có quyền
+        navigate("/guest/dashboard");
       }
     } catch (error) {
-      // Nếu lỗi (Sai pass, tài khoản khóa...), hiển thị thông báo lỗi
       const errorMsg =
         error.response?.data?.message || "Tài khoản hoặc mật khẩu không đúng!";
       message.error(errorMsg);
     } finally {
-      setLoading(false); // Tắt hiệu ứng xoay xoay
+      setLoading(false);
     }
   };
 

@@ -1,12 +1,19 @@
 import React, { useState } from "react";
-import { Form, Input, Button, Card, Typography, message } from "antd";
-import { UserOutlined, LockOutlined } from "@ant-design/icons";
+// 1. ĐÃ SỬA: Thêm Row, Col vào import của antd
+import { Form, Input, Button, Card, Typography, message, Row, Col } from "antd";
+// 2. ĐÃ SỬA: Thêm BankFilled, MailOutlined vào import của icon
+import { MailOutlined, LockOutlined, BankFilled } from "@ant-design/icons";
 import { useNavigate, Link } from "react-router-dom";
 import { useAdminAuthStore } from "../store/adminAuthStore";
 import { authAPI } from "../api/authApi";
 import { jwtDecode } from "jwt-decode";
 
 const { Title, Text } = Typography;
+const COLORS = {
+  primary: "#e6b83b", // Vàng gold
+  dark: "#1a1a1a",
+  gray: "#8c8c8c"
+};
 
 const LoginPage = () => {
   const navigate = useNavigate();
@@ -22,7 +29,6 @@ const LoginPage = () => {
       const { token, user, permissions } = response.data;
 
       // --- WORKAROUND: Kiểm tra trạng thái tài khoản ở Frontend ---
-      // Mặc dù backend trả về token, ta vẫn kiểm tra lại ở đây
       if (user && user.isActive === false) {
         message.error("Tài khoản của bạn đã bị khóa. Vui lòng liên hệ quản trị viên.");
         return; // Dừng quá trình đăng nhập
@@ -68,98 +74,133 @@ const LoginPage = () => {
   };
 
   return (
-    <div
-      style={{
-        display: "flex",
-        justifyContent: "center",
-        alignItems: "center",
-        height: "100vh",
-        background: "linear-gradient(135deg, #1890ff 0%, #8A2BE2 100%)",
-      }}
-    >
-      <Card
-        style={{
-          width: 400,
-          boxShadow: "0 10px 25px rgba(0,0,0,0.2)",
-          borderRadius: "12px",
-        }}
-      >
-        <div style={{ textAlign: "center", marginBottom: "24px" }}>
-          <Title level={2} style={{ color: "#1890ff", marginBottom: 0 }}>
-            HOTEL ERP
-          </Title>
-          <Text type="secondary">Hệ thống quản trị nội bộ</Text>
-        </div>
+    <Row style={{ minHeight: "100vh", backgroundColor: "#fff" }}>
+      {/* CỘT TRÁI: FORM ĐĂNG NHẬP */}
+      <Col xs={24} md={10} style={{ 
+        display: 'flex', 
+        flexDirection: 'column', 
+        justifyContent: 'center', 
+        padding: '0 8%' // Căn lề hai bên cho form
+      }}>
+        <div style={{ maxWidth: 400, margin: '0 auto', width: '100%', textAlign: 'center' }}>
+          
+          {/* Logo & Tiêu đề */}
+          <div style={{ marginBottom: 40 }}>
+            <div style={{ 
+              width: 50, 
+              height: 50, 
+              background: COLORS.primary, 
+              borderRadius: 12, 
+              display: 'flex', 
+              justifyContent: 'center', 
+              alignItems: 'center', 
+              margin: '0 auto 15px auto' 
+            }}>
+              <BankFilled style={{ color: '#fff', fontSize: 24 }} />
+            </div>
+            <Title level={2} style={{ margin: 0, color: COLORS.dark }}>Hệ thống Khách sạn</Title>
+            <Text type="secondary">Đăng nhập để tiếp tục</Text>
+          </div>
 
-        <Form
-          name="login_form"
-          layout="vertical"
-          onFinish={onFinish}
-          size="large"
-        >
-          {/* Ô nhập Email */}
-          <Form.Item
-            name="email"
-            rules={[
-              { required: true, message: "Vui lòng nhập Email!" },
-              { type: "email", message: "Định dạng Email không hợp lệ!" },
-            ]}
+          {/* Form Đăng nhập */}
+          <Form
+            name="login_form"
+            layout="vertical"
+            onFinish={onFinish}
+            size="large"
           >
-            <Input
-              prefix={<UserOutlined style={{ color: "#bfbfbf" }} />}
-              placeholder="Email đăng nhập"
-            />
-          </Form.Item>
-
-          {/* Ô nhập Mật khẩu */}
-          <Form.Item
-            name="password"
-            rules={[{ required: true, message: "Vui lòng nhập Mật khẩu!" }]}
-          >
-            <Input.Password
-              prefix={<LockOutlined style={{ color: "#bfbfbf" }} />}
-              placeholder="Mật khẩu"
-            />
-          </Form.Item>
-
-          {/* Nút Đăng nhập */}
-          <Form.Item style={{ marginTop: "30px", marginBottom: 0 }}>
-            <Button
-              type="primary"
-              htmlType="submit"
-              block
-              loading={loading}
-              style={{ height: "45px", fontSize: "16px" }}
+            <Form.Item
+              name="email"
+              label={<Text strong>Email</Text>}
+              rules={[
+                { required: true, message: 'Vui lòng nhập email!' },
+                { type: 'email', message: 'Email không đúng định dạng!' }
+              ]}
             >
-              Đăng Nhập
-            </Button>
-          </Form.Item>
+              <Input 
+                prefix={<MailOutlined style={{ color: COLORS.gray, marginRight: 8 }} />} 
+                placeholder="email@example.com" 
+                style={{ borderRadius: 8 }}
+              />
+            </Form.Item>
 
-          {/* THÊM KHU VỰC LINK CHUYỂN TRANG Ở ĐÂY NÈ ĐỈNH */}
-          <div
-            style={{
-              display: "flex",
-              justifyContent: "space-between",
-              marginTop: "16px",
-              fontSize: "14px",
-            }}
-          >
-            <Link to="/forgot-password" style={{ color: "#1890ff" }}>
+            <Form.Item
+              name="password"
+              label={<Text strong>Mật khẩu</Text>}
+              rules={[{ required: true, message: 'Vui lòng nhập mật khẩu!' }]}
+            >
+              <Input.Password 
+                prefix={<LockOutlined style={{ color: COLORS.gray, marginRight: 8 }} />} 
+                placeholder="••••••••" 
+                style={{ borderRadius: 8 }}
+              />
+            </Form.Item>
+
+            <Form.Item style={{ marginTop: 30 }}>
+              <Button 
+                type="primary" 
+                htmlType="submit" 
+                block 
+                loading={loading} // Thêm loading vào đây
+                style={{ 
+                  background: COLORS.primary, 
+                  borderColor: COLORS.primary, 
+                  height: 45, 
+                  borderRadius: 8,
+                  fontWeight: 'bold',
+                  fontSize: 16
+                }}
+              >
+                Đăng nhập
+              </Button>
+            </Form.Item>
+          </Form>
+
+          {/* Quên mật khẩu & Đăng ký */}
+          <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 15 }}>
+            <Link to="/forgot-password" style={{ color: COLORS.gray, fontWeight: 500 }}>
               Quên mật khẩu?
             </Link>
-            <span style={{ color: "#8c8c8c" }}>
-              Chưa có tài khoản?{" "}
-              <Link
-                to="/register"
-                style={{ fontWeight: "bold", color: "#1890ff" }}
-              >
-                Đăng ký ngay
-              </Link>
-            </span>
+            <Text>
+              Chưa có tài khoản? <Link to="/register" style={{ color: COLORS.primary, fontWeight: 'bold' }}>Đăng ký</Link>
+            </Text>
           </div>
-        </Form>
-      </Card>
-    </div>
+
+        </div>
+      </Col>
+
+      {/* CỘT PHẢI: HÌNH ẢNH BACKGROUND */}
+      <Col xs={0} md={14} style={{
+        backgroundImage: `url('https://res.cloudinary.com/dqx8hqmcv/image/upload/v1774629245/trang-dang-ky_hs5ann.jpg')`, 
+        backgroundSize: 'cover',
+        backgroundPosition: 'center',
+        position: 'relative'
+      }}>
+        {/* Lớp phủ đen gradient từ dưới lên để chữ hiển thị rõ */}
+        <div style={{
+          position: 'absolute',
+          bottom: 0,
+          left: 0,
+          right: 0,
+          height: '40%',
+          background: 'linear-gradient(to top, rgba(0,0,0,0.8), transparent)',
+          display: 'flex',
+          flexDirection: 'column',
+          justifyContent: 'flex-end',
+          padding: '60px'
+        }}>
+          <Title level={1} style={{ color: '#fff', margin: 0, fontFamily: 'serif' }}>
+            Chào mừng đến với
+          </Title>
+          <Title level={1} style={{ color: '#fff', marginTop: 0, fontFamily: 'serif' }}>
+            Hệ thống Quản trị Khách sạn
+          </Title>
+          <Text style={{ color: '#e0e0e0', fontSize: 18, marginTop: 10 }}>
+            Giải pháp toàn diện cho quản lý khách sạn hiện đại
+          </Text>
+        </div>
+      </Col>
+    </Row>
   );
 };
 

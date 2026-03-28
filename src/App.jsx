@@ -5,6 +5,7 @@ import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import ProtectedRoute from "./routes/ProtectedRoute";
 import RoleBasedRoute from "./routes/RoleBasedRoute";
 
+import HomePage from './pages/HomePage';
 import AdminLayout from "./layouts/AdminLayout";
 import LoginPage from "./pages/LoginPage";
 import UserListPage from "./pages/admin/UserListPage";
@@ -26,6 +27,7 @@ function App() {
     <BrowserRouter>
       <Routes>
         {/* 1. Mặc định vào Web sẽ tự động đá sang trang Login */}
+        <Route path="/" element={<HomePage />} />
         <Route path="/" element={<Navigate to="/login" replace />} />
 
         {/* 2. TUYẾN ĐƯỜNG TỰ DO (Chưa đăng nhập cũng vào được) */}

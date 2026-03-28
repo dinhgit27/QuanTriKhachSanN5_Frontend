@@ -1,58 +1,100 @@
-import React from 'react';
-import { Layout, Menu, Button, Spin, Badge, Avatar } from 'antd';
-import { Outlet, useNavigate } from 'react-router-dom';
-import { BellOutlined, UserOutlined, LogoutOutlined } from '@ant-design/icons';
-import { useAdminAuthStore } from '../store/adminAuthStore';
-import { useLoadingStore } from '../store/loadingStore'; // Đảm bảo ní đã tạo file này ở bước trước nha
+import React, { useState, useEffect } from "react";
+import { Link, Outlet, useNavigate } from "react-router-dom";
+import {
+  Layout,
+  Menu,
+  Button,
+  Avatar,
+  Dropdown,
+  Space,
+  Typography,
+  message,
+} from "antd";
+import {
+  DashboardOutlined,
+  UserOutlined,
+  LogoutOutlined,
+  DownOutlined,
+} from "@ant-design/icons";
+import { getUserRoles } from "../utils/auth";
+import { useAdminAuthStore } from "../store/adminAuthStore";
 
-const { Header, Sider, Content } = Layout;
+const { Header, Content, Sider } = Layout;
+const { Title } = Typography;
 
 const AdminLayout = () => {
-    const navigate = useNavigate();
-    const { user, clearAuth } = useAdminAuthStore();
-    const isLoading = useLoadingStore((state) => state.isLoading);
+  const [userRoles, setUserRoles] = useState([]);
+  const navigate = useNavigate();
+  const clearAuth = useAdminAuthStore((state) => state.clearAuth);
 
-    const handleLogout = () => {
-        clearAuth();
-        navigate('/login');
-    };
+  useEffect(() => {
+    const roles = getUserRoles();
+    setUserRoles(roles);
+  }, []);
 
-    return (
-        // Global Loading Overlay: Spin bao trùm toàn bộ
-        <Spin spinning={isLoading} tip="Đang tải dữ liệu..." size="large">
-            <Layout style={{ minHeight: '100vh' }}>
-                {/* Sidebar: Menu điều hướng */}
-                <Sider collapsible>
-                    <div className="logo" style={{ height: 32, margin: 16, background: 'rgba(255, 255, 255, 0.2)' }} />
-                    <Menu theme="dark" defaultSelectedKeys={['1']} mode="inline">
-                        <Menu.Item key="1" onClick={() => navigate('/admin/dashboard')}>Dashboard</Menu.Item>
-                        <Menu.Item key="2" onClick={() => navigate('/admin/users')}>Quản lý Nhân sự</Menu.Item>
-                    </Menu>
-                </Sider>
-                
-                <Layout className="site-layout">
-                    {/* Header: Avatar, Chuông báo, Nút Đăng xuất */}
-                    <Header style={{ padding: '0 24px', background: '#fff', display: 'flex', justifyContent: 'flex-end', alignItems: 'center', gap: '24px' }}>
-                        <Badge count={3}>
-                            <BellOutlined style={{ fontSize: '20px', cursor: 'pointer' }} />
-                        </Badge>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                            <Avatar icon={<UserOutlined />} />
-                            <span>{user?.fullName || 'Admin'}</span>
-                            <Button type="primary" danger icon={<LogoutOutlined />} onClick={handleLogout}>Đăng xuất</Button>
-                        </div>
-                    </Header>
-                    
-                    {/* Content: Vùng render động qua cơ chế <Outlet /> */}
-                    <Content style={{ margin: '16px' }}>
-                        <div style={{ padding: 24, minHeight: 360, background: '#fff', borderRadius: '8px' }}>
-                            <Outlet />
-                        </div>
-                    </Content>
-                </Layout>
-            </Layout>
-        </Spin>
-    );
+  const handleLogout = () => {
+    clearAuth();
+    message.success("Đăng xuất thành công!");
+    navigate("/login");
+  };
+
+  // Chỉ Admin mới thấy Quản lý nhân sự
+  const menuItems = [
+    {
+      key: "1",
+      icon: <DashboardOutlined />,
+      label: <Link to={userRoles.includes("Admin") ? "/admin/dashboard" : "/receptionist/dashboard"}>Dashboard</Link>,
+    },
+    userRoles.includes("Admin") && {
+      key: "2",
+      icon: <UserOutlined />,
+      label: <Link to="/admin/users">Quản lý nhân sự</Link>,
+    },
+  ].filter(Boolean); // Lọc bỏ các giá trị null/false
+
+  const userMenuItems = [
+    {
+      key: "logout",
+      label: "Đăng xuất",
+      icon: <LogoutOutlined />,
+      onClick: handleLogout,
+    },
+  ];
+
+  return (
+    <Layout style={{ minHeight: "100vh" }}>
+      <Sider collapsible>
+        <div style={{ height: 32, margin: 16, background: "rgba(255, 255, 255, 0.2)", textAlign: "center", lineHeight: "32px", color: "white", fontWeight: "bold" }}>
+          HOTEL ERP
+        </div>
+        <Menu
+          theme="dark"
+          defaultSelectedKeys={["1"]}
+          mode="inline"
+          items={menuItems}
+        />
+      </Sider>
+      <Layout>
+        <Header style={{ padding: "0 24px", background: "#fff", display: "flex", justifyContent: "flex-end", alignItems: "center" }}>
+          <Dropdown menu={{ items: userMenuItems }}>
+            <a onClick={(e) => e.preventDefault()}>
+              <Space>
+                <Avatar icon={<UserOutlined />} />
+                {/* Hiển thị vai trò người dùng */}
+                <span style={{textTransform: 'capitalize'}}>{userRoles.join(", ")}</span>
+                <DownOutlined />
+              </Space>
+            </a>
+          </Dropdown>
+        </Header>
+        <Content style={{ margin: "16px" }}>
+          <div style={{ padding: 24, minHeight: 'calc(100vh - 132px)', background: "#fff", borderRadius: '8px' }}>
+            <Outlet />
+          </div>
+        </Content>
+      </Layout>
+    </Layout>
+  );
 };
 
 export default AdminLayout;

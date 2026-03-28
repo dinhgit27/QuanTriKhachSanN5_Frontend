@@ -1,16 +1,15 @@
-import { Navigate, Outlet } from 'react-router-dom';
-import { useAdminAuthStore } from '../store/adminAuthStore';
+import { Navigate, Outlet } from "react-router-dom";
+import { useAdminAuthStore } from "../store/adminAuthStore";
+import { getUserRoles } from "../utils/auth";
 
 const ProtectedRoute = () => {
-    const token = useAdminAuthStore((state) => state.token);
+  const token = localStorage.getItem("token");
 
-    // Nếu không có Token, "đá" ngay về trang login [cite: 709, 710]
-    if (!token) {
-        return <Navigate to="/login" replace />;
-    }
+  if (!token) {
+    return <Navigate to="/login" />;
+  }
 
-    // Nếu có Token, cho phép truy cập vào các trang con bên trong [cite: 706]
-    return <Outlet />;
+  return <Outlet />;
 };
 
 export default ProtectedRoute;

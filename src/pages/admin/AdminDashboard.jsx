@@ -2,7 +2,6 @@ import React, { useState, useEffect } from 'react';
 import { Layout, Menu, Card, Row, Col, Statistic, Table, Tag, Button, Typography, Space, DatePicker, Select, Input, Modal, Form, message, Badge, Tooltip, Tabs, List, Avatar, Drawer, Spin, Alert } from 'antd';
 import { KeyOutlined, CheckCircleOutlined, SyncOutlined, UserOutlined, CalendarOutlined, SearchOutlined, PlusOutlined, EditOutlined, DeleteOutlined, DollarOutlined, ClockCircleOutlined, HomeOutlined, FileTextOutlined, UserAddOutlined, SettingOutlined, BellOutlined, AppstoreOutlined, CheckOutlined, CloseCircleOutlined, ExclamationCircleOutlined } from '@ant-design/icons';
 import moment from 'moment';
-import { roomApi, bookingApi, serviceApi, roomInventoryApi } from '../../services/api';
 
 const { Title, Text } = Typography;
 const { RangePicker } = DatePicker;
@@ -10,7 +9,7 @@ const { Option } = Select;
 const { TabPane } = Tabs;
 const { Header, Sider, Content } = Layout;
 
-const ReceptionistDashboard = () => {
+const AdminDashboard = () => {
   // State quản lý dữ liệu
   const [loading, setLoading] = useState(false);
   const [activeTab, setActiveTab] = useState('room-map');
@@ -39,121 +38,23 @@ const ReceptionistDashboard = () => {
   const [form] = Form.useForm();
   const [serviceForm] = Form.useForm();
 
-  // Lấy dữ liệu từ API backend
+  // Dữ liệu mẫu (sẽ thay bằng API)
   useEffect(() => {
-    const fetchData = async () => {
-      setLoading(true);
-      try {
-        // Lấy danh sách phòng
-        const roomsResponse = await roomApi.getRooms();
-        const roomsData = roomsResponse.data || [];
-        
-        // Lấy danh sách loại phòng để ánh xạ thông tin
-        const roomTypesResponse = await roomApi.getRoomTypes();
-        const roomTypesData = roomTypesResponse.data || [];
-
-        // Xử lý dữ liệu phòng
-        const processedRooms = roomsData.map(room => {
-          const roomType = roomTypesData.find(rt => rt.id === room.roomTypeId);
-          const roomTypeConfig = {
-            'Standard': { icon: '🛏️', color: '#1890ff' },
-            'Deluxe': { icon: '🏨', color: '#52c41a' },
-            'Suite': { icon: '👑', color: '#faad14' },
-            'Family': { icon: '👨‍👩‍👧‍👦', color: '#722ed1' },
-            'Executive': { icon: '💼', color: '#eb2f96' }
-          };
-          
-          const typeInfo = roomTypeConfig[roomType?.name || 'Standard'] || roomTypeConfig['Standard'];
-
-          return {
-            id: room.id,
-            number: room.roomNumber,
-            type: roomType?.name || 'Standard',
-            status: room.status || 'available',
-            price: roomType?.basePrice || 500000,
-            floor: Math.floor(room.roomNumber / 100),
-            icon: typeInfo.icon,
-            color: typeInfo.color
-          };
-        });
-
-        setRooms(processedRooms);
-
-        // Lấy danh sách booking
-        const bookingsResponse = await bookingApi.getBookings();
-        const bookingsData = bookingsResponse.data || [];
-
-        // Lấy danh sách dịch vụ
-        const servicesResponse = await serviceApi.getServices();
-        const servicesData = servicesResponse.data || [];
-
-        setBookings(bookingsData);
-        setServices(servicesData);
-
-        // Tính toán thống kê
-        const available = processedRooms.filter(r => r.status === 'available').length;
-        const occupied = processedRooms.filter(r => r.status === 'occupied').length;
-        const dirty = processedRooms.filter(r => r.status === 'dirty').length;
-        const todayCheckins = bookingsData.filter(b => moment(b.checkInDate).isSame(moment(), 'day')).length;
-        const todayCheckouts = bookingsData.filter(b => moment(b.checkOutDate).isSame(moment(), 'day')).length;
-        const revenueToday = bookingsData
-          .filter(b => moment(b.checkOutDate).isSame(moment(), 'day'))
-          .reduce((sum, b) => sum + (b.totalAmount || 0), 0);
-
-        setStats({
-          availableRooms: available,
-          occupiedRooms: occupied,
-          dirtyRooms: dirty,
-          todayCheckins,
-          todayCheckouts,
-          revenueToday
-        });
-
-      } catch (error) {
-        console.error('Lỗi khi lấy dữ liệu từ API:', error);
-        message.error('Backend trả về lỗi 500. Đang sử dụng dữ liệu mẫu.');
-        console.log('Lưu ý: Backend đang chạy trên cổng 5070');
-        console.log('Lỗi 500 có thể do backend chưa cấu hình đúng hoặc database chưa kết nối');
-        console.log('Backend hiện không hoạt động, ứng dụng sẽ sử dụng dữ liệu mẫu để demo');
-        // Sử dụng dữ liệu mẫu nếu API không hoạt động
-        loadMockData();
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchData();
-  }, []);
-
-  // Dữ liệu mẫu (dùng khi API không hoạt động)
-  const loadMockData = () => {
-    const mockRooms = [];
-    const roomTypes = [
-      { type: 'Standard', price: 500000, icon: '🛏️', color: '#1890ff' },
-      { type: 'Deluxe', price: 800000, icon: '🏨', color: '#52c41a' },
-      { type: 'Suite', price: 1200000, icon: '👑', color: '#faad14' },
-      { type: 'Family', price: 1500000, icon: '👨‍👩‍👧‍👦', color: '#722ed1' },
-      { type: 'Executive', price: 2000000, icon: '💼', color: '#eb2f96' }
+    // Mock data
+    const mockRooms = [
+      { id: 1, number: '101', type: 'Standard', status: 'available', price: 500000, floor: 1 },
+      { id: 2, number: '102', type: 'Standard', status: 'occupied', price: 500000, floor: 1 },
+      { id: 3, number: '103', type: 'Standard', status: 'dirty', price: 500000, floor: 1 },
+      { id: 4, number: '201', type: 'Deluxe', status: 'available', price: 800000, floor: 2 },
+      { id: 5, number: '202', type: 'Deluxe', status: 'occupied', price: 800000, floor: 2 },
+      { id: 6, number: '203', type: 'Deluxe', status: 'available', price: 800000, floor: 2 },
+      { id: 7, number: '301', type: 'Suite', status: 'available', price: 1200000, floor: 3 },
+      { id: 8, number: '302', type: 'Suite', status: 'dirty', price: 1200000, floor: 3 },
+      { id: 9, number: '303', type: 'Suite', status: 'occupied', price: 1200000, floor: 3 },
+      { id: 10, number: '401', type: 'Family', status: 'available', price: 1500000, floor: 4 },
+      { id: 11, number: '402', type: 'Family', status: 'available', price: 1500000, floor: 4 },
+      { id: 12, number: '403', type: 'Family', status: 'occupied', price: 1500000, floor: 4 },
     ];
-
-    let roomId = 1;
-    for (let floor = 1; floor <= 10; floor++) {
-      for (let roomNum = 1; roomNum <= 20; roomNum++) {
-        const roomType = roomTypes[Math.floor(Math.random() * roomTypes.length)];
-        const status = Math.random() < 0.3 ? 'dirty' : Math.random() < 0.4 ? 'occupied' : 'available';
-        
-        mockRooms.push({
-          id: roomId++,
-          number: `${floor.toString().padStart(2, '0')}${roomNum.toString().padStart(2, '0')}`,
-          type: roomType.type,
-          status: status,
-          price: roomType.price,
-          floor: floor,
-          icon: roomType.icon,
-          color: roomType.color
-        });
-      }
-    }
 
     const mockBookings = [
       { 
@@ -161,7 +62,7 @@ const ReceptionistDashboard = () => {
         guestName: 'Nguyễn Văn A', 
         guestPhone: '0912345678',
         guestIdCard: '012345678901',
-        roomNumber: '0102', 
+        roomNumber: '102', 
         roomType: 'Standard',
         checkInTime: moment().subtract(2, 'hours'),
         checkOutTime: moment().add(1, 'day'),
@@ -175,7 +76,7 @@ const ReceptionistDashboard = () => {
         guestName: 'Trần Thị B', 
         guestPhone: '0987654321',
         guestIdCard: '098765432109',
-        roomNumber: '0202', 
+        roomNumber: '202', 
         roomType: 'Deluxe',
         checkInTime: moment().subtract(1, 'day'),
         checkOutTime: moment(),
@@ -189,7 +90,7 @@ const ReceptionistDashboard = () => {
         guestName: 'Lê Hoàng C', 
         guestPhone: '0934567890',
         guestIdCard: '034567890123',
-        roomNumber: '0303', 
+        roomNumber: '303', 
         roomType: 'Suite',
         checkInTime: moment().subtract(3, 'hours'),
         checkOutTime: moment().add(2, 'days'),
@@ -203,7 +104,7 @@ const ReceptionistDashboard = () => {
         guestName: 'Phạm Thị D', 
         guestPhone: '0978901234',
         guestIdCard: '078901234567',
-        roomNumber: '0403', 
+        roomNumber: '403', 
         roomType: 'Family',
         checkInTime: moment().subtract(1, 'day'),
         checkOutTime: moment().add(1, 'day'),
@@ -212,6 +113,13 @@ const ReceptionistDashboard = () => {
         totalAmount: 3000000,
         bookingType: 'online'
       },
+    ];
+
+    const mockGuests = [
+      { id: 1, name: 'Nguyễn Văn A', phone: '0912345678', idCard: '012345678901', isRegular: true, bookingCount: 5, totalSpent: 7500000 },
+      { id: 2, name: 'Trần Thị B', phone: '0987654321', idCard: '098765432109', isRegular: false, bookingCount: 1, totalSpent: 1600000 },
+      { id: 3, name: 'Lê Hoàng C', phone: '0934567890', idCard: '034567890123', isRegular: false, bookingCount: 1, totalSpent: 1500000 },
+      { id: 4, name: 'Phạm Thị D', phone: '0978901234', idCard: '078901234567', isRegular: true, bookingCount: 3, totalSpent: 4200000 },
     ];
 
     const mockServices = [
@@ -224,6 +132,7 @@ const ReceptionistDashboard = () => {
 
     setRooms(mockRooms);
     setBookings(mockBookings);
+    setGuests(mockGuests);
     setServices(mockServices);
     
     // Tính toán thống kê
@@ -244,7 +153,7 @@ const ReceptionistDashboard = () => {
       todayCheckouts,
       revenueToday
     });
-  };
+  }, []);
 
   // Cập nhật thống kê khi thay đổi dữ liệu
   useEffect(() => {
@@ -374,7 +283,7 @@ const ReceptionistDashboard = () => {
 
   // Render Room Map (Sơ đồ phòng)
   const renderRoomMap = () => {
-    const floors = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10];
+    const floors = [1, 2, 3, 4];
     
     const getStatusColor = (status) => {
       switch (status) {
@@ -477,7 +386,7 @@ const ReceptionistDashboard = () => {
         {floors.map(floor => (
           <Card 
             key={floor} 
-            title={`Tầng ${floor.toString().padStart(2, '0')}`} 
+            title={`Tầng ${floor}`} 
             style={{ marginBottom: 24 }}
             extra={
               <Space>
@@ -487,7 +396,7 @@ const ReceptionistDashboard = () => {
               </Space>
             }
           >
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(10, 1fr)', gap: 12 }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 16 }}>
               {rooms.filter(room => room.floor === floor).map(room => (
                 <div 
                   key={room.id}
@@ -495,35 +404,34 @@ const ReceptionistDashboard = () => {
                     border: '2px solid',
                     borderColor: getStatusColor(room.status),
                     borderRadius: 8,
-                    padding: 12,
+                    padding: 16,
                     textAlign: 'center',
                     cursor: 'pointer',
                     backgroundColor: room.status === 'available' ? '#f6ffed' : room.status === 'occupied' ? '#fff1f0' : '#fffbe6',
                     transition: 'all 0.3s',
-                    position: 'relative',
-                    minHeight: 80
+                    position: 'relative'
                   }}
                   onClick={() => setSelectedRoom(room)}
                 >
-                  <div style={{ fontSize: 18, fontWeight: 'bold', marginBottom: 4 }}>
+                  <div style={{ fontSize: 24, fontWeight: 'bold', marginBottom: 8 }}>
                     {room.number}
                   </div>
-                  <div style={{ fontSize: 12, color: room.color, marginBottom: 4 }}>
-                    {room.icon} {room.type}
+                  <div style={{ fontSize: 14, color: '#666', marginBottom: 8 }}>
+                    {room.type}
                   </div>
-                  <div style={{ fontSize: 10, color: getStatusColor(room.status), fontWeight: 'bold' }}>
+                  <div style={{ fontSize: 12, color: getStatusColor(room.status) }}>
                     {getStatusText(room.status)}
                   </div>
                   {room.status === 'occupied' && (
                     <div style={{ 
                       position: 'absolute', 
-                      top: 4, 
-                      right: 4, 
-                      fontSize: 10, 
+                      top: 8, 
+                      right: 8, 
+                      fontSize: 12, 
                       color: '#666',
                       backgroundColor: 'white',
-                      padding: '1px 4px',
-                      borderRadius: 3,
+                      padding: '2px 6px',
+                      borderRadius: 4,
                       border: '1px solid #d9d9d9'
                     }}>
                       {bookings.find(b => b.roomNumber === room.number)?.guestName || 'Đang sử dụng'}
@@ -1216,4 +1124,4 @@ const ReceptionistDashboard = () => {
   );
 };
 
-export default ReceptionistDashboard;
+export default AdminDashboard;

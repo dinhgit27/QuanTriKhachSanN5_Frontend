@@ -45,18 +45,12 @@ function App() {
           </Route>
 
           {/* --- KHU VỰC DÀNH CHO RECEPTIONIST (Lễ Tân) --- */}
-          {/* Giả sử Lễ tân cũng xài chung Layout với Admin cho đẹp */}
           <Route
             element={
               <RoleBasedRoute allowedRoles={["Receptionist"]} />
             }
           >
-            <Route element={<AdminLayout />}>
-              <Route
-                path="/receptionist/dashboard"
-                element={<ReceptionistDashboard />}
-              />
-            </Route>
+            <Route path="/receptionist/dashboard" element={<ReceptionistDashboard />} />
           </Route>
 
           {/* --- KHU VỰC DÀNH CHO HOUSEKEEPER (Lao Công) --- */}

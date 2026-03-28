@@ -5,7 +5,6 @@ import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import ProtectedRoute from "./routes/ProtectedRoute";
 import RoleBasedRoute from "./routes/RoleBasedRoute";
 
-import HomePage from './pages/HomePage';
 import AdminLayout from "./layouts/AdminLayout";
 import LoginPage from "./pages/LoginPage";
 import UserListPage from "./pages/admin/UserListPage";
@@ -16,7 +15,6 @@ import GuestDashboard from "./pages/guest/GuestDashboard";
 import RegisterPage from "./pages/RegisterPage"; // Nhớ tạo file này
 import ForgotPasswordPage from "./pages/ForgotPasswordPage"; // Nhớ tạo file này
 
-const DashboardPage = () => <h1>ĐÂY LÀ TRANG ADMIN 🚀</h1>;
 const NotFoundPage = () => <h1>404 - Đường dẫn này không tồn tại 😢</h1>;
 const UnauthorizedPage = () => (
   <h1>403 - BẠN KHÔNG CÓ QUYỀN VÀO KHU VỰC NÀY 🛑</h1>
@@ -27,7 +25,6 @@ function App() {
     <BrowserRouter>
       <Routes>
         {/* 1. Mặc định vào Web sẽ tự động đá sang trang Login */}
-        <Route path="/" element={<HomePage />} />
         <Route path="/" element={<Navigate to="/login" replace />} />
 
         {/* 2. TUYẾN ĐƯỜNG TỰ DO (Chưa đăng nhập cũng vào được) */}
@@ -41,7 +38,6 @@ function App() {
           {/* --- KHU VỰC DÀNH CHO ADMIN (Giám Đốc) --- */}
           <Route element={<RoleBasedRoute allowedRoles={["Admin"]} />}>
             <Route element={<AdminLayout />}>
-              <Route path="/admin/dashboard" element={<DashboardPage />} />
               <Route path="/admin/users" element={<UserListPage />} />
             </Route>
           </Route>

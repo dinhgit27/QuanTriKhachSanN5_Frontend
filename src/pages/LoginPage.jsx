@@ -56,7 +56,7 @@ const LoginPage = () => {
 
       // ✅ 🔥 DÙNG roles (KHÔNG dùng user.role nữa)
       if (roles.includes("Admin")) {
-        navigate("/admin/dashboard");
+        navigate("/admin/users");
       } else if (roles.includes("Receptionist")) {
         navigate("/receptionist/dashboard");
       } else if (roles.includes("Housekeeping")) {

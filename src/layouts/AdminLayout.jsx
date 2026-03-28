@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { Link, Outlet, useNavigate } from "react-router-dom";
+import { Link, Outlet, useNavigate, useLocation } from "react-router-dom";
 import {
   Layout,
   Menu,
@@ -26,6 +26,7 @@ const AdminLayout = () => {
   const [userRoles, setUserRoles] = useState([]);
   const navigate = useNavigate();
   const clearAuth = useAdminAuthStore((state) => state.clearAuth);
+  const location = useLocation();
 
   useEffect(() => {
     const roles = getUserRoles();
@@ -40,17 +41,31 @@ const AdminLayout = () => {
 
   // Chỉ Admin mới thấy Quản lý nhân sự
   const menuItems = [
-    {
+    // Chỉ hiển thị Dashboard cho Lễ tân
+    userRoles.includes("Receptionist") && {
       key: "1",
       icon: <DashboardOutlined />,
-      label: <Link to={userRoles.includes("Admin") ? "/admin/dashboard" : "/receptionist/dashboard"}>Dashboard</Link>,
+      label: <Link to="/receptionist/dashboard">Dashboard</Link>,
     },
+    // Chỉ hiển thị Quản lý nhân sự cho Admin
     userRoles.includes("Admin") && {
       key: "2",
       icon: <UserOutlined />,
       label: <Link to="/admin/users">Quản lý nhân sự</Link>,
     },
   ].filter(Boolean); // Lọc bỏ các giá trị null/false
+
+  // Xác định key của menu item được chọn dựa trên đường dẫn hiện tại
+  const getSelectedKeys = () => {
+    const currentPath = location.pathname;
+    if (currentPath.startsWith("/admin/users")) {
+      return ["2"];
+    }
+    if (currentPath.startsWith("/receptionist/dashboard")) {
+      return ["1"];
+    }
+    return [];
+  };
 
   const userMenuItems = [
     {
@@ -69,8 +84,8 @@ const AdminLayout = () => {
         </div>
         <Menu
           theme="dark"
-          defaultSelectedKeys={["1"]}
           mode="inline"
+          selectedKeys={getSelectedKeys()}
           items={menuItems}
         />
       </Sider>

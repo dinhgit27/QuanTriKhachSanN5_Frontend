@@ -4,34 +4,36 @@ import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 // Import Các Lớp Bảo Vệ
 import ProtectedRoute from "./routes/ProtectedRoute";
 import RoleBasedRoute from "./routes/RoleBasedRoute";
-
+import HomePage from "./pages/HomePage";
 import AdminLayout from "./layouts/AdminLayout";
 import LoginPage from "./pages/LoginPage";
 import UserListPage from "./pages/admin/UserListPage";
-// Import mấy trang anh em mình vừa làm
+import RoomManagement from "./pages/admin/RoomManagement";
 import ReceptionistDashboard from "./pages/receptionist/ReceptionistDashboard";
 import HousekeeperDashboard from "./pages/housekeeper/HousekeeperDashboard";
 import GuestDashboard from "./pages/guest/GuestDashboard";
-import RegisterPage from "./pages/RegisterPage"; // Nhớ tạo file này
-import ForgotPasswordPage from "./pages/ForgotPasswordPage"; // Nhớ tạo file này
+import RegisterPage from "./pages/RegisterPage"; 
+import ForgotPasswordPage from "./pages/ForgotPasswordPage";
 
 const NotFoundPage = () => <h1>404 - Đường dẫn này không tồn tại 😢</h1>;
 const UnauthorizedPage = () => (
   <h1>403 - BẠN KHÔNG CÓ QUYỀN VÀO KHU VỰC NÀY 🛑</h1>
 );
 
+
 function App() {
   return (
     <BrowserRouter>
       <Routes>
-        {/* 1. Mặc định vào Web sẽ tự động đá sang trang Login */}
-        <Route path="/" element={<Navigate to="/login" replace />} />
+        <Route path="/" element={<Navigate to="/homepage" replace />} />
 
         {/* 2. TUYẾN ĐƯỜNG TỰ DO (Chưa đăng nhập cũng vào được) */}
         <Route path="/login" element={<LoginPage />} />
+        <Route path="/homepage" element={<HomePage />} />
         <Route path="/register" element={<RegisterPage />} />
         <Route path="/forgot-password" element={<ForgotPasswordPage />} />
         <Route path="/unauthorized" element={<UnauthorizedPage />} />
+        
 
         {/* 3. VÙNG CẤM CHUNG (Chỉ cần có Token là lọt qua lớp 1) */}
         <Route element={<ProtectedRoute />}>
@@ -39,8 +41,10 @@ function App() {
           <Route element={<RoleBasedRoute allowedRoles={["Admin"]} />}>
             <Route element={<AdminLayout />}>
               <Route path="/admin/users" element={<UserListPage />} />
+              <Route path="/admin/rooms" element={<RoomManagement />} />
             </Route>
           </Route>
+          
 
           {/* --- KHU VỰC DÀNH CHO RECEPTIONIST (Lễ Tân) --- */}
           {/* Giả sử Lễ tân cũng xài chung Layout với Admin cho đẹp */}

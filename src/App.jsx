@@ -9,6 +9,7 @@ import AdminLayout from "./layouts/AdminLayout";
 import LoginPage from "./pages/LoginPage";
 import UserListPage from "./pages/admin/UserListPage";
 import RoomManagement from "./pages/admin/RoomManagement";
+import InventoryManagement from "./pages/admin/InventoryManagement";
 import ReceptionistDashboard from "./pages/receptionist/ReceptionistDashboard";
 import HousekeeperDashboard from "./pages/housekeeper/HousekeeperDashboard";
 import GuestDashboard from "./pages/guest/GuestDashboard";
@@ -42,6 +43,7 @@ function App() {
             <Route element={<AdminLayout />}>
               <Route path="/admin/users" element={<UserListPage />} />
               <Route path="/admin/rooms" element={<RoomManagement />} />
+              <Route path="/admin/inventory" element={<InventoryManagement />} />
             </Route>
           </Route>
           

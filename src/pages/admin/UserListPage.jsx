@@ -1,12 +1,17 @@
-
 import React, { useState, useEffect } from 'react';
-import { Table, Modal, Form, Input, Select, Button, Pagination, Row, Col, Tag, Space, Typography, message } from 'antd';
-import { PlusOutlined, EditOutlined, DeleteOutlined, UnlockOutlined } from '@ant-design/icons';
+import { 
+  Table, Modal, Form, Input, Select, Button, Tag, Space, 
+  Typography, message, Card, Popconfirm 
+} from 'antd';
+import { 
+  PlusOutlined, EditOutlined, DeleteOutlined, 
+  UnlockOutlined, SearchOutlined, UserOutlined 
+} from '@ant-design/icons';
 import { useLoadingStore } from '../../store/loadingStore';
 import { userManagementAPI } from '../../api/userManagement';
 import { roleAPI } from '../../api/roleApi';
 
-const { Title } = Typography;
+const { Title, Text } = Typography;
 const { Option } = Select;
 
 const UserListPage = () => {
@@ -14,21 +19,18 @@ const UserListPage = () => {
 
   const [users, setUsers] = useState([]); 
   const [filteredUsers, setFilteredUsers] = useState([]); 
-  
   const [searchText, setSearchText] = useState('');
   const [filterRole, setFilterRole] = useState(null);
   const [filterStatus, setFilterStatus] = useState(null);
-  
   const [total, setTotal] = useState(0);
   const [localLoading, setLocalLoading] = useState(false);
-  
-  const [pagination, setPagination] = useState({ current: 1, pageSize: 10 });
-  
+  const [pagination, setPagination] = useState({ current: 1, pageSize: 8 });
   const [modalVisible, setModalVisible] = useState(false);
-  const [editingId, setEditingId] = useState(null); // Thêm state để biết đang Sửa hay Thêm mới
+  const [editingId, setEditingId] = useState(null); 
   const [form] = Form.useForm();
   const [roles, setRoles] = useState([]);
 
+  // --- FETCH DỮ LIỆU ---
   const fetchRoles = async () => {
     try {
       const response = await roleAPI.getRoles();
@@ -60,7 +62,7 @@ const UserListPage = () => {
     fetchUsers();
   }, []);
 
-  // Bộ lọc
+  // --- BỘ LỌC TỔNG HỢP ---
   useEffect(() => {
     const result = users.filter((user) => {
       const matchSearch = 
@@ -89,21 +91,16 @@ const UserListPage = () => {
 
   const handleTableChange = (pag) => setPagination({ current: pag.current, pageSize: pag.pageSize });
 
-  // Mở Form Thêm Mới
+  // --- XỬ LÝ FORM ---
   const handleAddNew = () => {
-    setEditingId(null); // Set null tức là Thêm mới
+    setEditingId(null);
     form.resetFields();
     setModalVisible(true);
   };
 
-  // Mở Form Sửa
   const handleEdit = (user) => {
-    setEditingId(user.id); // Lưu lại ID đang sửa
-    
-    // Tìm ID của chức vụ dựa vào tên (Vì DB đang trả về tên)
+    setEditingId(user.id);
     const roleObj = roles.find(r => r.name === user.roleName);
-
-    // Bơm dữ liệu cũ vào Form
     form.setFieldsValue({
         fullName: user.fullName,
         email: user.email,
@@ -113,20 +110,20 @@ const UserListPage = () => {
     setModalVisible(true);
   };
 
-  // Xử lý Khóa / Mở Khóa tài khoản
   const handleToggleStatus = (user) => {
     Modal.confirm({
       title: 'Xác nhận thay đổi trạng thái',
-      content: `Bạn có chắc chắn muốn ${user.isActive ? 'KHÓA' : 'MỞ KHÓA'} tài khoản ${user.email} này?`,
+      content: `Bạn có chắc chắn muốn ${user.isActive ? 'KHÓA' : 'MỞ KHÓA'} tài khoản ${user.email}?`,
       okText: 'Đồng ý',
       okType: user.isActive ? 'danger' : 'primary',
       cancelText: 'Hủy',
+      centered: true,
       onOk: async () => {
         try {
           setLocalLoading(true);
           await userManagementAPI.toggleStatus(user.id);
-          message.success('Cập nhật trạng thái thành công!');
-          fetchUsers(); // Tải lại bảng
+          message.success('Cập nhật thành công!');
+          fetchUsers();
         } catch (error) {
           message.error('Lỗi: ' + (error.response?.data?.message || error.message));
         } finally {
@@ -136,16 +133,13 @@ const UserListPage = () => {
     });
   };
 
-  // Nút Submit Form (Dùng chung cho cả Thêm và Sửa)
   const handleSubmitForm = async (values) => {
     try {
       setLocalLoading(true);
       if (editingId) {
-        // GỌI API SỬA
         await userManagementAPI.updateUser(editingId, values);
         message.success('Cập nhật thông tin thành công!');
       } else {
-        // GỌI API THÊM MỚI
         await userManagementAPI.createUser(values);
         message.success('Thêm người dùng thành công!');
       }
@@ -158,25 +152,34 @@ const UserListPage = () => {
     }
   };
 
+  // --- CẤU HÌNH CỘT ---
   const columns = [
-    { title: '#', key: 'index', render: (_, __, index) => (pagination.current - 1) * pagination.pageSize + index + 1, width: 60 },
-    { title: 'Họ tên', dataIndex: 'fullName', key: 'fullName', ellipsis: true },
-    { title: 'Email', dataIndex: 'email', key: 'email' },
+    { title: 'Họ tên', dataIndex: 'fullName', key: 'fullName', render: t => <b>{t}</b> },
+    { title: 'Email', dataIndex: 'email', key: 'email', ellipsis: true },
     { title: 'Điện thoại', dataIndex: 'phoneNumber', key: 'phoneNumber' },
-    { title: 'Vai trò', dataIndex: 'roleName', key: 'roleName', render: (roleName) => roleName || 'Chưa có' },
+    { 
+      title: 'Vai trò', 
+      dataIndex: 'roleName', 
+      key: 'roleName', 
+      render: (role) => <Tag color="blue">{role || 'N/A'}</Tag> 
+    },
     {
       title: 'Trạng thái',
       dataIndex: 'isActive',
       key: 'status',
-      render: (isActive) => <Tag color={isActive ? 'green' : 'volcano'}>{isActive ? 'Hoạt động' : 'Đã khóa'}</Tag>,
+      render: (isActive) => (
+        <Tag color={isActive ? 'green' : 'red'} style={{ borderRadius: 10 }}>
+          {isActive ? '● Hoạt động' : '● Đã khóa'}
+        </Tag>
+      ),
     },
     {
       title: 'Thao tác',
       key: 'actions',
-      width: 180,
+      width: 200,
       render: (_, user) => (
-        <Space size="small">
-          <Button icon={<EditOutlined />} size="small" onClick={() => handleEdit(user)}>Sửa</Button>
+        <Space size="middle">
+          <Button ghost type="primary" icon={<EditOutlined />} size="small" onClick={() => handleEdit(user)}>Sửa</Button>
           {user.isActive ? (
              <Button danger icon={<DeleteOutlined />} size="small" onClick={() => handleToggleStatus(user)}>Khóa</Button>
           ) : (
@@ -187,67 +190,110 @@ const UserListPage = () => {
     },
   ];
 
-  const paginatedData = filteredUsers.slice((pagination.current - 1) * pagination.pageSize, pagination.current * pagination.pageSize);
-
   return (
-    <>
-      <Title level={2}>👥 Danh sách Người dùng</Title>
-      
-      <Row gutter={[16, 16]} style={{ marginBottom: 24, display: 'flex', alignItems: 'center' }}>
-        <Col xs={24} sm={12} lg={6}><Input.Search placeholder="Tìm theo tên, email..." allowClear onChange={(e) => setSearchText(e.target.value)} /></Col>
-        <Col xs={24} sm={12} lg={5}>
-          <Select placeholder="Tất cả vai trò" style={{ width: '100%' }} onChange={(v) => setFilterRole(v)} allowClear>
-            {roles.map(role => (<Option key={role.id} value={role.id}>{role.name}</Option>))}
-          </Select>
-        </Col>
-        <Col xs={24} sm={12} lg={5}>
-          <Select placeholder="Tất cả trạng thái" style={{ width: '100%' }} onChange={(v) => setFilterStatus(v)} allowClear>
-            <Option value="true">Hoạt động</Option>
-            <Option value="false">Đã khóa</Option>
-          </Select>
-        </Col>
-        <Col xs={24} sm={12} lg={8} style={{ display: 'flex', justifyContent: 'flex-end' }}>
-          <Button type="primary" icon={<PlusOutlined />} onClick={handleAddNew}>Thêm mới</Button>
-        </Col>
-      </Row>
+    <Card style={{ margin: 24, borderRadius: 12, boxShadow: '0 4px 20px rgba(0,0,0,0.05)' }}>
+      {/* PHẦN ĐẦU */}
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 }}>
+        <div>
+          <Title level={3} style={{ margin: 0 }}>Nhân viên & Quyền</Title>
+          <Text type="secondary">Quản lý tài khoản nhân viên và phân quyền truy cập hệ thống</Text>
+        </div>
+        <Button type="primary" size="large" icon={<PlusOutlined />} onClick={handleAddNew} style={{ borderRadius: 8 }}>
+          Thêm nhân viên
+        </Button>
+      </div>
 
-      <Table columns={columns} dataSource={paginatedData} loading={localLoading} pagination={false} rowKey="id" scroll={{ x: 'max-content' }} size="middle" />
+      {/* BỘ LỌC DÀN HÀNG NGANG */}
+      <div style={{ display: 'flex', gap: '16px', marginBottom: 24, flexWrap: 'wrap' }}>
+        <Input
+          placeholder="Tìm theo tên, email..."
+          allowClear
+          onChange={(e) => setSearchText(e.target.value)}
+          style={{ width: 300 }}
+          prefix={<SearchOutlined style={{ color: '#bfbfbf' }} />}
+        />
+        
+        <Select 
+          placeholder="Tất cả vai trò" 
+          style={{ width: 200 }} 
+          onChange={(v) => setFilterRole(v)} 
+          allowClear
+        >
+          {roles.map(role => (<Option key={role.id} value={role.id}>{role.name}</Option>))}
+        </Select>
 
-      {total > 0 && (
-        <Row justify="end" style={{ marginTop: 16 }}>
-          <Pagination current={pagination.current} pageSize={pagination.pageSize} total={total} showSizeChanger showQuickJumper onChange={(current, pageSize) => handleTableChange({ current, pageSize })} />
-        </Row>
-      )}
+        <Select 
+          placeholder="Tất cả trạng thái" 
+          style={{ width: 200 }} 
+          onChange={(v) => setFilterStatus(v)} 
+          allowClear
+        >
+          <Option value="true">Hoạt động</Option>
+          <Option value="false">Đã khóa</Option>
+        </Select>
+      </div>
 
-      {/* Modal dùng chung cho cả Thêm và Sửa */}
-      <Modal title={editingId ? "Cập nhật Người dùng" : "Thêm Người dùng mới"} open={modalVisible} onCancel={() => setModalVisible(false)} footer={null} width={600} destroyOnHidden>
-        <Form form={form} layout="vertical" onFinish={handleSubmitForm}>
-          <Form.Item name="fullName" label="Họ và tên" rules={[{ required: true, message: 'Vui lòng nhập họ tên!' }]}><Input placeholder="Nguyễn Văn A" /></Form.Item>
-          <Form.Item name="email" label="Email" rules={[{ required: true, message: 'Vui lòng nhập email!' }, { type: 'email', message: 'Email không đúng định dạng!' }]}><Input placeholder="example@domain.com" disabled={!!editingId} /></Form.Item>
-          <Form.Item name="phoneNumber" label="Số điện thoại"><Input placeholder="0123456789" /></Form.Item>
+      {/* BẢNG DỮ LIỆU */}
+      <Table 
+        columns={columns} 
+        dataSource={filteredUsers} 
+        loading={localLoading} 
+        rowKey="id" 
+        pagination={{ 
+            ...pagination, 
+            total: total, 
+            showTotal: (t) => `Tổng cộng ${t} nhân viên`,
+            onChange: (page, pageSize) => handleTableChange({ current: page, pageSize })
+        }} 
+        size="middle" 
+      />
+
+      {/* MODAL THÊM/SỬA */}
+      <Modal 
+        title={editingId ? "📝 Cập nhật Người dùng" : "✨ Thêm Người dùng mới"} 
+        open={modalVisible} 
+        onCancel={() => setModalVisible(false)} 
+        footer={null} 
+        width={600} 
+        centered
+        destroyOnClose
+      >
+        <Form form={form} layout="vertical" onFinish={handleSubmitForm} style={{ marginTop: 15 }}>
+          <Form.Item name="fullName" label="Họ và tên" rules={[{ required: true, message: 'Nhập họ tên đi ní!' }]}>
+            <Input prefix={<UserOutlined />} placeholder="Nguyễn Văn A" />
+          </Form.Item>
           
-          {/* Ẩn nhập mật khẩu nếu đang Sửa */}
+          <Form.Item name="email" label="Email" rules={[{ required: true, message: 'Nhập email!' }, { type: 'email', message: 'Sai định dạng rồi!' }]}>
+            <Input placeholder="example@domain.com" disabled={!!editingId} />
+          </Form.Item>
+
+          <Form.Item name="phoneNumber" label="Số điện thoại">
+            <Input placeholder="0123456789" />
+          </Form.Item>
+          
           {!editingId && (
-              <Form.Item name="password" label="Mật khẩu" rules={[{ required: true, min: 6, message: 'Mật khẩu ít nhất 6 ký tự!' }]}><Input.Password placeholder="Nhập mật khẩu" /></Form.Item>
+              <Form.Item name="password" label="Mật khẩu" rules={[{ required: true, min: 6, message: 'Ít nhất 6 ký tự nha!' }]}>
+                <Input.Password placeholder="Nhập mật khẩu" />
+              </Form.Item>
           )}
           
-          <Form.Item name="roleId" label="Vai trò" rules={[{ required: true, message: 'Vui lòng chọn vai trò!' }]}>
+          <Form.Item name="roleId" label="Vai trò" rules={[{ required: true, message: 'Chọn chức vụ!' }]}>
             <Select placeholder="Chọn vai trò">
               {roles.map(role => (<Option key={role.id} value={role.id}>{role.name}</Option>))}
             </Select>
           </Form.Item>
           
-          <Form.Item>
+          <Form.Item style={{ marginBottom: 0, marginTop: 24 }}>
             <Space style={{ display: 'flex', justifyContent: 'flex-end' }}>
-              <Button onClick={() => setModalVisible(false)}>Hủy</Button>
+              <Button onClick={() => setModalVisible(false)}>Hủy bỏ</Button>
               <Button type="primary" htmlType="submit" loading={localLoading}>
-                {editingId ? "Cập nhật" : "Tạo tài khoản"}
+                {editingId ? "Cập nhật ngay" : "Tạo tài khoản"}
               </Button>
             </Space>
           </Form.Item>
         </Form>
       </Modal>
-    </>
+    </Card>
   );
 };
 

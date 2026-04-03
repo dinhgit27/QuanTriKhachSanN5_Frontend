@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { Form, Input, Button, Typography, message, Row, Col } from 'antd';
 import { UserOutlined, LockOutlined, MailOutlined, PhoneOutlined, BankFilled } from '@ant-design/icons';
 import { Link, useNavigate } from 'react-router-dom';
-// import authAPI from '../../api/authAPI'; // Mở cái này ra khi có API Đăng ký nhé
+import { authAPI } from '../api/authApi';
 
 const { Title, Text } = Typography;
 
@@ -18,15 +18,29 @@ const RegisterPage = () => {
   const navigate = useNavigate();
 
   // GIỮ NGUYÊN LOGIC XỬ LÝ CỦA BẠN
-  const onFinish = async (values) => {
+ const onFinish = async (values) => {
     setLoading(true);
     try {
-      // Chỗ này mốt nối API nè: await authAPI.register(values);
-      console.log('Dữ liệu đăng ký:', values);
+      // 1. ÁO THUẬT TRÁO NHÃN: Chế lại dữ liệu đúng form C# nó đòi
+      const payloadToSend = {
+        Username: values.fullName, // Tráo fullName thành Username
+        Email: values.email,
+        Password: values.password,
+        // (Tùy Backend: Nếu C# ní có bảng số điện thoại thì thêm dòng dưới)
+        // PhoneNumber: values.phoneNumber 
+      };
+
+      console.log('Dữ liệu ĐÃ ĐÓNG GÓI LẠI để gửi đi:', payloadToSend);
+
+      // 2. Gửi cục data mới này xuống Backend
+      await authAPI.register(payloadToSend); 
+      
       message.success('Đăng ký thành công! Đang chuyển hướng...');
-      setTimeout(() => navigate('/login'), 1500); // Đăng ký xong tự động quay về trang Login
+      setTimeout(() => navigate('/login'), 1500); 
     } catch (error) {
-      message.error('Lỗi đăng ký, vui lòng thử lại!');
+      // 3. Nếu vẫn lỗi, in ra lỗi cụ thể
+      const errorMsg = error.response?.data?.message || 'Lỗi đăng ký, vui lòng thử lại!';
+      message.error(errorMsg);
     } finally {
       setLoading(false);
     }

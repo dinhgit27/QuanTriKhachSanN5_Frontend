@@ -11,7 +11,8 @@ import {
   LineChartOutlined,
   InboxOutlined,      // Icon cho Kho vật tư
   ShopOutlined,       // Icon cho Vật tư phòng
-  WarningOutlined     // Icon cho Biên bản đền bù
+  WarningOutlined,    // Icon cho Biên bản đền bù
+  ClearOutlined       // THÊM: Icon cho Dọn phòng
 } from "@ant-design/icons";
 
 // Ní nhớ import đúng store/utils của ní nha
@@ -54,44 +55,51 @@ const AdminLayout = () => {
 
   const isAdmin = userRoles.includes("Admin");
   const isReceptionist = userRoles.includes("Receptionist");
+  const isHousekeeping = userRoles.includes("Housekeeping"); // THÊM: Phân quyền cho Buồng phòng
 
   // --- CẤU TRÚC MENU THEO NHÓM ---
   const menuItems = [
-    // 1. NHÓM: MENU CHÍNH (Dành cho Admin)
-    isAdmin && {
+    // 1. NHÓM: MENU CHÍNH
+    (isAdmin || isHousekeeping) && {
       type: 'group',
       label: <span style={{ color: '#595959', fontSize: 12, fontWeight: 'bold' }}>MENU CHÍNH</span>,
       children: [
-        {
+        isAdmin && {
           key: "/admin/dashboard", 
           icon: <DashboardOutlined />,
           label: <Link to="/admin/dashboard">Tổng quan</Link>,
         },
-        {
+        isAdmin && {
           key: "/admin/rooms",
           icon: <HomeOutlined />,
           label: <Link to="/admin/rooms">Quản lý Phòng</Link>,
         },
-        {
+        isAdmin && {
           key: "/admin/users",
           icon: <UserOutlined />,
           label: <Link to="/admin/users">Nhân viên & Quyền</Link>,
         },
-        {
+        isAdmin && {
           key: "/admin/accounting",
           icon: <LineChartOutlined />,
           label: <Link to="/admin/accounting">Kế toán</Link>,
         },
-        {
+        isAdmin && {
           key: "/admin/audit",
           icon: <SafetyCertificateOutlined />,
           label: <Link to="/admin/audit">Audit Logs</Link>,
+        },
+        // THÊM: Menu Dọn phòng (Admin và Housekeeping đều thấy)
+        (isAdmin || isHousekeeping) && {
+          key: "/admin/housekeeping",
+          icon: <ClearOutlined />,
+          label: <Link to="/admin/housekeeping">Nhiệm Vụ Dọn Phòng</Link>,
         }
-      ]
+      ].filter(Boolean)
     },
 
     // 2. NHÓM: QUẢN LÝ TÀI SẢN (Đã gom 3 trang vào đây)
-    (isAdmin || isReceptionist) && {
+    (isAdmin || isReceptionist || isHousekeeping) && {
         type: 'group',
         label: <span style={{ color: '#595959', fontSize: 12, fontWeight: 'bold' }}>QUẢN LÝ TÀI SẢN</span>,
         children: [
@@ -100,12 +108,12 @@ const AdminLayout = () => {
             icon: <InboxOutlined />,
             label: <Link to="/admin/warehouse">Kho Vật Tư Tổng</Link>,
           },
-          isAdmin && {
+          (isAdmin || isHousekeeping) && {
             key: "/admin/inventory", 
             icon: <ShopOutlined />,
             label: <Link to="/admin/inventory">Vật Tư Theo Phòng</Link>,
           },
-          {
+          (isAdmin || isReceptionist) && {
             key: "/admin/loss-and-damage", 
             icon: <WarningOutlined />,
             label: <Link to="/admin/loss-and-damage">Biên Bản Đền Bù</Link>,
@@ -208,7 +216,7 @@ const AdminLayout = () => {
                     </Avatar>
                     <div style={{ overflow: 'hidden' }}>
                         <div style={{ color: 'white', fontWeight: 'bold', fontSize: 14, whiteSpace: 'nowrap', textOverflow: 'ellipsis' }}>
-                            {isAdmin ? 'Quản Lý Admin' : 'Nhân Viên'}
+                            {isAdmin ? 'Quản Lý Admin' : (isHousekeeping ? 'Buồng Phòng' : 'Nhân Viên')}
                         </div>
                         <div style={{ color: '#8c8c8c', fontSize: 12 }}>{userRoles.join(", ")}</div>
                     </div>
@@ -270,7 +278,7 @@ const AdminLayout = () => {
                 </Avatar>
                 <div style={{ minWidth: 'auto' }}>
                   <div style={{ fontSize: 12, fontWeight: 600, color: '#262626', lineHeight: 1.2 }}>
-                    {isAdmin ? 'Admin' : 'Nhân viên'}
+                    {isAdmin ? 'Admin' : (isHousekeeping ? 'Buồng Phòng' : 'Nhân Viên')}
                   </div>
                   <div style={{ fontSize: 10, color: '#8c8c8c', lineHeight: 1.2 }}>{userRoles.join(', ')}</div>
                 </div>

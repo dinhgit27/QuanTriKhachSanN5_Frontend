@@ -18,6 +18,8 @@ import ForgotPasswordPage from "./pages/ForgotPasswordPage";
 import WarehouseManagement from "./pages/admin/WarehouseManagement";
 import LossAndDamageManagement from "./pages/admin/LossAndDamageManagement";
 import AuditLogsPage from "./pages/admin/AuditLogsPage"; 
+import HousekeepingManagement from './pages/admin/HousekeepingManagement';
+
 
 const NotFoundPage = () => <h1>404 - Đường dẫn này không tồn tại 😢</h1>;
 const UnauthorizedPage = () => (
@@ -36,6 +38,7 @@ function App() {
         <Route path="/register" element={<RegisterPage />} />
         <Route path="/forgot-password" element={<ForgotPasswordPage />} />
         <Route path="/unauthorized" element={<UnauthorizedPage />} />
+        
         
         {/* ĐÃ BẾ TRANG LOSS-AND-DAMAGE KHỎI ĐÂY VÌ NÓ LÀ VÙNG CẤM */}
 
@@ -58,6 +61,7 @@ function App() {
               <Route path="/admin/rooms" element={<RoomManagement />} />
               <Route path="/admin/inventory" element={<InventoryManagement />} />
               <Route path="/admin/audit" element={<AuditLogsPage />} />
+              <Route path="/admin/housekeeping" element={<HousekeepingManagement />} />
             </Route>
           </Route>
           
@@ -71,6 +75,7 @@ function App() {
           {/* --- KHU VỰC DÀNH CHO HOUSEKEEPER (Lao Công) --- */}
           <Route element={<RoleBasedRoute allowedRoles={["Housekeeping"]} />}>
             <Route path="/housekeeper/dashboard" element={<HousekeeperDashboard />} />
+            <Route path="/admin/housekeeping" element={<HousekeepingManagement />} />
           </Route>
 
           {/* --- KHU VỰC DÀNH CHO GUEST (Khách Hàng) --- */}

@@ -1,11 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { 
   Row, Col, Card, Badge, Modal, Table, Button, 
-  Typography, message, Empty, Tag, Space, Spin, Form, Select, InputNumber, Popconfirm
+  Typography, message, Empty, Tag, Space, Spin, Form, Select, InputNumber, Popconfirm, Divider
 } from 'antd';
 import { 
   HomeOutlined, BuildOutlined, ExclamationCircleOutlined, ReloadOutlined,
-  CheckCircleOutlined, SyncOutlined, PlusOutlined, DeleteOutlined
+  CheckCircleOutlined, SyncOutlined, PlusOutlined, DeleteOutlined, FilterOutlined
 } from '@ant-design/icons';
 import axios from 'axios';
 import { useAuditLog } from '../../hooks/useAuditLog';
@@ -16,12 +16,6 @@ const { Option } = Select;
 const RoomInventoryManagement = () => {
   const { logAction } = useAuditLog();
   
-  console.log('🏢 [InventoryManagement] Component rendering, logAction type:', typeof logAction);
-  
-  useEffect(() => {
-    console.log('✅ InventoryManagement component mounted, logAction available:', typeof logAction);
-  }, []);
-  
   const [rooms, setRooms] = useState([]); 
   const [loadingRooms, setLoadingRooms] = useState(false);
   
@@ -30,10 +24,14 @@ const RoomInventoryManagement = () => {
   const [isDetailVisible, setIsDetailVisible] = useState(false);
   const [loadingDetails, setLoadingDetails] = useState(false);
 
-  // --- STATE MỚI CHO TÍNH NĂNG THÊM VẬT TƯ ---
+  // --- STATE CHO TÍNH NĂNG THÊM VẬT TƯ ---
   const [isAddModalVisible, setIsAddModalVisible] = useState(false);
   const [amenitiesList, setAmenitiesList] = useState([]);
   const [form] = Form.useForm();
+
+  // --- STATE CHO BỘ LỌC (FILTERS) ---
+  const [selectedFloor, setSelectedFloor] = useState('all');
+  const [selectedRoomType, setSelectedRoomType] = useState('all');
 
   // --- LẤY DANH SÁCH PHÒNG & DANH SÁCH VẬT TƯ TRONG KHO ---
   const fetchData = async () => {
@@ -42,14 +40,11 @@ const RoomInventoryManagement = () => {
       const token = localStorage.getItem('token'); 
       const headers = { Authorization: `Bearer ${token}` };
 
-      // Lấy danh sách phòng
       const resRooms = await axios.get('https://localhost:5070/api/RoomInventory/rooms', { headers });
       setRooms(resRooms.data);
 
-      // Lấy danh sách vật tư từ Kho để đưa vào Dropdown
       const resAmenities = await axios.get('https://localhost:5070/api/RoomInventory/amenities', { headers });
       setAmenitiesList(resAmenities.data);
-
     } catch (err) {
       console.error("Lỗi lấy dữ liệu:", err);
       message.error("Lỗi kết nối máy chủ. Vui lòng thử lại!");
@@ -83,7 +78,6 @@ const RoomInventoryManagement = () => {
     fetchRoomInventoryDetails(room.id);
   };
 
-  // --- HÀM THÊM VẬT TƯ VÀO PHÒNG ---
   const handleAddInventory = async (values) => {
     try {
       const token = localStorage.getItem('token');
@@ -94,7 +88,6 @@ const RoomInventoryManagement = () => {
         isActive: true
       };
 
-      // Tìm tên vật tư
       const amenity = amenitiesList.find(a => a.id === values.amenityId);
       const amenityName = amenity?.name || 'Vật tư';
 
@@ -102,7 +95,6 @@ const RoomInventoryManagement = () => {
         headers: { Authorization: `Bearer ${token}` }
       });
 
-      // Log action
       logAction({
         action: 'Thêm',
         actionType: 'CREATE',
@@ -115,44 +107,21 @@ const RoomInventoryManagement = () => {
       message.success('Đã cấp phát vật tư vào phòng thành công!');
       setIsAddModalVisible(false);
       form.resetFields();
-      fetchRoomInventoryDetails(selectedRoom.id); // Load lại bảng vật tư phòng
-
+      fetchRoomInventoryDetails(selectedRoom.id);
     } catch (error) {
       message.error("Có lỗi xảy ra khi thêm vật tư!");
-      console.error(error);
     }
   };
 
-  // --- HÀM XÓA/THU HỒI VẬT TƯ KHỎI PHÒNG ---
   const handleDeleteInventory = async (inventoryId) => {
     try {
       const token = localStorage.getItem('token');
-      
-      // Tìm tên vật tư để ghi log
       const deletingItem = roomInventory.find(item => item.id === inventoryId);
       const amenityName = deletingItem?.amenityName || 'Vật tư';
       const quantity = deletingItem?.quantity || 0;
       
-      console.log('🗑️ Deleting inventory:', { inventoryId, amenityName, quantity });
-      
-      const deleteResponse = await axios.delete(`https://localhost:5070/api/RoomInventory/${inventoryId}`, {
+      await axios.delete(`https://localhost:5070/api/RoomInventory/${inventoryId}`, {
         headers: { Authorization: `Bearer ${token}` }
-      });
-      
-      console.log('✅ Delete API response:', deleteResponse.status, deleteResponse.data);
-      
-      if (deleteResponse.status !== 200 && deleteResponse.status !== 204) {
-        throw new Error(`Delete failed with status ${deleteResponse.status}`);
-      }
-      
-      console.log('✅ Delete successful, logging action...');
-      
-      // Log action
-      console.log('📝 Calling logAction with:', {
-        action: 'Xóa',
-        actionType: 'DELETE',
-        module: 'Vật Tư Theo Phòng',
-        objectName: `${amenityName} - Phòng ${selectedRoom?.roomNumber}`,
       });
       
       logAction({
@@ -164,17 +133,13 @@ const RoomInventoryManagement = () => {
         oldValue: { amenityName, quantity, roomNumber: selectedRoom?.roomNumber },
       });
       
-      console.log('✅ Audit log added to store');
-      
       message.success('Đã thu hồi vật tư thành công!');
       fetchRoomInventoryDetails(selectedRoom.id);
     } catch (error) {
-      console.error('❌ Error deleting inventory:', error.message, error.response?.data);
-      message.error("Lỗi khi xóa vật tư: " + (error.response?.data?.message || error.message));
+      message.error("Lỗi khi xóa vật tư!");
     }
   };
 
-  // --- HÀM BÁO HỎNG TÀI SẢN ---
   const handleReportDamage = (record) => {
     Modal.confirm({
       title: 'Xác nhận báo hỏng tài sản',
@@ -208,26 +173,21 @@ const RoomInventoryManagement = () => {
           });
           
           message.success(`Đã báo hỏng ${record.amenity?.name} thành công!`);
-          
-          // Cập nhật state thành false (Đã hỏng)
           setRoomInventory(prev => prev.map(item => 
               item.id === record.id ? { ...item, isActive: false } : item
           ));
         } catch (error) {
-          console.error(error);
-          message.error(`Lỗi báo hỏng: ${error.response?.data?.message || 'Vui lòng kiểm tra lại backend'}`);
+          message.error("Lỗi báo hỏng!");
         }
       }
     });
   };
 
-  // --- HÀM KHÔI PHỤC VẬT TƯ SAU KHI ĐÃ SỬA CHỮA/THAY MỚI ---
   const handleRestoreInventory = async (inventoryId) => {
     try {
       const token = localStorage.getItem('token');
       const restoringItem = roomInventory.find(item => item.id === inventoryId);
       
-      // 1. GỌI API LƯU TRẠNG THÁI XUỐNG DATABASE
       await axios.put(`https://localhost:5070/api/RoomInventory/restore/${inventoryId}`, {}, {
         headers: { Authorization: `Bearer ${token}` }
       });
@@ -242,16 +202,12 @@ const RoomInventoryManagement = () => {
         newValue: { isActive: true },
       });
 
-      // 2. NẾU API THÀNH CÔNG THÌ MỚI ĐỔI MÀU GIAO DIỆN
       message.success('Đã xác nhận thay mới/sửa chữa vật tư thành công!');
-      
       setRoomInventory(prev => prev.map(item => 
           item.id === inventoryId ? { ...item, isActive: true } : item
       ));
-
     } catch (error) {
-      message.error("Lỗi khi cập nhật trạng thái xuống Database!");
-      console.error(error);
+      message.error("Lỗi khi cập nhật trạng thái!");
     }
   };
 
@@ -264,6 +220,39 @@ const RoomInventoryManagement = () => {
       default: return { text: status || 'Chưa rõ', color: '#8c8c8c', bgColor: '#fafafa', borderColor: '#d9d9d9' };
     }
   };
+
+  // =========================================================================
+  // LOGIC BỘ LỌC TỰ ĐỘNG QUÉT DỮ LIỆU
+  // =========================================================================
+
+  // 1. Tự động gom các Tầng hiện có
+  const floorOptions = [...new Set(rooms.map(room => {
+    if (room.floor) return `Tầng ${room.floor}`;
+    const firstChar = String(room.roomNumber).charAt(0);
+    if (!isNaN(firstChar)) return `Tầng ${firstChar}`;
+    if (String(room.roomNumber).toUpperCase().includes('VILLA')) return "Khu Villa";
+    return "Khu Vực Khác";
+  }))].sort();
+
+  // 2. Tự động gom các Loại Phòng hiện có
+  const roomTypeOptions = [...new Set(rooms.map(room => room.roomTypeName).filter(Boolean))].sort();
+
+  // 3. Tiến hành lọc data trước khi render
+  const filteredRooms = rooms.filter(room => {
+    // Tìm nhãn Tầng của phòng này để so sánh
+    let floorLabel = "Khu Vực Khác";
+    if (room.floor) floorLabel = `Tầng ${room.floor}`;
+    else if (room.roomNumber) {
+      const firstChar = String(room.roomNumber).charAt(0);
+      if (!isNaN(firstChar)) floorLabel = `Tầng ${firstChar}`;
+      else if (String(room.roomNumber).toUpperCase().includes('VILLA')) floorLabel = "Khu Villa";
+    }
+
+    const matchFloor = selectedFloor === 'all' || floorLabel === selectedFloor;
+    const matchRoomType = selectedRoomType === 'all' || room.roomTypeName === selectedRoomType;
+
+    return matchFloor && matchRoomType;
+  });
 
   const columns = [
     { 
@@ -292,7 +281,6 @@ const RoomInventoryManagement = () => {
         const isDamaged = !record.isActive; 
         return (
           <Space>
-            {/* LOGIC ĐIỀU HƯỚNG NÚT BẤM DỰA TRÊN TRẠNG THÁI */}
             {isDamaged ? (
               <Button size="small" type="primary" style={{backgroundColor: '#52c41a'}} icon={<CheckCircleOutlined />} onClick={() => handleRestoreInventory(record.id)}>
                 Đã thay mới
@@ -302,8 +290,6 @@ const RoomInventoryManagement = () => {
                 Báo hỏng
               </Button>
             )}
-
-            {/* NÚT THU HỒI/XÓA */}
             <Popconfirm title="Xóa vật tư này khỏi phòng?" onConfirm={() => handleDeleteInventory(record.id)} okText="Xóa" cancelText="Hủy">
               <Button size="small" type="text" danger icon={<DeleteOutlined />} />
             </Popconfirm>
@@ -315,7 +301,8 @@ const RoomInventoryManagement = () => {
 
   return (
     <div style={{ padding: '24px 32px', backgroundColor: '#f5f7fa', minHeight: '100vh' }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 32, paddingBottom: 16, borderBottom: '1px solid #e8e8e8' }}>
+      {/* HEADER BAR */}
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20, paddingBottom: 16, borderBottom: '1px solid #e8e8e8' }}>
         <div>
           <Title level={3} style={{ margin: 0, color: '#1f1f1f' }}>Sơ Đồ Tài Sản Phòng</Title>
           <Text type="secondary" style={{ fontSize: 15 }}>Theo dõi và quản lý vật tư thiết bị từng phòng trong khách sạn</Text>
@@ -325,28 +312,102 @@ const RoomInventoryManagement = () => {
         </Button>
       </div>
 
+      {/* FILTER BAR - THANH BỘ LỌC CỰC XỊN */}
+      <div style={{ marginBottom: 32, padding: '16px 24px', backgroundColor: '#ffffff', borderRadius: 12, border: '1px solid #e8e8e8', display: 'flex', alignItems: 'center', gap: 24 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <FilterOutlined style={{ color: '#1890ff', fontSize: 18 }} />
+          <Text strong style={{ fontSize: 15 }}>Bộ lọc:</Text>
+        </div>
+        
+        <Space size="large" wrap>
+          <div>
+            <Text type="secondary" style={{ marginRight: 8 }}>Theo Tầng:</Text>
+            <Select 
+              value={selectedFloor} 
+              onChange={setSelectedFloor} 
+              style={{ width: 160 }}
+              options={[
+                { value: 'all', label: 'Tất cả các tầng' },
+                ...floorOptions.map(f => ({ value: f, label: f }))
+              ]}
+            />
+          </div>
+          <div>
+            <Text type="secondary" style={{ marginRight: 8 }}>Loại phòng:</Text>
+            <Select 
+              value={selectedRoomType} 
+              onChange={setSelectedRoomType} 
+              style={{ width: 280 }}
+              showSearch
+              options={[
+                { value: 'all', label: 'Tất cả loại phòng' },
+                ...roomTypeOptions.map(t => ({ value: t, label: t }))
+              ]}
+            />
+          </div>
+          
+          {(selectedFloor !== 'all' || selectedRoomType !== 'all') && (
+            <Button type="link" danger onClick={() => { setSelectedFloor('all'); setSelectedRoomType('all'); }}>
+              Xóa bộ lọc
+            </Button>
+          )}
+        </Space>
+      </div>
+
       <Spin spinning={loadingRooms} description="Đang tải dữ liệu phòng..." size="large">
-        {rooms.length === 0 && !loadingRooms ? (
-          <Empty description="Chưa có dữ liệu phòng nào!" style={{ marginTop: 50 }} />
+        {filteredRooms.length === 0 && !loadingRooms ? (
+          <Empty description="Không tìm thấy phòng nào phù hợp với bộ lọc!" style={{ marginTop: 50 }} />
         ) : (
-          <Row gutter={[24, 24]}>
-            {rooms.map(room => {
-              const ui = getStatusUI(room.status);
-              return (
-                <Col xs={12} sm={12} md={8} lg={6} xl={4} key={room.id}>
-                  <Badge.Ribbon text={ui.text} color={ui.color} placement="end">
-                    <Card hoverable style={{ borderRadius: 16, textAlign: 'center', border: `1px solid ${ui.borderColor}` }} styles={{ body: { padding: '28px 16px 20px 16px' } }} onClick={() => handleRoomClick(room)}>
-                      <div style={{ width: 64, height: 64, margin: '0 auto 16px auto', backgroundColor: ui.bgColor, borderRadius: '50%', display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
-                        <HomeOutlined style={{ fontSize: 32, color: ui.color }} />
-                      </div>
-                      <Title level={4} style={{ margin: 0, color: '#262626' }}>P. {room.roomNumber}</Title>
-                      <Text type="secondary" style={{ fontSize: 13, display: 'block', marginTop: 4 }}>{room.roomTypeName || 'Chưa phân loại'}</Text>
-                    </Card>
-                  </Badge.Ribbon>
-                </Col>
-              );
-            })}
-          </Row>
+          (() => {
+            // Gom nhóm những phòng ĐÃ LỌC
+            const groupedRooms = filteredRooms.reduce((acc, room) => {
+              let floorLabel = "Khu Vực Khác";
+              
+              if (room.floor) {
+                floorLabel = `Tầng ${room.floor}`;
+              } else if (room.roomNumber) {
+                const firstChar = String(room.roomNumber).charAt(0);
+                if (!isNaN(firstChar)) {
+                  floorLabel = `Tầng ${firstChar}`;
+                } else if (String(room.roomNumber).toUpperCase().includes('VILLA')) {
+                  floorLabel = "Khu Villa";
+                }
+              }
+
+              if (!acc[floorLabel]) acc[floorLabel] = [];
+              acc[floorLabel].push(room);
+              return acc;
+            }, {});
+
+            return Object.keys(groupedRooms).sort().map(floor => (
+              <div key={floor} style={{ marginBottom: 40 }}>
+                <Divider orientation="left" style={{ borderColor: '#d9d9d9' }}>
+                  <Title level={4} style={{ margin: 0, color: '#1890ff', textTransform: 'uppercase' }}>
+                    {floor} <span style={{fontSize: 14, color: '#8c8c8c', fontWeight: 'normal'}}>({groupedRooms[floor].length} phòng)</span>
+                  </Title>
+                </Divider>
+                
+                <Row gutter={[24, 24]}>
+                  {groupedRooms[floor].map(room => {
+                    const ui = getStatusUI(room.status);
+                    return (
+                      <Col xs={12} sm={12} md={8} lg={6} xl={4} key={room.id}>
+                        <Badge.Ribbon text={ui.text} color={ui.color} placement="end">
+                          <Card hoverable style={{ borderRadius: 16, textAlign: 'center', border: `1px solid ${ui.borderColor}` }} styles={{ body: { padding: '28px 16px 20px 16px' } }} onClick={() => handleRoomClick(room)}>
+                            <div style={{ width: 64, height: 64, margin: '0 auto 16px auto', backgroundColor: ui.bgColor, borderRadius: '50%', display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
+                              <HomeOutlined style={{ fontSize: 32, color: ui.color }} />
+                            </div>
+                            <Title level={4} style={{ margin: 0, color: '#262626' }}>P. {room.roomNumber}</Title>
+                            <Text type="secondary" style={{ fontSize: 13, display: 'block', marginTop: 4 }}>{room.roomTypeName || 'Chưa phân loại'}</Text>
+                          </Card>
+                        </Badge.Ribbon>
+                      </Col>
+                    );
+                  })}
+                </Row>
+              </div>
+            ));
+          })()
         )}
       </Spin>
 
@@ -362,7 +423,6 @@ const RoomInventoryManagement = () => {
                 <div style={{ fontSize: 18, fontWeight: 'bold' }}>Danh sách tài sản - P.{selectedRoom?.roomNumber}</div>
               </div>
             </Space>
-            {/* NÚT BẤM MỞ FORM THÊM VẬT TƯ */}
             <Button type="primary" icon={<PlusOutlined />} onClick={() => setIsAddModalVisible(true)} style={{ marginRight: 24, borderRadius: 6 }}>
               Thêm Vật Tư
             </Button>
@@ -393,11 +453,9 @@ const RoomInventoryManagement = () => {
       >
         <Form form={form} layout="vertical" onFinish={handleAddInventory} style={{ marginTop: 16 }}>
           <Form.Item name="amenityId" label="Chọn vật tư từ Kho" rules={[{ required: true, message: 'Vui lòng chọn vật tư!' }]}>
-            <Select placeholder="-- Chọn vật tư --" showSearch optionFilterProp="children">
-              {amenitiesList.map(item => (
-                <Option key={item.id} value={item.id}>{item.name}</Option>
-              ))}
-            </Select>
+            <Select placeholder="-- Chọn vật tư --" showSearch optionFilterProp="label" 
+              options={amenitiesList.map(item => ({ value: item.id, label: item.name }))}
+            />
           </Form.Item>
 
           <Form.Item name="quantity" label="Số lượng" rules={[{ required: true, message: 'Nhập số lượng!' }]} initialValue={1}>

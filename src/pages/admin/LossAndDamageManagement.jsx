@@ -2,12 +2,14 @@ import React, { useState, useEffect } from 'react';
 import { Table, Button, Tag, Space, message, Typography, Popconfirm, Card } from 'antd';
 import { CheckCircleOutlined, CloseCircleOutlined } from '@ant-design/icons';
 import axios from 'axios';
+import { useAuditLog } from '../../hooks/useAuditLog';
 
 const { Title, Text } = Typography;
 
 const LossAndDamageManagement = () => {
   const [data, setData] = useState([]);
   const [loading, setLoading] = useState(false);
+  const { logAction } = useAuditLog();
 
   // --- 1. KÉO DỮ LIỆU TỪ SQL LÊN ---
   const fetchData = async () => {
@@ -35,6 +37,7 @@ const LossAndDamageManagement = () => {
   const handleUpdateStatus = async (id, newStatus) => {
     try {
       const token = localStorage.getItem('token');
+      const currentRecord = data.find(item => item.id === id);
       
       // 🚨 BÍ KÍP C# ASP.NET: Gửi string [FromBody] phải bọc trong dấu ngoặc kép ""
       await axios.put(`https://localhost:5070/api/LossAndDamages/status/${id}`, 
@@ -46,6 +49,16 @@ const LossAndDamageManagement = () => {
           }
         }
       );
+      
+      logAction({
+        action: 'Cập nhật',
+        actionType: 'UPDATE',
+        module: 'Biên Bản Thiệt Hại',
+        objectName: `Biên bản #${id}`,
+        description: `Cập nhật trạng thái biên bản thành: ${newStatus}`,
+        oldValue: { status: currentRecord?.status },
+        newValue: { status: newStatus },
+      });
       
       message.success(`Đã cập nhật trạng thái biên bản thành: ${newStatus}`);
       fetchData(); // Bắt React load lại bảng để thấy sự thay đổi ngay lập tức

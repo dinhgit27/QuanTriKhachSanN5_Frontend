@@ -10,12 +10,14 @@ import {
 import { useLoadingStore } from '../../store/loadingStore';
 import { userManagementAPI } from '../../api/userManagement';
 import { roleAPI } from '../../api/roleApi';
+import { useAuditLog } from '../../hooks/useAuditLog';
 
 const { Title, Text } = Typography;
 const { Option } = Select;
 
 const UserListPage = () => {
   const setLoading = useLoadingStore((state) => state.setLoading);
+  const { logAction } = useAuditLog();
 
   const [users, setUsers] = useState([]); 
   const [filteredUsers, setFilteredUsers] = useState([]); 
@@ -122,6 +124,18 @@ const UserListPage = () => {
         try {
           setLocalLoading(true);
           await userManagementAPI.toggleStatus(user.id);
+          
+          // Log action
+          logAction({
+            action: 'Sửa',
+            actionType: 'UPDATE',
+            module: 'Nhân viên & Quyền',
+            objectName: user.fullName,
+            description: `${user.isActive ? 'Khóa' : 'Mở khóa'} tài khoản: ${user.email}`,
+            oldValue: { status: user.isActive ? 'Active' : 'Locked' },
+            newValue: { status: user.isActive ? 'Locked' : 'Active' },
+          });
+          
           message.success('Cập nhật thành công!');
           fetchUsers();
         } catch (error) {
@@ -137,10 +151,34 @@ const UserListPage = () => {
     try {
       setLocalLoading(true);
       if (editingId) {
+        // Update
         await userManagementAPI.updateUser(editingId, values);
+        
+        // Log action
+        logAction({
+          action: 'Sửa',
+          actionType: 'UPDATE',
+          module: 'Nhân viên & Quyền',
+          objectName: values.fullName,
+          description: `Cập nhật thông tin nhân viên: ${values.email}`,
+          newValue: values,
+        });
+        
         message.success('Cập nhật thông tin thành công!');
       } else {
+        // Create
         await userManagementAPI.createUser(values);
+        
+        // Log action
+        logAction({
+          action: 'Thêm',
+          actionType: 'CREATE',
+          module: 'Nhân viên & Quyền',
+          objectName: values.fullName,
+          description: `Thêm nhân viên mới: ${values.email}`,
+          newValue: values,
+        });
+        
         message.success('Thêm người dùng thành công!');
       }
       setModalVisible(false);

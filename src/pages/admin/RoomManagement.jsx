@@ -7,7 +7,8 @@ import {
   PlusOutlined, EditOutlined, DeleteOutlined, 
   CheckCircleOutlined, SyncOutlined, SearchOutlined 
 } from '@ant-design/icons';
-import { roomApi } from '../../api/roomApi'; 
+import { roomApi } from '../../api/roomApi';
+import { useAuditLog } from '../../hooks/useAuditLog'; 
 
 const { Title, Text } = Typography;
 const { Option } = Select;
@@ -17,6 +18,7 @@ const RoomManagement = () => {
   const [rooms, setRooms] = useState([]);
   const [loading, setLoading] = useState(false);
   const [isModalVisible, setIsModalVisible] = useState(false);
+  const { logAction } = useAuditLog();
   
   // --- STATE PHỤC VỤ TÌM KIẾM & BỘ LỌC ---
   const [searchText, setSearchText] = useState('');
@@ -77,9 +79,27 @@ const RoomManagement = () => {
 
       if (editingRoom) {
         await roomApi.updateRoom(editingRoom.id, payload);
+        logAction({
+          action: 'Sửa',
+          actionType: 'UPDATE',
+          module: 'Quản lý Phòng',
+          objectName: `Phòng ${payload.roomNumber}`,
+          description: `Cập nhật thông tin phòng: ${payload.roomNumber}`,
+          oldValue: editingRoom,
+          newValue: payload,
+        });
         message.success("Cập nhật thành công!");
       } else {
         await roomApi.createRoom(payload);
+        logAction({
+          action: 'Thêm',
+          actionType: 'CREATE',
+          module: 'Quản lý Phòng',
+          objectName: `Phòng ${payload.roomNumber}`,
+          description: `Thêm phòng mới: ${payload.roomNumber}`,
+          oldValue: null,
+          newValue: payload,
+        });
         message.success("Thêm mới thành công!");
       }
       setIsModalVisible(false);
@@ -94,7 +114,18 @@ const RoomManagement = () => {
 
   const handleDelete = async (id) => {
     try {
+      const room = rooms.find(r => r.id === id);
+      const roomNumber = room?.roomNumber || 'Phòng';
+      
       await roomApi.deleteRoom(id);
+      logAction({
+        action: 'Xóa',
+        actionType: 'DELETE',
+        module: 'Quản lý Phòng',
+        objectName: `Phòng ${roomNumber}`,
+        description: `Xóa phòng: ${roomNumber}`,
+        oldValue: room,
+      });
       message.success("Đã xóa!");
       fetchRooms();
     } catch (error) {

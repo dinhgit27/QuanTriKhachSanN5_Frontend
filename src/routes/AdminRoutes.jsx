@@ -6,6 +6,7 @@ import { useAdminAuthStore } from '../store/adminAuthStore';
 import AdminLayout from '../layouts/AdminLayout';
 import LoginPage from '../pages/auth/LoginPage';
 import UserListPage from '../pages/admin/UserListPage';
+import AuditLogsPage from '../pages/admin/AuditLogsPage';
 import UserProfilePage from '../pages/profile/UserProfilePage';
 
 // 👉 Thêm RequirePermission
@@ -37,6 +38,9 @@ const AdminRoutes = () => {
         <Route element={<RequirePermission permission="user.view" />}>
           <Route path="users" element={<UserListPage />} />
         </Route>
+
+        {/* Audit Logs */}
+        <Route path="audit" element={<AuditLogsPage />} />
 
         {/* Không cần permission */}
         <Route path="profile" element={<UserProfilePage />} />

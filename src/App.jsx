@@ -16,7 +16,8 @@ import GuestDashboard from "./pages/guest/GuestDashboard";
 import RegisterPage from "./pages/RegisterPage"; 
 import ForgotPasswordPage from "./pages/ForgotPasswordPage";
 import WarehouseManagement from "./pages/admin/WarehouseManagement";
-import LossAndDamageManagement from "./pages/admin/LossAndDamageManagement"; 
+import LossAndDamageManagement from "./pages/admin/LossAndDamageManagement";
+import AuditLogsPage from "./pages/admin/AuditLogsPage"; 
 
 const NotFoundPage = () => <h1>404 - Đường dẫn này không tồn tại 😢</h1>;
 const UnauthorizedPage = () => (
@@ -56,6 +57,7 @@ function App() {
               <Route path="/admin/users" element={<UserListPage />} />
               <Route path="/admin/rooms" element={<RoomManagement />} />
               <Route path="/admin/inventory" element={<InventoryManagement />} />
+              <Route path="/admin/audit" element={<AuditLogsPage />} />
             </Route>
           </Route>
           

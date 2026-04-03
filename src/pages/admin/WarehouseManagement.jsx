@@ -8,11 +8,13 @@ import {
   UploadOutlined, LoadingOutlined
 } from '@ant-design/icons';
 import axios from 'axios';
+import { useAuditLog } from '../../hooks/useAuditLog';
 
 const { Title, Text } = Typography;
 const { Option } = Select;
 
 const WarehouseManagement = () => {
+  const { logAction } = useAuditLog();
   const [data, setData] = useState([]);
   const [loading, setLoading] = useState(false);
   const [isModalVisible, setIsModalVisible] = useState(false);
@@ -98,10 +100,35 @@ const WarehouseManagement = () => {
       const headers = { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' };
 
       if (editingItem) {
+        // Update
         await axios.put(`https://localhost:5070/api/Amenities/${editingItem.id}`, { ...editingItem, ...values }, { headers });
+        
+        // Log action
+        logAction({
+          action: 'Sửa',
+          actionType: 'UPDATE',
+          module: 'Kho Vật Tư',
+          objectName: values.name,
+          description: `Cập nhật thông tin vật tư: ${values.name}`,
+          oldValue: editingItem,
+          newValue: values,
+        });
+        
         message.success('Đã cập nhật thông tin vật tư!');
       } else {
+        // Create
         await axios.post('https://localhost:5070/api/Amenities', values, { headers });
+        
+        // Log action
+        logAction({
+          action: 'Thêm',
+          actionType: 'CREATE',
+          module: 'Kho Vật Tư',
+          objectName: values.name,
+          description: `Thêm vật tư mới: ${values.name}`,
+          newValue: values,
+        });
+        
         message.success('Đã nhập vật tư mới vào kho!');
       }
 
@@ -116,9 +143,25 @@ const WarehouseManagement = () => {
   const handleDelete = async (id) => {
     try {
       const token = localStorage.getItem('token');
+      
+      // Tìm item để ghi log
+      const deletingItem = data.find(item => item.id === id);
+      const itemName = deletingItem?.name || 'Vật tư';
+      
       await axios.delete(`https://localhost:5070/api/Amenities/${id}`, {
         headers: { Authorization: `Bearer ${token}` }
       });
+      
+      // Log action
+      logAction({
+        action: 'Xóa',
+        actionType: 'DELETE',
+        module: 'Kho Vật Tư',
+        objectName: itemName,
+        description: `Xóa vật tư: ${itemName}`,
+        oldValue: { name: itemName, quantity: deletingItem?.quantity, price: deletingItem?.price },
+      });
+      
       message.success("Đã xóa vật tư!");
       fetchData();
     } catch (err) {

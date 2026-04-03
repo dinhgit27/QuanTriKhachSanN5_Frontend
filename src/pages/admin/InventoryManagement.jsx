@@ -8,11 +8,20 @@ import {
   CheckCircleOutlined, SyncOutlined, PlusOutlined, DeleteOutlined
 } from '@ant-design/icons';
 import axios from 'axios';
+import { useAuditLog } from '../../hooks/useAuditLog';
 
 const { Title, Text } = Typography;
 const { Option } = Select;
 
 const RoomInventoryManagement = () => {
+  const { logAction } = useAuditLog();
+  
+  console.log('🏢 [InventoryManagement] Component rendering, logAction type:', typeof logAction);
+  
+  useEffect(() => {
+    console.log('✅ InventoryManagement component mounted, logAction available:', typeof logAction);
+  }, []);
+  
   const [rooms, setRooms] = useState([]); 
   const [loadingRooms, setLoadingRooms] = useState(false);
   
@@ -85,8 +94,22 @@ const RoomInventoryManagement = () => {
         isActive: true
       };
 
+      // Tìm tên vật tư
+      const amenity = amenitiesList.find(a => a.id === values.amenityId);
+      const amenityName = amenity?.name || 'Vật tư';
+
       await axios.post(`https://localhost:5070/api/RoomInventory/rooms/${selectedRoom.id}/inventory`, payload, {
         headers: { Authorization: `Bearer ${token}` }
+      });
+
+      // Log action
+      logAction({
+        action: 'Thêm',
+        actionType: 'CREATE',
+        module: 'Vật Tư Theo Phòng',
+        objectName: `${amenityName} - Phòng ${selectedRoom?.roomNumber}`,
+        description: `Cấp phát ${values.quantity} chiếc ${amenityName} vào phòng`,
+        newValue: { amenityName, quantity: values.quantity, roomNumber: selectedRoom?.roomNumber },
       });
 
       message.success('Đã cấp phát vật tư vào phòng thành công!');
@@ -104,14 +127,50 @@ const RoomInventoryManagement = () => {
   const handleDeleteInventory = async (inventoryId) => {
     try {
       const token = localStorage.getItem('token');
-      await axios.delete(`https://localhost:5070/api/RoomInventory/${inventoryId}`, {
+      
+      // Tìm tên vật tư để ghi log
+      const deletingItem = roomInventory.find(item => item.id === inventoryId);
+      const amenityName = deletingItem?.amenityName || 'Vật tư';
+      const quantity = deletingItem?.quantity || 0;
+      
+      console.log('🗑️ Deleting inventory:', { inventoryId, amenityName, quantity });
+      
+      const deleteResponse = await axios.delete(`https://localhost:5070/api/RoomInventory/${inventoryId}`, {
         headers: { Authorization: `Bearer ${token}` }
       });
+      
+      console.log('✅ Delete API response:', deleteResponse.status, deleteResponse.data);
+      
+      if (deleteResponse.status !== 200 && deleteResponse.status !== 204) {
+        throw new Error(`Delete failed with status ${deleteResponse.status}`);
+      }
+      
+      console.log('✅ Delete successful, logging action...');
+      
+      // Log action
+      console.log('📝 Calling logAction with:', {
+        action: 'Xóa',
+        actionType: 'DELETE',
+        module: 'Vật Tư Theo Phòng',
+        objectName: `${amenityName} - Phòng ${selectedRoom?.roomNumber}`,
+      });
+      
+      logAction({
+        action: 'Xóa',
+        actionType: 'DELETE',
+        module: 'Vật Tư Theo Phòng',
+        objectName: `${amenityName} - Phòng ${selectedRoom?.roomNumber}`,
+        description: `Thu hồi ${quantity} chiếc ${amenityName} từ phòng`,
+        oldValue: { amenityName, quantity, roomNumber: selectedRoom?.roomNumber },
+      });
+      
+      console.log('✅ Audit log added to store');
+      
       message.success('Đã thu hồi vật tư thành công!');
       fetchRoomInventoryDetails(selectedRoom.id);
     } catch (error) {
-      message.error("Lỗi khi xóa vật tư!");
-      console.error(error);
+      console.error('❌ Error deleting inventory:', error.message, error.response?.data);
+      message.error("Lỗi khi xóa vật tư: " + (error.response?.data?.message || error.message));
     }
   };
 
@@ -137,6 +196,17 @@ const RoomInventoryManagement = () => {
           await axios.post('https://localhost:5070/api/LossAndDamages', damagePayload, {
             headers: { Authorization: `Bearer ${token}` }
           });
+          
+          logAction({
+            action: 'Báo hỏng',
+            actionType: 'UPDATE',
+            module: 'Vật Tư Theo Phòng',
+            objectName: `${record.amenity?.name} - Phòng ${selectedRoom?.roomNumber}`,
+            description: `Báo hỏng vật tư: ${record.amenity?.name}`,
+            oldValue: { isActive: true },
+            newValue: { isActive: false },
+          });
+          
           message.success(`Đã báo hỏng ${record.amenity?.name} thành công!`);
           
           // Cập nhật state thành false (Đã hỏng)
@@ -152,14 +222,24 @@ const RoomInventoryManagement = () => {
   };
 
   // --- HÀM KHÔI PHỤC VẬT TƯ SAU KHI ĐÃ SỬA CHỮA/THAY MỚI ---
-  // --- HÀM KHÔI PHỤC VẬT TƯ SAU KHI ĐÃ SỬA CHỮA/THAY MỚI ---
   const handleRestoreInventory = async (inventoryId) => {
     try {
       const token = localStorage.getItem('token');
+      const restoringItem = roomInventory.find(item => item.id === inventoryId);
       
       // 1. GỌI API LƯU TRẠNG THÁI XUỐNG DATABASE
       await axios.put(`https://localhost:5070/api/RoomInventory/restore/${inventoryId}`, {}, {
         headers: { Authorization: `Bearer ${token}` }
+      });
+
+      logAction({
+        action: 'Đã thay mới',
+        actionType: 'UPDATE',
+        module: 'Vật Tư Theo Phòng',
+        objectName: `${restoringItem?.amenity?.name} - Phòng ${selectedRoom?.roomNumber}`,
+        description: `Đã thay mới/sửa chữa vật tư: ${restoringItem?.amenity?.name}`,
+        oldValue: { isActive: false },
+        newValue: { isActive: true },
       });
 
       // 2. NẾU API THÀNH CÔNG THÌ MỚI ĐỔI MÀU GIAO DIỆN

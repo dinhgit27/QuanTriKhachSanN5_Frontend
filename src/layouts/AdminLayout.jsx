@@ -17,6 +17,7 @@ import {
 // Ní nhớ import đúng store/utils của ní nha
 import { getUserRoles } from "../utils/auth";
 import { useAdminAuthStore } from "../store/adminAuthStore";
+import NotificationBell from "../components/NotificationBell";
 
 const { Header, Content, Sider } = Layout;
 const { Text } = Typography;
@@ -219,6 +220,66 @@ const AdminLayout = () => {
 
       {/* KHU VỰC NỘI DUNG BÊN PHẢI */}
       <Layout style={{ marginLeft: 250, background: COLORS.contentBg }}>
+        {/* HEADER (với icon chuông thông báo) */}
+        <Header
+          style={{
+            background: COLORS.headerBg,
+            padding: '0 24px',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'flex-end',
+            boxShadow: '0 1px 3px rgba(0,0,0,0.1)',
+            height: 64,
+            position: 'sticky',
+            top: 0,
+            zIndex: 10,
+          }}
+        >
+          {/* Icons bên phải */}
+          <Space size={16} style={{ alignItems: 'center' }}>
+            {/* Icon Chuông Thông báo */}
+            <NotificationBell />
+
+            {/* Divider */}
+            <div style={{ height: 28, width: 1, background: '#e8e8e8' }}></div>
+
+            {/* User Avatar */}
+            <Dropdown menu={{ items: userMenuItems }} placement="bottomRight" arrow={{ pointAtCenter: true }}>
+              <div style={{ 
+                display: 'flex', 
+                alignItems: 'center', 
+                gap: 8, 
+                cursor: 'pointer',
+                padding: '6px 8px',
+                borderRadius: 6,
+                transition: 'all 0.3s',
+              }}
+              onMouseEnter={(e) => e.currentTarget.style.background = '#fafafa'}
+              onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
+              >
+                <Avatar 
+                  size={36}
+                  style={{ 
+                    backgroundColor: COLORS.activeItemBg, 
+                    color: COLORS.activeItemColor,
+                    fontWeight: 'bold',
+                    fontSize: 15,
+                  }}
+                >
+                  {userRoles[0]?.charAt(0).toUpperCase() || 'A'}
+                </Avatar>
+                <div style={{ minWidth: 'auto' }}>
+                  <div style={{ fontSize: 12, fontWeight: 600, color: '#262626', lineHeight: 1.2 }}>
+                    {isAdmin ? 'Admin' : 'Nhân viên'}
+                  </div>
+                  <div style={{ fontSize: 10, color: '#8c8c8c', lineHeight: 1.2 }}>{userRoles.join(', ')}</div>
+                </div>
+              </div>
+            </Dropdown>
+          </Space>
+        </Header>
+
+        {/* CONTENT */}
         <Content style={{ padding: '24px' }}>
           <div style={{ background: COLORS.cardBg, borderRadius: 12, minHeight: 'calc(100vh - 48px)', overflow: 'hidden' }}>
             <Outlet />

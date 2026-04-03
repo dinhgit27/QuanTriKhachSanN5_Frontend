@@ -1,0 +1,503 @@
+import React, { useState, useEffect } from 'react';
+import {
+  Table,
+  Modal,
+  Form,
+  Input,
+  Select,
+  Button,
+  Tag,
+  Space,
+  Typography,
+  message,
+  Card,
+  DatePicker,
+  Row,
+  Col,
+  Tooltip,
+  Badge,
+  Drawer,
+  Divider,
+  Descriptions,
+} from 'antd';
+import {
+  SearchOutlined,
+  EyeOutlined,
+  ReloadOutlined,
+  FileExcelOutlined,
+  CalendarOutlined,
+  DeleteOutlined,
+} from '@ant-design/icons';
+import dayjs from 'dayjs';
+import relativeTime from 'dayjs/plugin/relativeTime';
+import 'dayjs/locale/vi';
+import { auditLogApi } from '../../api/auditLogApi';
+import { useLoadingStore } from '../../store/loadingStore';
+import { useAuditLogStore } from '../../store/auditLogStore';
+
+dayjs.extend(relativeTime);
+dayjs.locale('vi');
+
+const { Title, Text } = Typography;
+const { RangePicker } = DatePicker;
+const { Option } = Select;
+
+// Màu sắc cho các hành động
+const ACTION_COLORS = {
+  CREATE: { color: '#52c41a', label: 'Thêm' },
+  UPDATE: { color: '#faad14', label: 'Sửa' },
+  DELETE: { color: '#ff4d4f', label: 'Xóa' },
+  CHECKIN: { color: '#1890ff', label: 'Check-in' },
+  CHECKOUT: { color: '#13c2c2', label: 'Check-out' },
+  PAYMENT: { color: '#722ed1', label: 'Thanh toán' },
+  LOGIN: { color: '#eb2f96', label: 'Đăng nhập' },
+  OTHER: { color: '#666', label: 'Khác' },
+};
+
+// Dropdown loại hành động
+const ACTION_TYPES = [
+  { label: 'Tất cả', value: '' },
+  { label: 'Thêm', value: 'CREATE' },
+  { label: 'Sửa', value: 'UPDATE' },
+  { label: 'Xóa', value: 'DELETE' },
+  { label: 'Đăng nhập', value: 'LOGIN' },
+  { label: 'Check-in', value: 'CHECKIN' },
+  { label: 'Check-out', value: 'CHECKOUT' },
+  { label: 'Thanh toán', value: 'PAYMENT' },
+  { label: 'Khác', value: 'OTHER' },
+];
+
+// Dropdown module
+const MODULES = [
+  { label: 'Tất cả', value: '' },
+  { label: 'Nhân viên & Quyền', value: 'Nhân viên & Quyền' },
+  { label: 'Quản lý Phòng', value: 'Quản lý Phòng' },
+  { label: 'Kho Vật Tư', value: 'Kho Vật Tư' },
+  { label: 'Vật Tư Theo Phòng', value: 'Vật Tư Theo Phòng' },
+  { label: 'Biên Bản Đền Bù', value: 'Biên Bản Đền Bù' },
+  { label: 'Đặt Phòng', value: 'Đặt Phòng' },
+  { label: 'Khách Hàng', value: 'Khách Hàng' },
+  { label: 'Thanh Toán', value: 'Thanh Toán' },
+  { label: 'Hệ thống', value: 'Hệ thống' },
+];
+
+const AuditLogsPage = () => {
+  const setLoading = useLoadingStore((state) => state.setLoading);
+  const storeAuditLogs = useAuditLogStore((state) => state.auditLogs);
+
+  // --- STATE ---
+  const [auditLogs, setAuditLogs] = useState([]);
+  const [filteredLogs, setFilteredLogs] = useState([]);
+  const [localLoading, setLocalLoading] = useState(false);
+  const [pagination, setPagination] = useState({ current: 1, pageSize: 10 });
+  const [detailDrawerVisible, setDetailDrawerVisible] = useState(false);
+  const [selectedLog, setSelectedLog] = useState(null);
+
+  // --- FILTERS ---
+  const [searchText, setSearchText] = useState('');
+  const [filterAction, setFilterAction] = useState('');
+  const [filterModule, setFilterModule] = useState('');
+  const [dateRange, setDateRange] = useState([null, null]);
+
+  // --- FETCH DỮ LIỆU ---
+  const fetchAuditLogs = async () => {
+    setLocalLoading(true);
+    setLoading(true);
+    try {
+      // Lấy từ API (mock or backend)
+      const response = await auditLogApi.getAuditLogs();
+      const mockData = response.data || [];
+
+      // Combine mock data + store logs
+      const combinedLogs = [...storeAuditLogs, ...mockData];
+      
+      setAuditLogs(combinedLogs);
+      setFilteredLogs(combinedLogs);
+    } catch (error) {
+      message.error('Lỗi khi tải Audit Logs!');
+      console.error('Error fetching audit logs:', error);
+      // Fallback: chỉ dùng store logs
+      setAuditLogs(storeAuditLogs);
+      setFilteredLogs(storeAuditLogs);
+    } finally {
+      setLocalLoading(false);
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchAuditLogs();
+  }, [storeAuditLogs]); // Re-fetch mỗi khi store thay đổi
+
+  // --- BỘ LỌC TỔNG HỢP ---
+  useEffect(() => {
+    let result = auditLogs;
+
+    // Filter by search text (tìm kiếm theo tên người dùng, email, hành động, đối tượng)
+    if (searchText) {
+      const text = searchText.toLowerCase();
+      result = result.filter((log) => {
+        const matchUserName = log.userName?.toLowerCase().includes(text);
+        const matchEmail = log.email?.toLowerCase().includes(text);
+        const matchDescription = log.description?.toLowerCase().includes(text);
+        const matchObject = log.objectName?.toLowerCase().includes(text);
+        return matchUserName || matchEmail || matchDescription || matchObject;
+      });
+    }
+
+    // Filter by action type
+    if (filterAction) {
+      result = result.filter((log) => log.actionType === filterAction);
+    }
+
+    // Filter by module
+    if (filterModule) {
+      result = result.filter((log) => log.module === filterModule);
+    }
+
+    // Filter by date range
+    if (dateRange[0] && dateRange[1]) {
+      const startDate = dayjs(dateRange[0]).startOf('day');
+      const endDate = dayjs(dateRange[1]).endOf('day');
+      result = result.filter((log) => {
+        const logDate = dayjs(log.timestamp);
+        return logDate.isAfter(startDate) && logDate.isBefore(endDate);
+      });
+    }
+
+    // Sắp xếp theo thời gian giảm dần (mới nhất trước)
+    result.sort((a, b) => dayjs(b.timestamp).diff(dayjs(a.timestamp)));
+
+    setFilteredLogs(result);
+    setPagination((prev) => ({ ...prev, current: 1 }));
+  }, [searchText, filterAction, filterModule, dateRange, auditLogs]);
+
+  // --- HANDLERS ---
+  const handleTableChange = (pag) => {
+    setPagination({ current: pag.current, pageSize: pag.pageSize });
+  };
+
+  const handleRefresh = () => {
+    setSearchText('');
+    setFilterAction('');
+    setFilterModule('');
+    setDateRange([null, null]);
+    fetchAuditLogs();
+    message.success('Đã làm mới dữ liệu!');
+  };
+
+  const handleExportExcel = () => {
+    message.info('Tính năng xuất Excel đang được phát triển!');
+    // TODO: Implement export Excel functionality
+  };
+
+  const handleViewDetail = (record) => {
+    setSelectedLog(record);
+    setDetailDrawerVisible(true);
+  };
+
+  // --- COLUMNS TABLE ---
+  const columns = [
+    {
+      title: 'STT',
+      key: 'stt',
+      width: 50,
+      render: (_, __, index) => {
+        return (
+          (pagination.current - 1) * pagination.pageSize + index + 1
+        );
+      },
+    },
+    {
+      title: 'Thời gian',
+      dataIndex: 'timestamp',
+      key: 'timestamp',
+      width: 180,
+      sorter: (a, b) => dayjs(b.timestamp).diff(dayjs(a.timestamp)),
+      render: (timestamp) => (
+        <Tooltip title={dayjs(timestamp).format('DD/MM/YYYY HH:mm:ss')}>
+          <div>
+            <div style={{ fontSize: 13, fontWeight: 500 }}>
+              {dayjs(timestamp).format('DD/MM/YYYY HH:mm:ss')}
+            </div>
+            <div style={{ fontSize: 12, color: '#999' }}>
+              ({dayjs(timestamp).fromNow()})
+            </div>
+          </div>
+        </Tooltip>
+      ),
+    },
+    {
+      title: 'Người thực hiện',
+      key: 'user',
+      width: 200,
+      render: (_, record) => (
+        <div>
+          <div style={{ fontWeight: 500 }}>{record.userName}</div>
+          <div style={{ fontSize: 12, color: '#999' }}>{record.email}</div>
+        </div>
+      ),
+    },
+    {
+      title: 'Hành động',
+      dataIndex: 'actionType',
+      key: 'actionType',
+      width: 100,
+      render: (actionType) => {
+        const colorObj = ACTION_COLORS[actionType] || ACTION_COLORS.OTHER;
+        return (
+          <Tag color={colorObj.color} style={{ borderRadius: 4 }}>
+            {colorObj.label}
+          </Tag>
+        );
+      },
+    },
+    {
+      title: 'Module / Đối tượng',
+      key: 'module',
+      width: 180,
+      render: (_, record) => (
+        <div>
+          <div style={{ fontWeight: 500 }}>{record.module}</div>
+          <div style={{ fontSize: 12, color: '#999' }}>{record.objectName}</div>
+        </div>
+      ),
+    },
+    {
+      title: 'Chi tiết thay đổi',
+      dataIndex: 'description',
+      key: 'description',
+      width: 250,
+      render: (description) => (
+        <Tooltip title={description}>
+          <div
+            style={{
+              whiteSpace: 'nowrap',
+              overflow: 'hidden',
+              textOverflow: 'ellipsis',
+              fontSize: 13,
+            }}
+          >
+            {description}
+          </div>
+        </Tooltip>
+      ),
+    },
+    {
+      title: 'Thao tác',
+      key: 'action',
+      width: 100,
+      fixed: 'right',
+      render: (_, record) => (
+        <Space size="small">
+          <Button
+            type="primary"
+            size="small"
+            icon={<EyeOutlined />}
+            onClick={() => handleViewDetail(record)}
+          >
+            Xem
+          </Button>
+        </Space>
+      ),
+    },
+  ];
+
+  // --- RENDER DETAIL DRAWER ---
+  const renderDetailDrawer = () => {
+    if (!selectedLog) return null;
+
+    const formatValue = (value) => {
+      if (value === null || value === undefined) return '-';
+      if (typeof value === 'object') {
+        return JSON.stringify(value, null, 2);
+      }
+      return String(value);
+    };
+
+    return (
+      <Drawer
+        title={`Chi tiết Audit Log #${selectedLog.id}`}
+        onClose={() => setDetailDrawerVisible(false)}
+        open={detailDrawerVisible}
+        width={700}
+        bodyStyle={{ paddingBottom: 80 }}
+      >
+        <Descriptions bordered column={1} size="small" style={{ marginBottom: 24 }}>
+          <Descriptions.Item label="Thời gian">
+            {dayjs(selectedLog.timestamp).format('DD/MM/YYYY HH:mm:ss')}
+          </Descriptions.Item>
+          <Descriptions.Item label="Người thực hiện">
+            <div>
+              <div style={{ fontWeight: 500 }}>{selectedLog.userName}</div>
+              <div style={{ fontSize: 12, color: '#999' }}>{selectedLog.email}</div>
+            </div>
+          </Descriptions.Item>
+          <Descriptions.Item label="Hành động">
+            <Tag
+              color={
+                ACTION_COLORS[selectedLog.actionType]?.color ||
+                ACTION_COLORS.OTHER.color
+              }
+              style={{ borderRadius: 4 }}
+            >
+              {ACTION_COLORS[selectedLog.actionType]?.label ||
+                ACTION_COLORS.OTHER.label}
+            </Tag>
+          </Descriptions.Item>
+          <Descriptions.Item label="Module">
+            {selectedLog.module}
+          </Descriptions.Item>
+          <Descriptions.Item label="Đối tượng">
+            {selectedLog.objectName}
+          </Descriptions.Item>
+          <Descriptions.Item label="Mô tả">
+            {selectedLog.description}
+          </Descriptions.Item>
+        </Descriptions>
+      </Drawer>
+    );
+  };
+
+  return (
+    <div style={{ padding: '20px' }}>
+      {/* --- HEADER --- */}
+      <div style={{ marginBottom: 24 }}>
+        <Title level={2} style={{ marginBottom: 0 }}>
+          Nhật ký Hoạt động
+        </Title>
+        <Text type="secondary">
+          Theo dõi toàn bộ lịch sử thay đổi và hoạt động của hệ thống quản lý khách sạn
+        </Text>
+      </div>
+
+      {/* --- FILTER SECTION --- */}
+      <Card style={{ marginBottom: 24, borderRadius: 8 }}>
+        <Form layout="vertical">
+          <Row gutter={[16, 16]}>
+            {/* Tìm kiếm */}
+            <Col xs={24} sm={24} md={6}>
+              <Form.Item label="Tìm kiếm">
+                <Input
+                  placeholder="Tìm theo tên, email, hành động..."
+                  prefix={<SearchOutlined />}
+                  value={searchText}
+                  onChange={(e) => setSearchText(e.target.value)}
+                  allowClear
+                />
+              </Form.Item>
+            </Col>
+
+            {/* Loại hành động */}
+            <Col xs={24} sm={24} md={6}>
+              <Form.Item label="Loại hành động">
+                <Select
+                  placeholder="Chọn loại hành động"
+                  value={filterAction}
+                  onChange={(value) => setFilterAction(value)}
+                  allowClear
+                >
+                  {ACTION_TYPES.map((item) => (
+                    <Option key={item.value} value={item.value}>
+                      {item.label}
+                    </Option>
+                  ))}
+                </Select>
+              </Form.Item>
+            </Col>
+
+            {/* Module */}
+            <Col xs={24} sm={24} md={6}>
+              <Form.Item label="Module">
+                <Select
+                  placeholder="Chọn module"
+                  value={filterModule}
+                  onChange={(value) => setFilterModule(value)}
+                  allowClear
+                >
+                  {MODULES.map((item) => (
+                    <Option key={item.value} value={item.value}>
+                      {item.label}
+                    </Option>
+                  ))}
+                </Select>
+              </Form.Item>
+            </Col>
+
+            {/* Date Range */}
+            <Col xs={24} sm={24} md={6}>
+              <Form.Item label="Thời gian">
+                <RangePicker
+                  style={{ width: '100%' }}
+                  placeholder={['Từ ngày', 'Đến ngày']}
+                  value={dateRange[0] && dateRange[1] ? [dayjs(dateRange[0]), dayjs(dateRange[1])] : []}
+                  onChange={(dates) => {
+                    if (dates && dates[0] && dates[1]) {
+                      setDateRange([dates[0], dates[1]]);
+                    } else {
+                      setDateRange([null, null]);
+                    }
+                  }}
+                  format="DD/MM/YYYY"
+                />
+              </Form.Item>
+            </Col>
+          </Row>
+
+          {/* Buttons */}
+          <Row gutter={[16, 16]}>
+            <Col>
+              <Button
+                type="primary"
+                icon={<ReloadOutlined />}
+                onClick={handleRefresh}
+              >
+                Làm mới
+              </Button>
+            </Col>
+            <Col>
+              <Button
+                icon={<FileExcelOutlined />}
+                onClick={handleExportExcel}
+              >
+                Xuất Excel
+              </Button>
+            </Col>
+          </Row>
+        </Form>
+      </Card>
+
+      {/* --- TABLE --- */}
+      <Card style={{ borderRadius: 8 }}>
+        <Table
+          columns={columns}
+          dataSource={filteredLogs}
+          rowKey="id"
+          loading={localLoading}
+          pagination={{
+            current: pagination.current,
+            pageSize: pagination.pageSize,
+            total: filteredLogs.length,
+            showSizeChanger: true,
+            showTotal: (total) => `Tổng cộng ${total} bản ghi`,
+            pageSizeOptions: ['10', '20', '50', '100'],
+            locale: {
+              items_per_page: ' / trang',
+              jump_to: 'Đi đến',
+              jump_to_confirm: 'Xác nhận',
+              page: ' ',
+            },
+          }}
+          onChange={handleTableChange}
+          scroll={{ x: 1200 }}
+          size="middle"
+        />
+      </Card>
+
+      {/* --- DETAIL DRAWER --- */}
+      {renderDetailDrawer()}
+    </div>
+  );
+};
+
+export default AuditLogsPage;

@@ -15,12 +15,13 @@ import HousekeeperDashboard from "./pages/housekeeper/HousekeeperDashboard";
 import GuestDashboard from "./pages/guest/GuestDashboard";
 import RegisterPage from "./pages/RegisterPage"; 
 import ForgotPasswordPage from "./pages/ForgotPasswordPage";
+import WarehouseManagement from "./pages/admin/WarehouseManagement";
+import LossAndDamageManagement from "./pages/admin/LossAndDamageManagement"; 
 
 const NotFoundPage = () => <h1>404 - Đường dẫn này không tồn tại 😢</h1>;
 const UnauthorizedPage = () => (
   <h1>403 - BẠN KHÔNG CÓ QUYỀN VÀO KHU VỰC NÀY 🛑</h1>
 );
-
 
 function App() {
   return (
@@ -35,10 +36,21 @@ function App() {
         <Route path="/forgot-password" element={<ForgotPasswordPage />} />
         <Route path="/unauthorized" element={<UnauthorizedPage />} />
         
+        {/* ĐÃ BẾ TRANG LOSS-AND-DAMAGE KHỎI ĐÂY VÌ NÓ LÀ VÙNG CẤM */}
 
         {/* 3. VÙNG CẤM CHUNG (Chỉ cần có Token là lọt qua lớp 1) */}
         <Route element={<ProtectedRoute />}>
-          {/* --- KHU VỰC DÀNH CHO ADMIN (Giám Đốc) --- */}
+
+          {/* --- KHU VỰC DÙNG CHUNG CHO ADMIN & LỄ TÂN --- */}
+          <Route element={<RoleBasedRoute allowedRoles={["Admin", "Receptionist"]} />}>
+            <Route element={<AdminLayout />}>
+              {/* Trang đền bù phải nằm trong này, bọc layout đàng hoàng */}
+              <Route path="/admin/warehouse" element={<WarehouseManagement />} />
+              <Route path="/admin/loss-and-damage" element={<LossAndDamageManagement />} />
+            </Route>
+          </Route>
+
+          {/* --- KHU VỰC DÀNH RIÊNG CHO ADMIN (Giám Đốc) --- */}
           <Route element={<RoleBasedRoute allowedRoles={["Admin"]} />}>
             <Route element={<AdminLayout />}>
               <Route path="/admin/users" element={<UserListPage />} />
@@ -47,45 +59,23 @@ function App() {
             </Route>
           </Route>
           
-
           {/* --- KHU VỰC DÀNH CHO RECEPTIONIST (Lễ Tân) --- */}
-          {/* Giả sử Lễ tân cũng xài chung Layout với Admin cho đẹp */}
-          <Route
-            element={
-              <RoleBasedRoute allowedRoles={["Receptionist"]} />
-            }
-          >
+          <Route element={<RoleBasedRoute allowedRoles={["Receptionist"]} />}>
             <Route element={<AdminLayout />}>
-              <Route
-                path="/receptionist/dashboard"
-                element={<ReceptionistDashboard />}
-              />
+              <Route path="/receptionist/dashboard" element={<ReceptionistDashboard />} />
             </Route>
           </Route>
 
           {/* --- KHU VỰC DÀNH CHO HOUSEKEEPER (Lao Công) --- */}
-          <Route
-            element={
-              <RoleBasedRoute allowedRoles={["Housekeeping"]} />
-            }
-          >
-            {/* Lao công thường xem trên điện thoại, không cần AdminLayout rườm rà */}
-            <Route
-              path="/housekeeper/dashboard"
-              element={<HousekeeperDashboard />}
-            />
+          <Route element={<RoleBasedRoute allowedRoles={["Housekeeping"]} />}>
+            <Route path="/housekeeper/dashboard" element={<HousekeeperDashboard />} />
           </Route>
 
           {/* --- KHU VỰC DÀNH CHO GUEST (Khách Hàng) --- */}
-          <Route
-            element={
-              <RoleBasedRoute
-                allowedRoles={["Guest"]}
-              />
-            }
-          >
+          <Route element={<RoleBasedRoute allowedRoles={["Guest"]} />}>
             <Route path="/guest/dashboard" element={<GuestDashboard />} />
           </Route>
+          
         </Route>
 
         {/* 4. Bắt lỗi nhập sai link */}

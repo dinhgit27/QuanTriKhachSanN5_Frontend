@@ -9,8 +9,11 @@ import {
   AppstoreOutlined,
   SafetyCertificateOutlined,
   LineChartOutlined,
-  BuildOutlined
+  InboxOutlined,      // Icon cho Kho vật tư
+  ShopOutlined,       // Icon cho Vật tư phòng
+  WarningOutlined     // Icon cho Biên bản đền bù
 } from "@ant-design/icons";
+
 // Ní nhớ import đúng store/utils của ní nha
 import { getUserRoles } from "../utils/auth";
 import { useAdminAuthStore } from "../store/adminAuthStore";
@@ -51,7 +54,7 @@ const AdminLayout = () => {
   const isAdmin = userRoles.includes("Admin");
   const isReceptionist = userRoles.includes("Receptionist");
 
-  // --- CẤU TRÚC MENU THEO NHÓM (GIỐNG TRONG HÌNH) ---
+  // --- CẤU TRÚC MENU THEO NHÓM ---
   const menuItems = [
     // 1. NHÓM: MENU CHÍNH (Dành cho Admin)
     isAdmin && {
@@ -59,7 +62,7 @@ const AdminLayout = () => {
       label: <span style={{ color: '#595959', fontSize: 12, fontWeight: 'bold' }}>MENU CHÍNH</span>,
       children: [
         {
-          key: "/admin/dashboard", // Ní có thể đổi link này sau
+          key: "/admin/dashboard", 
           icon: <DashboardOutlined />,
           label: <Link to="/admin/dashboard">Tổng quan</Link>,
         },
@@ -74,29 +77,41 @@ const AdminLayout = () => {
           label: <Link to="/admin/users">Nhân viên & Quyền</Link>,
         },
         {
-          key: "/admin/accounting", // Link tạm
+          key: "/admin/accounting",
           icon: <LineChartOutlined />,
           label: <Link to="/admin/accounting">Kế toán</Link>,
         },
         {
-          key: "/admin/audit", // Link tạm
+          key: "/admin/audit",
           icon: <SafetyCertificateOutlined />,
           label: <Link to="/admin/audit">Audit Logs</Link>,
         }
       ]
     },
-    // 2. NHÓM: VẬT TƯ (Nếu ní muốn thêm tab Vật tư)
-    isAdmin && {
+
+    // 2. NHÓM: QUẢN LÝ TÀI SẢN (Đã gom 3 trang vào đây)
+    (isAdmin || isReceptionist) && {
         type: 'group',
-        label: <span style={{ color: '#595959', fontSize: 12, fontWeight: 'bold' }}>KHO VẬT TƯ</span>,
+        label: <span style={{ color: '#595959', fontSize: 12, fontWeight: 'bold' }}>QUẢN LÝ TÀI SẢN</span>,
         children: [
+          isAdmin && {
+            key: "/admin/warehouse", 
+            icon: <InboxOutlined />,
+            label: <Link to="/admin/warehouse">Kho Vật Tư Tổng</Link>,
+          },
+          isAdmin && {
+            key: "/admin/inventory", 
+            icon: <ShopOutlined />,
+            label: <Link to="/admin/inventory">Vật Tư Theo Phòng</Link>,
+          },
           {
-            key: "/admin/inventory", // Tạm để link này chờ ní code
-            icon: <BuildOutlined />,
-            label: <Link to="/admin/inventory">Quản lý Vật tư</Link>,
+            key: "/admin/loss-and-damage", 
+            icon: <WarningOutlined />,
+            label: <Link to="/admin/loss-and-damage">Biên Bản Đền Bù</Link>,
           }
-        ]
+        ].filter(Boolean)
     },
+
     // 3. NHÓM: LIÊN KẾT NHANH (Dành cho tất cả hoặc Lễ tân)
     {
       type: 'group',
@@ -204,11 +219,6 @@ const AdminLayout = () => {
 
       {/* KHU VỰC NỘI DUNG BÊN PHẢI */}
       <Layout style={{ marginLeft: 250, background: COLORS.contentBg }}>
-        {/* Ní có thể bỏ cục Header này đi nếu trang RoomManagement đã tự làm cái Title riêng rồi */}
-        {/* <Header style={{ background: COLORS.headerBg, padding: "0 24px", height: 64, borderBottom: '1px solid #f0f0f0' }}>
-            // Nếu muốn làm thanh search top giống trong hình thì đắp vào đây
-        </Header> */}
-
         <Content style={{ padding: '24px' }}>
           <div style={{ background: COLORS.cardBg, borderRadius: 12, minHeight: 'calc(100vh - 48px)', overflow: 'hidden' }}>
             <Outlet />

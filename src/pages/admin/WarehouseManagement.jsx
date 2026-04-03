@@ -161,7 +161,6 @@ const WarehouseManagement = () => {
     )
   },
     { title: 'Danh mục', dataIndex: 'category', key: 'category', render: c => <Tag color="blue">{c}</Tag> },
-    { title: 'Tồn kho', dataIndex: 'totalQuantity', key: 'totalQuantity', render: (q, record) => <Text type="success"><b>{q}</b> {record.unit}</Text> },
     { 
       title: 'Giá nhập', 
       dataIndex: 'importPrice', 

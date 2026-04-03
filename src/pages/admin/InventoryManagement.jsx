@@ -192,15 +192,12 @@ const RoomInventoryManagement = () => {
           });
           
           message.success(`Đã báo hỏng ${record.amenity?.name} thành công!`);
-<<<<<<< Updated upstream
-=======
           
           // Trigger global damage update - will notify all pages instantly
           console.log('📢 [InventoryManagement] Triggering global damage update (báo hỏng)');
           useDamageEventStore.getState().triggerDamageUpdate();
           
           // Cập nhật state thành false (Đã hỏng)
->>>>>>> Stashed changes
           setRoomInventory(prev => prev.map(item => 
               item.id === record.id ? { ...item, isActive: false } : item
           ));
@@ -216,12 +213,9 @@ const RoomInventoryManagement = () => {
       const token = localStorage.getItem('token');
       const restoringItem = roomInventory.find(item => item.id === inventoryId);
       
-<<<<<<< Updated upstream
-=======
       console.log('🔧 [InventoryManagement] Starting restore process for:', restoringItem?.amenity?.name);
       
       // 1. GỌI API LƯU TRẠNG THÁI XUỐNG DATABASE
->>>>>>> Stashed changes
       await axios.put(`https://localhost:5070/api/RoomInventory/restore/${inventoryId}`, {}, {
         headers: { Authorization: `Bearer ${token}` }
       });
@@ -279,9 +273,6 @@ const RoomInventoryManagement = () => {
         newValue: { isActive: true },
       });
 
-<<<<<<< Updated upstream
-      message.success('Đã xác nhận thay mới/sửa chữa vật tư thành công!');
-=======
       // 3. NẾU API THÀNH CÔNG THÌ MỚI ĐỔI MÀU GIAO DIỆN
       message.success('Đã xác nhận thay mới/sửa chữa vật tư thành công!');
       
@@ -289,7 +280,6 @@ const RoomInventoryManagement = () => {
       console.log('📢 [InventoryManagement] Triggering global damage update (đã thay mới)');
       useDamageEventStore.getState().triggerDamageUpdate();
       
->>>>>>> Stashed changes
       setRoomInventory(prev => prev.map(item => 
           item.id === inventoryId ? { ...item, isActive: true } : item
       ));

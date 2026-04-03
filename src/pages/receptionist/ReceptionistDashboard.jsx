@@ -381,6 +381,7 @@ const ReceptionistDashboard = () => {
         case 'available': return '#52c41a';
         case 'occupied': return '#ff4d4f';
         case 'dirty': return '#faad14';
+        case 'maintenance': return '#722ed1';
         default: return '#d9d9d9';
       }
     };
@@ -389,7 +390,8 @@ const ReceptionistDashboard = () => {
       switch (status) {
         case 'available': return 'Trống';
         case 'occupied': return 'Có khách';
-        case 'dirty': return 'Chưa dọn';
+        case 'dirty': return 'Đang dọn';
+        case 'maintenance': return 'Bảo trì';
         default: return 'Không xác định';
       }
     };
@@ -398,14 +400,6 @@ const ReceptionistDashboard = () => {
       <div>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 }}>
           <Title level={3}>🗺️ Sơ Đồ Phòng</Title>
-          <div style={{ display: 'flex', gap: 12 }}>
-            <Button type="primary" icon={<PlusOutlined />}>
-              Đặt Phòng Mới
-            </Button>
-            <Button icon={<CalendarOutlined />}>
-              Lịch Phòng
-            </Button>
-          </div>
         </div>
 
         {/* Thống kê nhanh */}
@@ -478,16 +472,17 @@ const ReceptionistDashboard = () => {
           <Card 
             key={floor} 
             title={`Tầng ${floor.toString().padStart(2, '0')}`} 
-            style={{ marginBottom: 24 }}
+            style={{ marginBottom: 24, background: '#fdf8ef' }}
             extra={
               <Space>
-                <Tag color="green">Trống</Tag>
-                <Tag color="red">Có khách</Tag>
-                <Tag color="orange">Chưa dọn</Tag>
+                <Tag color="green" style={{ background: '#f6ffed', borderColor: '#b7eb8f' }}>Trống</Tag>
+                <Tag color="red" style={{ background: '#fff1f0', borderColor: '#ffccc7' }}>Có khách</Tag>
+                <Tag color="orange" style={{ background: '#fffbe6', borderColor: '#ffe7ba' }}>Đang dọn</Tag>
+                <Tag color="purple" style={{ background: '#f9f0ff', borderColor: '#d3adf7' }}>Bảo trì</Tag>
               </Space>
             }
           >
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(10, 1fr)', gap: 12 }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 12 }}>
               {rooms.filter(room => room.floor === floor).map(room => (
                 <div 
                   key={room.id}
@@ -498,14 +493,18 @@ const ReceptionistDashboard = () => {
                     padding: 12,
                     textAlign: 'center',
                     cursor: 'pointer',
-                    backgroundColor: room.status === 'available' ? '#f6ffed' : room.status === 'occupied' ? '#fff1f0' : '#fffbe6',
+                    backgroundColor: room.status === 'available' ? '#f6ffed' : room.status === 'occupied' ? '#fff1f0' : room.status === 'maintenance' ? '#f9f0ff' : '#fffbe6',
                     transition: 'all 0.3s',
                     position: 'relative',
-                    minHeight: 80
+                    minHeight: 80,
+                    boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    justifyContent: 'center'
                   }}
                   onClick={() => setSelectedRoom(room)}
                 >
-                  <div style={{ fontSize: 18, fontWeight: 'bold', marginBottom: 4 }}>
+                  <div style={{ fontSize: 18, fontWeight: 'bold', marginBottom: 4, color: '#1a1a1a' }}>
                     {room.number}
                   </div>
                   <div style={{ fontSize: 12, color: room.color, marginBottom: 4 }}>
@@ -721,20 +720,12 @@ const ReceptionistDashboard = () => {
       <div>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 }}>
           <Title level={3}>🚪 Check-in/Check-out Hôm Nay</Title>
-          <div style={{ display: 'flex', gap: 8 }}>
-            <Button type="primary" icon={<PlusOutlined />}>
-              Thêm Check-in
-            </Button>
-            <Button icon={<CalendarOutlined />}>
-              Lịch Công Việc
-            </Button>
-          </div>
         </div>
 
         {/* Thống kê hôm nay */}
         <Row gutter={16} style={{ marginBottom: 24 }}>
           <Col span={6}>
-            <Card bordered={false} style={{ background: '#e6f7ff' }}>
+            <Card bordered={false} style={{ background: '#e6f7ff', boxShadow: '0 2px 4px rgba(0,0,0,0.1)' }}>
               <Statistic 
                 title="Check-in Hôm Nay" 
                 value={stats.todayCheckins} 
@@ -744,7 +735,7 @@ const ReceptionistDashboard = () => {
             </Card>
           </Col>
           <Col span={6}>
-            <Card bordered={false} style={{ background: '#fff1f0' }}>
+            <Card bordered={false} style={{ background: '#fff1f0', boxShadow: '0 2px 4px rgba(0,0,0,0.1)' }}>
               <Statistic 
                 title="Check-out Hôm Nay" 
                 value={stats.todayCheckouts} 
@@ -754,7 +745,7 @@ const ReceptionistDashboard = () => {
             </Card>
           </Col>
           <Col span={6}>
-            <Card bordered={false} style={{ background: '#f6ffed' }}>
+            <Card bordered={false} style={{ background: '#f6ffed', boxShadow: '0 2px 4px rgba(0,0,0,0.1)' }}>
               <Statistic 
                 title="Doanh Thu Hôm Nay" 
                 value={stats.revenueToday} 
@@ -765,7 +756,7 @@ const ReceptionistDashboard = () => {
             </Card>
           </Col>
           <Col span={6}>
-            <Card bordered={false} style={{ background: '#fff7e6' }}>
+            <Card bordered={false} style={{ background: '#fff7e6', boxShadow: '0 2px 4px rgba(0,0,0,0.1)' }}>
               <Statistic 
                 title="Tổng Công Việc" 
                 value={todayBookings.length} 
@@ -818,8 +809,9 @@ const ReceptionistDashboard = () => {
           description="Có phòng chưa dọn dẹp cần xử lý ngay"
           type="warning"
           showIcon
+          style={{ background: '#fff7e6', border: '1px solid #ffe7ba' }}
           action={
-            <Button size="small" type="primary">
+            <Button size="small" type="primary" style={{ background: '#c19b4a', borderColor: '#c19b4a' }}>
               Xem Chi Tiết
             </Button>
           }
@@ -834,40 +826,32 @@ const ReceptionistDashboard = () => {
       <div>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 }}>
           <Title level={3}>📅 Đặt Phòng Mới</Title>
-          <div style={{ display: 'flex', gap: 8 }}>
-            <Button type="primary" icon={<PlusOutlined />}>
-              Tạo Đặt Phòng
-            </Button>
-            <Button icon={<CalendarOutlined />}>
-              Lịch Đặt Phòng
-            </Button>
-          </div>
         </div>
 
         {/* Form đặt phòng */}
-        <Card title="Thông Tin Đặt Phòng" style={{ marginBottom: 24 }}>
+        <Card title="Thông Tin Đặt Phòng" style={{ marginBottom: 24, background: '#fdf8ef' }}>
           <Form form={form} layout="vertical">
             <Row gutter={16}>
               <Col span={8}>
                 <Form.Item label="Họ tên khách" name="guestName" rules={[{ required: true, message: 'Vui lòng nhập họ tên' }]}>
-                  <Input placeholder="Nhập họ tên khách hàng" />
+                  <Input placeholder="Nhập họ tên khách hàng" style={{ borderColor: '#d9d9d9' }} />
                 </Form.Item>
               </Col>
               <Col span={8}>
                 <Form.Item label="Số điện thoại" name="guestPhone" rules={[{ required: true, message: 'Vui lòng nhập số điện thoại' }]}>
-                  <Input placeholder="Nhập số điện thoại" />
+                  <Input placeholder="Nhập số điện thoại" style={{ borderColor: '#d9d9d9' }} />
                 </Form.Item>
               </Col>
               <Col span={8}>
                 <Form.Item label="CMND/CCCD" name="guestIdCard" rules={[{ required: true, message: 'Vui lòng nhập CMND/CCCD' }]}>
-                  <Input placeholder="Nhập CMND/CCCD" />
+                  <Input placeholder="Nhập CMND/CCCD" style={{ borderColor: '#d9d9d9' }} />
                 </Form.Item>
               </Col>
             </Row>
             <Row gutter={16}>
               <Col span={8}>
                 <Form.Item label="Số phòng" name="roomNumber" rules={[{ required: true, message: 'Vui lòng chọn số phòng' }]}>
-                  <Select placeholder="Chọn số phòng">
+                  <Select placeholder="Chọn số phòng" style={{ borderColor: '#d9d9d9' }}>
                     {rooms.filter(r => r.status === 'available').map(room => (
                       <Option key={room.id} value={room.number}>
                         {room.number} - {room.type} ({room.price.toLocaleString()}đ)
@@ -878,19 +862,19 @@ const ReceptionistDashboard = () => {
               </Col>
               <Col span={8}>
                 <Form.Item label="Thời gian nhận phòng" name="checkInTime" rules={[{ required: true, message: 'Vui lòng chọn thời gian nhận phòng' }]}>
-                  <DatePicker showTime style={{ width: '100%' }} placeholder="Chọn thời gian nhận phòng" />
+                  <DatePicker showTime style={{ width: '100%', borderColor: '#d9d9d9' }} placeholder="Chọn thời gian nhận phòng" />
                 </Form.Item>
               </Col>
               <Col span={8}>
                 <Form.Item label="Thời gian trả phòng" name="checkOutTime" rules={[{ required: true, message: 'Vui lòng chọn thời gian trả phòng' }]}>
-                  <DatePicker showTime style={{ width: '100%' }} placeholder="Chọn thời gian trả phòng" />
+                  <DatePicker showTime style={{ width: '100%', borderColor: '#d9d9d9' }} placeholder="Chọn thời gian trả phòng" />
                 </Form.Item>
               </Col>
             </Row>
             <Row gutter={16}>
               <Col span={8}>
                 <Form.Item label="Loại đặt phòng" name="bookingType" initialValue="walk_in">
-                  <Select>
+                  <Select style={{ borderColor: '#d9d9d9' }}>
                     <Option value="walk_in">Đặt tại quầy</Option>
                     <Option value="online">Đặt online</Option>
                   </Select>
@@ -898,7 +882,7 @@ const ReceptionistDashboard = () => {
               </Col>
               <Col span={8}>
                 <Form.Item label="Phương thức thanh toán" name="paymentMethod" initialValue="cash">
-                  <Select>
+                  <Select style={{ borderColor: '#d9d9d9' }}>
                     <Option value="cash">Tiền mặt</Option>
                     <Option value="card">Thẻ</Option>
                     <Option value="transfer">Chuyển khoản</Option>
@@ -907,24 +891,21 @@ const ReceptionistDashboard = () => {
               </Col>
               <Col span={8}>
                 <Form.Item label="Ghi chú" name="note">
-                  <Input.TextArea placeholder="Ghi chú đặc biệt (nếu có)" />
+                  <Input.TextArea placeholder="Ghi chú đặc biệt (nếu có)" style={{ borderColor: '#d9d9d9' }} />
                 </Form.Item>
               </Col>
             </Row>
           </Form>
           
           <div style={{ display: 'flex', gap: 12, justifyContent: 'flex-end' }}>
-            <Button onClick={() => form.resetFields()}>
+            <Button onClick={() => form.resetFields()} style={{ borderColor: '#d9d9d9' }}>
               Làm Mới
-            </Button>
-            <Button type="primary" onClick={handleNewBooking} icon={<PlusOutlined />}>
-              Đặt Phòng
             </Button>
           </div>
         </Card>
 
         {/* Danh sách đặt phòng hôm nay */}
-        <Card title="Danh Sách Đặt Phòng Hôm Nay">
+        <Card title="Danh Sách Đặt Phòng Hôm Nay" style={{ background: '#fdf8ef' }}>
           <Table 
             columns={[
               {
@@ -1002,20 +983,12 @@ const ReceptionistDashboard = () => {
       <div>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 }}>
           <Title level={3}>🛍️ Dịch Vụ Phát Sinh</Title>
-          <div style={{ display: 'flex', gap: 8 }}>
-            <Button type="primary" icon={<PlusOutlined />} onClick={() => setServiceModalVisible(true)}>
-              Thêm Dịch Vụ
-            </Button>
-            <Button icon={<CalendarOutlined />}>
-              Lịch Sử Dịch Vụ
-            </Button>
-          </div>
         </div>
 
         {/* Thống kê dịch vụ */}
         <Row gutter={16} style={{ marginBottom: 24 }}>
           <Col span={6}>
-            <Card bordered={false} style={{ background: '#e6f7ff' }}>
+            <Card bordered={false} style={{ background: '#e6f7ff', boxShadow: '0 2px 4px rgba(0,0,0,0.1)' }}>
               <Statistic 
                 title="Tổng Dịch Vụ" 
                 value={services.length} 
@@ -1025,7 +998,7 @@ const ReceptionistDashboard = () => {
             </Card>
           </Col>
           <Col span={6}>
-            <Card bordered={false} style={{ background: '#f6ffed' }}>
+            <Card bordered={false} style={{ background: '#f6ffed', boxShadow: '0 2px 4px rgba(0,0,0,0.1)' }}>
               <Statistic 
                 title="Dịch Vụ Hôm Nay" 
                 value={0} 
@@ -1035,7 +1008,7 @@ const ReceptionistDashboard = () => {
             </Card>
           </Col>
           <Col span={6}>
-            <Card bordered={false} style={{ background: '#fff7e6' }}>
+            <Card bordered={false} style={{ background: '#fff7e6', boxShadow: '0 2px 4px rgba(0,0,0,0.1)' }}>
               <Statistic 
                 title="Doanh Thu Dịch Vụ" 
                 value={0} 
@@ -1046,7 +1019,7 @@ const ReceptionistDashboard = () => {
             </Card>
           </Col>
           <Col span={6}>
-            <Card bordered={false} style={{ background: '#fff1f0' }}>
+            <Card bordered={false} style={{ background: '#fff1f0', boxShadow: '0 2px 4px rgba(0,0,0,0.1)' }}>
               <Statistic 
                 title="Phòng Có Dịch Vụ" 
                 value={0} 
@@ -1058,7 +1031,7 @@ const ReceptionistDashboard = () => {
         </Row>
 
         {/* Danh sách dịch vụ */}
-        <Card title="Danh Sách Dịch Vụ">
+        <Card title="Danh Sách Dịch Vụ" style={{ background: '#fdf8ef' }}>
           <Table 
             columns={[
               {
@@ -1109,110 +1082,86 @@ const ReceptionistDashboard = () => {
             pagination={false}
           />
         </Card>
-
-        {/* Modal thêm dịch vụ */}
-        <Modal
-          title="Thêm Dịch Vụ Phát Sinh"
-          open={serviceModalVisible}
-          onOk={handleAddService}
-          onCancel={() => setServiceModalVisible(false)}
-          width={600}
-        >
-          <Form form={serviceForm} layout="vertical">
-            <Row gutter={16}>
-              <Col span={12}>
-                <Form.Item label="Phòng" name="roomNumber" rules={[{ required: true }]}>
-                  <Select placeholder="Chọn phòng">
-                    {rooms.map(room => (
-                      <Option key={room.id} value={room.number}>{room.number} ({room.type})</Option>
-                    ))}
-                  </Select>
-                </Form.Item>
-              </Col>
-              <Col span={12}>
-                <Form.Item label="Dịch vụ" name="serviceId" rules={[{ required: true }]}>
-                  <Select placeholder="Chọn dịch vụ">
-                    {services.map(service => (
-                      <Option key={service.id} value={service.id}>
-                        {service.name} - {service.price.toLocaleString()}đ
-                      </Option>
-                    ))}
-                  </Select>
-                </Form.Item>
-              </Col>
-            </Row>
-            <Row gutter={16}>
-              <Col span={12}>
-                <Form.Item label="Số lượng" name="quantity" rules={[{ required: true }]}>
-                  <Input type="number" min="1" />
-                </Form.Item>
-              </Col>
-              <Col span={12}>
-                <Form.Item label="Ghi chú" name="note">
-                  <Input.TextArea placeholder="Ghi chú (nếu có)" />
-                </Form.Item>
-              </Col>
-            </Row>
-          </Form>
-        </Modal>
       </div>
     );
   };
 
   return (
-    <Layout style={{ minHeight: '100vh' }}>
-      <Sider 
-        collapsible 
-        collapsed={collapsed} 
-        onCollapse={setCollapsed}
-        style={{ background: '#fff', boxShadow: '2px 0 8px rgba(0,0,0,0.15)' }}
-      >
-        <div style={{ padding: 16, textAlign: collapsed ? 'center' : 'left' }}>
-          <Title level={collapsed ? 5 : 4} style={{ margin: 0, color: '#1890ff' }}>
-            {collapsed ? 'LỄ TÂN' : 'BÀN LỄ TÂN'}
-          </Title>
+    <div style={{ background: '#ffffff', minHeight: '100vh' }}>
+      {/* Dashboard Header */}
+      <div style={{ 
+        background: '#ffffff', 
+        padding: '16px 24px', 
+        borderBottom: '1px solid #f0f0f0',
+        display: 'flex',
+        justifyContent: 'space-between',
+        alignItems: 'center'
+      }}>
+        <Title level={3} style={{ margin: 0, color: '#c19b4a', fontWeight: 'bold' }}>
+          BÀN LỄ TÂN
+        </Title>
+        <div style={{ display: 'flex', gap: 12 }}>
+          <Button 
+            type={activeTab === 'room-map' ? 'primary' : 'default'}
+            icon={<HomeOutlined style={{ color: activeTab === 'room-map' ? '#ffffff' : '#c19b4a' }} />}
+            onClick={() => setActiveTab('room-map')}
+            style={{ 
+              background: activeTab === 'room-map' ? '#c19b4a' : 'transparent',
+              borderColor: '#c19b4a',
+              color: activeTab === 'room-map' ? '#ffffff' : '#1a1a1a'
+            }}
+          >
+            Sơ đồ phòng
+          </Button>
+          <Button 
+            type={activeTab === 'check-in-out' ? 'primary' : 'default'}
+            icon={<KeyOutlined style={{ color: activeTab === 'check-in-out' ? '#ffffff' : '#c19b4a' }} />}
+            onClick={() => setActiveTab('check-in-out')}
+            style={{ 
+              background: activeTab === 'check-in-out' ? '#c19b4a' : 'transparent',
+              borderColor: '#c19b4a',
+              color: activeTab === 'check-in-out' ? '#ffffff' : '#1a1a1a'
+            }}
+          >
+            Check-in/Check-out
+          </Button>
+          <Button 
+            type={activeTab === 'booking' ? 'primary' : 'default'}
+            icon={<FileTextOutlined style={{ color: activeTab === 'booking' ? '#ffffff' : '#c19b4a' }} />}
+            onClick={() => setActiveTab('booking')}
+            style={{ 
+              background: activeTab === 'booking' ? '#c19b4a' : 'transparent',
+              borderColor: '#c19b4a',
+              color: activeTab === 'booking' ? '#ffffff' : '#1a1a1a'
+            }}
+          >
+            Đặt phòng
+          </Button>
+          <Button 
+            type={activeTab === 'services' ? 'primary' : 'default'}
+            icon={<AppstoreOutlined style={{ color: activeTab === 'services' ? '#ffffff' : '#c19b4a' }} />}
+            onClick={() => setActiveTab('services')}
+            style={{ 
+              background: activeTab === 'services' ? '#c19b4a' : 'transparent',
+              borderColor: '#c19b4a',
+              color: activeTab === 'services' ? '#ffffff' : '#1a1a1a'
+            }}
+          >
+            Dịch vụ phát sinh
+          </Button>
         </div>
-        <Menu
-          theme="light"
-          selectedKeys={[activeTab]}
-          mode="inline"
-          items={[
-            {
-              key: 'room-map',
-              icon: <HomeOutlined />,
-              label: 'Sơ đồ phòng',
-            },
-            {
-              key: 'check-in-out',
-              icon: <KeyOutlined />,
-              label: 'Check-in/Check-out',
-            },
-            {
-              key: 'booking',
-              icon: <FileTextOutlined />,
-              label: 'Đặt phòng',
-            },
-            {
-              key: 'services',
-              icon: <AppstoreOutlined />,
-              label: 'Dịch vụ phát sinh',
-            }
-          ]}
-          onClick={({ key }) => setActiveTab(key)}
-        />
-      </Sider>
-      
-      <Layout>
-        <Content style={{ margin: '24px 16px 0', padding: 24, background: '#fff', minHeight: 280 }}>
-          <Spin spinning={loading}>
-            {activeTab === 'room-map' && renderRoomMap()}
-            {activeTab === 'check-in-out' && renderCheckInOut()}
-            {activeTab === 'booking' && renderBooking()}
-            {activeTab === 'services' && renderServices()}
-          </Spin>
-        </Content>
-      </Layout>
-    </Layout>
+      </div>
+
+      {/* Content Area */}
+      <div style={{ padding: 0, background: '#ffffff' }}>
+        <Spin spinning={loading}>
+          {activeTab === 'room-map' && renderRoomMap()}
+          {activeTab === 'check-in-out' && renderCheckInOut()}
+          {activeTab === 'booking' && renderBooking()}
+          {activeTab === 'services' && renderServices()}
+        </Spin>
+      </div>
+    </div>
   );
 };
 

@@ -3,6 +3,7 @@ import { Table, Button, Tag, Space, message, Typography, Popconfirm, Card } from
 import { CheckCircleOutlined, CloseCircleOutlined } from '@ant-design/icons';
 import axios from 'axios';
 import { useAuditLog } from '../../hooks/useAuditLog';
+import { useDamageEventStore } from '../../store/damageEventStore';
 
 const { Title, Text } = Typography;
 
@@ -61,6 +62,11 @@ const LossAndDamageManagement = () => {
       });
       
       message.success(`Đã cập nhật trạng thái biên bản thành: ${newStatus}`);
+      
+      // Trigger global damage update - will notify all pages instantly
+      console.log('📢 [LossAndDamage] Triggering global damage update');
+      useDamageEventStore.getState().triggerDamageUpdate();
+      
       fetchData(); // Bắt React load lại bảng để thấy sự thay đổi ngay lập tức
       
     } catch (error) {

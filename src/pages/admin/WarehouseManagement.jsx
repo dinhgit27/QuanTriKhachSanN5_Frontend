@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { 
   Table, Button, Space, Tag, Modal, Form, Input, 
   Select, message, Card, Typography, InputNumber, Upload, Row, Col, Popconfirm 
@@ -9,21 +9,69 @@ import {
 } from '@ant-design/icons';
 import axios from 'axios';
 import { useAuditLog } from '../../hooks/useAuditLog';
+import { useDamageEventStore } from '../../store/damageEventStore';
 
 const { Title, Text } = Typography;
 const { Option } = Select;
 
 const WarehouseManagement = () => {
   const { logAction } = useAuditLog();
+  // Subscribe to global damage updates - real-time from store
+  const lastDamageUpdate = useDamageEventStore((state) => state.lastDamageUpdate);
+  
+  console.log('🏭 [Warehouse] Component rendered, lastDamageUpdate:', lastDamageUpdate);
+  
   const [data, setData] = useState([]);
   const [loading, setLoading] = useState(false);
   const [isModalVisible, setIsModalVisible] = useState(false);
   const [editingItem, setEditingItem] = useState(null);
+  const [damagedCount, setDamagedCount] = useState({}); // Lưu số lượng hỏng/mất cho mỗi vật tư
   
   const [imageUrl, setImageUrl] = useState('');
   const [uploading, setUploading] = useState(false);
 
   const [form] = Form.useForm();
+  const lastKnownUpdateRef = useRef(0); // Track last damage update we've processed
+
+  // --- FETCH DỮ LIỆU HỎNG/MẤT TỪ API ---
+  const fetchDamagedCount = useCallback(async () => {
+    try {
+      console.log('🔄 [Warehouse] Fetching damaged count...');
+      const token = localStorage.getItem('token');
+      const res = await axios.get('https://localhost:5070/api/LossAndDamages', {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      
+      console.log('📊 [Warehouse] LossAndDamages API response:', res.data);
+      
+      // Group and count chỉ những record với status "Chưa đền bù" (still active damage)
+      const counted = {};
+      let totalDamaged = 0;
+      
+      res.data.forEach(record => {
+        console.log(`📋 Record: ${record.description} | Status: ${record.status} | Qty: ${record.quantity}`);
+        
+        // Chỉ count những record chưa được xử lý
+        if (record.status === 'Chưa đền bù' || !record.status) {
+          const key = record.description;
+          if (!counted[key]) {
+            counted[key] = 0;
+          }
+          counted[key] += record.quantity || 1;
+          totalDamaged++;
+        }
+      });
+      
+      console.log('✅ [Warehouse] Counted damaged items:', counted);
+      console.log('📈 [Warehouse] Total damaged records:', totalDamaged);
+      
+      setDamagedCount(counted);
+      return counted;
+    } catch (err) {
+      console.error('❌ [Warehouse] Lỗi fetch dữ liệu hỏng/mất:', err);
+      return {};
+    }
+  }, []);
 
   // --- 1. LẤY DỮ LIỆU TỪ KHO ---
   const fetchData = async () => {
@@ -34,6 +82,8 @@ const WarehouseManagement = () => {
         headers: { Authorization: `Bearer ${token}` }
       });
       setData(res.data);
+      // Fetch damaged count after getting warehouse data
+      fetchDamagedCount();
     } catch (err) {
       console.error(err);
       message.error("Lỗi khi tải dữ liệu kho!");
@@ -44,7 +94,44 @@ const WarehouseManagement = () => {
 
   useEffect(() => {
     fetchData();
+    // Load damaged count from localStorage on mount
+    const saved = localStorage.getItem('damagedCount');
+    if (saved) {
+      setDamagedCount(JSON.parse(saved));
+    }
+    
+    // Auto-refresh damaged count every 5 seconds to stay in sync
+    const interval = setInterval(() => {
+      fetchDamagedCount();
+    }, 5000);
+    
+    // Listen for damage status updates from other pages (LossAndDamageManagement)
+    const handleDamageStatusChange = () => {
+      console.log('🔔 [Warehouse] Global damage update detected - refreshing damaged count');
+      fetchDamagedCount();
+    };
+    
+    const unsubscribe = useDamageEventStore.subscribe(
+      (state) => state.lastDamageUpdate,
+      handleDamageStatusChange
+    );
+    
+    return () => {
+      clearInterval(interval);
+      unsubscribe();
+    };
   }, []);
+
+  // Additional effect to handle damage updates even when component remounts
+  useEffect(() => {
+    console.log('🔔 [Warehouse] useEffect triggered: lastDamageUpdate =', lastDamageUpdate, ', lastKnownUpdate =', lastKnownUpdateRef.current);
+    
+    if (lastDamageUpdate > 0 && lastDamageUpdate !== lastKnownUpdateRef.current) {
+      console.log('🔔 [Warehouse] Detected NEW damage update! lastDamageUpdate:', lastDamageUpdate, '- fetching damaged count');
+      lastKnownUpdateRef.current = lastDamageUpdate;
+      fetchDamagedCount();
+    }
+  }, [lastDamageUpdate, fetchDamagedCount]);
 
   // --- 2. UPLOAD ẢNH LÊN CLOUDINARY (ĐÃ FIX THEO HÌNH NÍ CHỤP) ---
   const handleUploadCloudinary = async (options) => {
@@ -178,31 +265,57 @@ const WarehouseManagement = () => {
     },
     { title: 'Tên vật tư', dataIndex: 'name', key: 'name', render: t => <Text strong>{t}</Text> },
     { 
-    title: 'Tổng sở hữu', 
-    dataIndex: 'totalQuantity', 
-    key: 'totalQuantity',
-    render: (q, record) => <Tag color="blue">{q} {record.unit}</Tag>
-  },
+      title: 'Tổng sở hữu', 
+      dataIndex: 'totalQuantity', 
+      key: 'totalQuantity',
+      render: (q, record) => <Tag color="blue">{q} {record.unit}</Tag>
+    },
 
-  // CỘT 2: ĐÃ CẤP CHO PHÒNG
-  { 
-    title: 'Đã cấp cho phòng', 
-    dataIndex: 'issuedQuantity', 
-    key: 'issuedQuantity',
-    render: (q, record) => <Tag color="orange">{q} {record.unit}</Tag>
-  },
+    // CỘT 2: ĐÃ CẤP CHO PHÒNG
+    { 
+      title: 'Đã cấp cho phòng', 
+      dataIndex: 'issuedQuantity', 
+      key: 'issuedQuantity',
+      render: (q, record) => <Tag color="orange">{q} {record.unit}</Tag>
+    },
 
-  // CỘT 3: CÓ THỂ CẤP (CÒN TRONG KHO)
-  { 
-    title: 'Có thể cấp (Kho)', 
-    dataIndex: 'availableQuantity', 
-    key: 'availableQuantity',
-    render: (q, record) => (
-      <b style={{ color: q > 0 ? '#52c41a' : '#f5222d' }}>
-        {q} {record.unit}
-      </b>
-    )
-  },
+    // CỘT 3: CÓ THỂ CẤP (CÒN TRONG KHO)
+    { 
+      title: 'Có thể cấp (Kho)', 
+      dataIndex: 'availableQuantity', 
+      key: 'availableQuantity',
+      render: (q, record) => (
+        <b style={{ color: q > 0 ? '#52c41a' : '#f5222d' }}>
+          {q} {record.unit}
+        </b>
+      )
+    },
+
+    // CỘT MỚI: MẤT/HỎNG
+    { 
+      title: 'Mất/Hỏng', 
+      dataIndex: 'damagedCount', 
+      key: 'damagedCount',
+      render: (_, record) => {
+        // Count how many damage records contain this amenity name
+        let count = 0;
+        Object.keys(damagedCount).forEach(key => {
+          if (key.includes(record.name)) {
+            count += damagedCount[key];
+          }
+        });
+        
+        return (
+          <Tag 
+            color={count > 0 ? 'red' : 'default'}
+            style={{ cursor: count > 0 ? 'pointer' : 'default' }}
+          >
+            {count} {count > 0 ? '⚠️' : '✓'}
+          </Tag>
+        );
+      }
+    },
+
     { title: 'Danh mục', dataIndex: 'category', key: 'category', render: c => <Tag color="blue">{c}</Tag> },
     { 
       title: 'Giá nhập', 
@@ -231,9 +344,11 @@ const WarehouseManagement = () => {
           <Title level={3} style={{ margin: 0 }}>Kho Vật Tư Khách Sạn</Title>
           <Text type="secondary">Quản lý nhập xuất vật tư tổng trên hệ thống Cloud</Text>
         </div>
-        <Button type="primary" size="large" icon={<PlusOutlined />} onClick={handleAddNew} style={{ borderRadius: 8, height: 45 }}>
-          Nhập vật tư mới
-        </Button>
+        <Space>
+          <Button type="primary" size="large" icon={<PlusOutlined />} onClick={handleAddNew} style={{ borderRadius: 8, height: 45 }}>
+            Nhập vật tư mới
+          </Button>
+        </Space>
       </div>
 
       <Table columns={columns} dataSource={data} rowKey="id" loading={loading} pagination={{ pageSize: 8 }} />

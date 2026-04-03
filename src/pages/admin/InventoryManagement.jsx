@@ -9,6 +9,7 @@ import {
 } from '@ant-design/icons';
 import axios from 'axios';
 import { useAuditLog } from '../../hooks/useAuditLog';
+import { useDamageEventStore } from '../../store/damageEventStore';
 
 const { Title, Text } = Typography;
 const { Option } = Select;
@@ -70,7 +71,25 @@ const RoomInventoryManagement = () => {
 
   useEffect(() => {
     fetchData();
-  }, []);
+    
+    // Listen for damage status changes from other pages
+    const handleDamageStatusChange = () => {
+      console.log('🔄 [InventoryManagement] Detected global damage update - refreshing inventory if room selected');
+      if (selectedRoom) {
+        fetchRoomInventoryDetails(selectedRoom.id);
+      }
+    };
+    
+    // Subscribe to global damage event store - works even if component unmounts elsewhere
+    const unsubscribe = useDamageEventStore.subscribe(
+      (state) => state.lastDamageUpdate,
+      handleDamageStatusChange
+    );
+    
+    return () => {
+      unsubscribe();
+    };
+  }, [selectedRoom]);
 
   const handleRoomClick = (room) => {
     setSelectedRoom(room);
@@ -173,6 +192,15 @@ const RoomInventoryManagement = () => {
           });
           
           message.success(`Đã báo hỏng ${record.amenity?.name} thành công!`);
+<<<<<<< Updated upstream
+=======
+          
+          // Trigger global damage update - will notify all pages instantly
+          console.log('📢 [InventoryManagement] Triggering global damage update (báo hỏng)');
+          useDamageEventStore.getState().triggerDamageUpdate();
+          
+          // Cập nhật state thành false (Đã hỏng)
+>>>>>>> Stashed changes
           setRoomInventory(prev => prev.map(item => 
               item.id === record.id ? { ...item, isActive: false } : item
           ));
@@ -188,9 +216,58 @@ const RoomInventoryManagement = () => {
       const token = localStorage.getItem('token');
       const restoringItem = roomInventory.find(item => item.id === inventoryId);
       
+<<<<<<< Updated upstream
+=======
+      console.log('🔧 [InventoryManagement] Starting restore process for:', restoringItem?.amenity?.name);
+      
+      // 1. GỌI API LƯU TRẠNG THÁI XUỐNG DATABASE
+>>>>>>> Stashed changes
       await axios.put(`https://localhost:5070/api/RoomInventory/restore/${inventoryId}`, {}, {
         headers: { Authorization: `Bearer ${token}` }
       });
+      
+      console.log('✅ [InventoryManagement] Room inventory restored');
+
+      // 2. TÌM VÀ CẬP NHẬT LossAndDamages RECORD TƯƠNG ỨNG
+      console.log('🔍 [InventoryManagement] Looking for LossAndDamages record with description:', `Phòng ${selectedRoom?.roomNumber} - ${restoringItem?.amenity?.name}`);
+      try {
+        const lossAndDamagesRes = await axios.get('https://localhost:5070/api/LossAndDamages', {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+        
+        console.log('📦 [InventoryManagement] LossAndDamages response sample:', lossAndDamagesRes.data[0]);
+        
+        const targetDescription = `Phòng ${selectedRoom?.roomNumber} - ${restoringItem?.amenity?.name}`;
+        const matchingRecords = lossAndDamagesRes.data.filter(
+          record => record.description === targetDescription && record.status === 'Chưa đền bù'
+        );
+        
+        console.log('📋 [InventoryManagement] Found matching records:', matchingRecords.length);
+        
+        if (matchingRecords.length > 0) {
+          // Update ALL matching records (in case there are duplicates)
+          for (const record of matchingRecords) {
+            console.log('🔄 [InventoryManagement] Updating LossAndDamages record ID:', record.id);
+            
+            try {
+              const updateRes = await axios.put(
+                `https://localhost:5070/api/LossAndDamages/status/${record.id}`,
+                { status: 'Đã hủy' },
+                { headers: { Authorization: `Bearer ${token}` } }
+              );
+              
+              console.log('✅ [InventoryManagement] LossAndDamages record', record.id, 'updated to "Đã hủy"');
+            } catch (updateErr) {
+              console.error('❌ [InventoryManagement] Error updating record', record.id, ':', updateErr.response?.data || updateErr.message);
+            }
+          }
+        } else {
+          console.log('⚠️ [InventoryManagement] No matching LossAndDamages records found for:', targetDescription);
+        }
+      } catch (err) {
+        console.error('⚠️ [InventoryManagement] Error fetching LossAndDamages:', err);
+        // Continue anyway - restoration of room inventory is done
+      }
 
       logAction({
         action: 'Đã thay mới',
@@ -202,7 +279,17 @@ const RoomInventoryManagement = () => {
         newValue: { isActive: true },
       });
 
+<<<<<<< Updated upstream
       message.success('Đã xác nhận thay mới/sửa chữa vật tư thành công!');
+=======
+      // 3. NẾU API THÀNH CÔNG THÌ MỚI ĐỔI MÀU GIAO DIỆN
+      message.success('Đã xác nhận thay mới/sửa chữa vật tư thành công!');
+      
+      // Trigger global damage update - will notify all pages instantly
+      console.log('📢 [InventoryManagement] Triggering global damage update (đã thay mới)');
+      useDamageEventStore.getState().triggerDamageUpdate();
+      
+>>>>>>> Stashed changes
       setRoomInventory(prev => prev.map(item => 
           item.id === inventoryId ? { ...item, isActive: true } : item
       ));

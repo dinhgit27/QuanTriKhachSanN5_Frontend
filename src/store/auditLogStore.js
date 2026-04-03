@@ -1,4 +1,5 @@
 import { create } from 'zustand';
+import { persist } from 'zustand/middleware';
 import dayjs from 'dayjs';
 
 /**
@@ -6,8 +7,11 @@ import dayjs from 'dayjs';
  * - Lưu tất cả audit logs
  * - Lưu notifications (real-time)
  * - Auto remove old logs
+ * - Persist to localStorage
  */
-export const useAuditLogStore = create((set, get) => ({
+export const useAuditLogStore = create(
+  persist(
+    (set, get) => ({
   // State
   auditLogs: [],
   notifications: [], // Thông báo mới (chưa xem)
@@ -68,4 +72,14 @@ export const useAuditLogStore = create((set, get) => ({
       allNotifications: [],
     });
   },
-}));
+    }),
+    {
+      name: 'auditLogStore', // localStorage key
+      partialize: (state) => ({
+        auditLogs: state.auditLogs,
+        notifications: state.notifications,
+        allNotifications: state.allNotifications,
+      }), // Only persist these fields
+    }
+  )
+);

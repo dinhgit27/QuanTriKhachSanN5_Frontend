@@ -303,6 +303,116 @@ const AuditLogsPage = () => {
     },
   ];
 
+  // --- BỘ DỮ LIỆU DỊCH FIELD NAMES SANG TIẾNG VIỆT ---
+  const FIELD_NAME_VI = {
+    // Chung
+    id: 'ID',
+    name: 'Tên',
+    description: 'Mô tả',
+    status: 'Trạng thái',
+    createdAt: 'Ngày tạo',
+    updatedAt: 'Ngày cập nhật',
+
+    // Phòng
+    roomNumber: 'Số phòng',
+    roomTypeId: 'Loại phòng',
+    floor: 'Tầng',
+    capacity: 'Sức chứa',
+    pricePerNight: 'Giá/đêm',
+    cleaningStatus: 'Trạng thái dọn dẹp',
+
+    // Vật tư
+    amenityName: 'Tên vật tư',
+    quantity: 'Số lượng',
+    quantityInRoom: 'Số lượng trong phòng',
+    quantityInWarehouse: 'Số lượng trong kho',
+    price: 'Giá',
+    importPrice: 'Giá nhập',
+    compensationPrice: 'Giá bù trừ',
+    supplier: 'Nhà cung cấp',
+    isActive: 'Trạng thái',
+
+    // Người dùng
+    email: 'Email',
+    userName: 'Tên người dùng',
+    fullName: 'Họ và tên',
+    phone: 'Điện thoại',
+    role: 'Vai trò',
+    isLocked: 'Bị khóa',
+
+    // Biên bản đền bù
+    penaltyAmount: 'Số tiền phạt',
+    roomInventoryId: 'ID vật tư phòng',
+    lossAndDamageId: 'ID biên bản',
+
+    // Booking
+    guestName: 'Tên khách',
+    checkInDate: 'Ngày nhận phòng',
+    checkOutDate: 'Ngày trả phòng',
+    numberOfGuests: 'Số khách',
+    totalPrice: 'Tổng giá',
+    bookingStatus: 'Trạng thái đặt',
+  };
+
+  const translateFieldName = (fieldName) => {
+    return FIELD_NAME_VI[fieldName] || fieldName;
+  };
+
+  // --- HÀM FORMAT CHI TIẾT THAY ĐỔI ---
+  const formatChangeDetails = (log) => {
+    const { actionType, oldValue, newValue, description } = log;
+
+    // Nếu không có oldValue/newValue, dùng description
+    if (!oldValue && !newValue) {
+      return description;
+    }
+
+    let changeText = '';
+
+    if (actionType === 'CREATE') {
+      changeText += `✨ Tạo mới ${log.objectName}`;
+      if (newValue) {
+        const changes = Object.entries(newValue)
+          .filter(([key, value]) => value !== null && value !== undefined && value !== '')
+          .slice(0, 3)
+          .map(([key, value]) => `${translateFieldName(key)}: ${String(value).slice(0, 30)}`)
+          .join(', ');
+        if (changes) changeText += ` (${changes})`;
+      }
+    } else if (actionType === 'DELETE') {
+      changeText += `🗑️ Xóa ${log.objectName}`;
+      if (oldValue) {
+        const info = Object.entries(oldValue)
+          .filter(([key, value]) => value !== null && value !== undefined)
+          .slice(0, 2)
+          .map(([key, value]) => `${translateFieldName(key)}: ${String(value).slice(0, 20)}`)
+          .join(', ');
+        if (info) changeText += ` (${info})`;
+      }
+    } else if (actionType === 'UPDATE') {
+      changeText += `✏️ Cập nhật ${log.objectName}`;
+      
+      if (oldValue && newValue && typeof oldValue === 'object' && typeof newValue === 'object') {
+        const changes = [];
+        Object.keys(newValue).forEach((key) => {
+          if (oldValue[key] !== newValue[key]) {
+            const oldVal = String(oldValue[key] || '-').slice(0, 20);
+            const newVal = String(newValue[key] || '-').slice(0, 20);
+            changes.push(`${translateFieldName(key)}: "${oldVal}" → "${newVal}"`);
+          }
+        });
+        if (changes.length > 0) {
+          changeText += `\n${changes.slice(0, 3).join('\n')}`;
+          if (changes.length > 3) changeText += `\n... và ${changes.length - 3} thay đổi khác`;
+        }
+      }
+    } else {
+      changeText = description;
+    }
+
+    return changeText;
+  };
+
   // --- RENDER DETAIL DRAWER ---
   const renderDetailDrawer = () => {
     if (!selectedLog) return null;
@@ -351,8 +461,19 @@ const AuditLogsPage = () => {
           <Descriptions.Item label="Đối tượng">
             {selectedLog.objectName}
           </Descriptions.Item>
-          <Descriptions.Item label="Mô tả">
-            {selectedLog.description}
+          <Descriptions.Item label="Mô tả Chi Tiết">
+            <div style={{ 
+              backgroundColor: '#fafafa', 
+              padding: '12px', 
+              borderRadius: 6,
+              fontFamily: 'monospace',
+              fontSize: 12,
+              lineHeight: '1.6',
+              whiteSpace: 'pre-wrap',
+              wordBreak: 'break-word'
+            }}>
+              {formatChangeDetails(selectedLog)}
+            </div>
           </Descriptions.Item>
         </Descriptions>
       </Drawer>

@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Row, Col, Card, Badge, Modal, Table, Button, Typography, message, Spin, Empty, Tag, Space, Popconfirm } from 'antd';
 import { ClearOutlined, CheckCircleOutlined, ExclamationCircleOutlined, SyncOutlined, BuildOutlined } from '@ant-design/icons';
 import axios from 'axios';
+import { useAuditLogStore } from '../../store/auditLogStore';
 
 const { Title, Text } = Typography;
 
@@ -14,6 +15,9 @@ const HousekeepingManagement = () => {
   const [roomInventory, setRoomInventory] = useState([]);
   const [isInventoryVisible, setIsInventoryVisible] = useState(false);
   const [loadingInventory, setLoadingInventory] = useState(false);
+
+  // Audit log store
+  const addAuditLog = useAuditLogStore((state) => state.addAuditLog);
 
 
   const fetchCleaningRooms = async () => {
@@ -52,22 +56,44 @@ const HousekeepingManagement = () => {
   const handleCompleteCleaning = async (roomId) => {
     try {
       const token = localStorage.getItem('token');
+      const userName = localStorage.getItem('userName') || 'Housekeeping Staff';
+      const userEmail = localStorage.getItem('userEmail') || 'housekeeper@hotel.com';
       
       // Gọi đúng API "mark-clean" vừa tạo ở C#
       await axios.put(`https://localhost:5070/api/RoomInventory/rooms/${roomId}/mark-clean`, {}, {
         headers: { Authorization: `Bearer ${token}` }
       });
       
-      message.success('Đã xác nhận phòng sạch sẽ! Sẵn sàng đón khách.');
+      // Lấy thông tin phòng
+      const room = rooms.find(r => r.id === roomId);
+      
+      // Thêm audit log
+      addAuditLog({
+        userId: 'USR_CURRENT',
+        userName: userName,
+        email: userEmail,
+        action: 'Hoàn tất',
+        actionType: 'UPDATE',
+        module: 'Nhiệm vụ Dọn Phòng',
+        objectName: `Phòng ${room?.roomNumber}`,
+        description: `Hoàn tất dọn sạch phòng ${room?.roomNumber}. Trạng thái chuyển từ "Cleaning" sang "Available"`,
+        oldValue: { status: 'Cleaning', cleaningStatus: 'Cleaning' },
+        newValue: { status: 'Available', cleaningStatus: 'Clean' },
+      });
+      
+      message.success(`✅ Đã hoàn tất dọn sạch phòng ${room?.roomNumber}! Phòng sẵn sàng đón khách.`);
       fetchCleaningRooms(); // Load lại là bay màu ngay lập tức!
     } catch (error) {
       console.error(error);
-      message.error("Lỗi khi cập nhật trạng thái phòng!");
+      message.error("❌ Lỗi khi cập nhật trạng thái phòng!");
     }
   };
 
   // 3. XỬ LÝ MỞ MODAL KIỂM TRA VẬT TƯ
   const handleCheckInventory = async (room) => {
+    const userName = localStorage.getItem('userName') || 'Housekeeping Staff';
+    const userEmail = localStorage.getItem('userEmail') || 'housekeeper@hotel.com';
+    
     setSelectedRoom(room);
     setIsInventoryVisible(true);
     setLoadingInventory(true);
@@ -77,8 +103,23 @@ const HousekeepingManagement = () => {
         headers: { Authorization: `Bearer ${token}` }
       });
       setRoomInventory(res.data);
+      
+      // Thêm audit log cho việc kiểm tra đồ đạc
+      addAuditLog({
+        userId: 'USR_CURRENT',
+        userName: userName,
+        email: userEmail,
+        action: 'Kiểm tra',
+        actionType: 'OTHER',
+        module: 'Nhiệm vụ Dọn Phòng',
+        objectName: `Phòng ${room.roomNumber} - Kiểm tra đồ đạc`,
+        description: `Bắt đầu kiểm tra tài sản và vật tư của phòng ${room.roomNumber}. Tổng ${res.data.length} vật tư cần kiểm tra.`,
+        newValue: { totalItems: res.data.length, activeItems: res.data.filter(i => i.isActive).length },
+      });
+      
+      message.info(`📋 Đang kiểm tra ${res.data.length} vật tư của phòng ${room.roomNumber}`);
     } catch (err) {
-      message.error("Lỗi tải danh sách vật tư!");
+      message.error("❌ Lỗi tải danh sách vật tư!");
     } finally {
       setLoadingInventory(false);
     }
@@ -95,6 +136,9 @@ const HousekeepingManagement = () => {
       onOk: async () => {
         try {
           const token = localStorage.getItem('token');
+          const userName = localStorage.getItem('userName') || 'Housekeeping Staff';
+          const userEmail = localStorage.getItem('userEmail') || 'housekeeper@hotel.com';
+          
           const damagePayload = {
             roomInventoryId: record.id, 
             quantity: 1, 
@@ -106,13 +150,33 @@ const HousekeepingManagement = () => {
           await axios.post('https://localhost:5070/api/LossAndDamages', damagePayload, {
             headers: { Authorization: `Bearer ${token}` }
           });
-          message.success(`Đã lập biên bản báo hỏng ${record.amenity?.name}! Lễ tân đã nhận được thông báo.`);
+          
+          // Thêm audit log cho báo hỏng
+          addAuditLog({
+            userId: 'USR_CURRENT',
+            userName: userName,
+            email: userEmail,
+            action: 'Báo hỏng',
+            actionType: 'CREATE',
+            module: 'Nhiệm vụ Dọn Phòng',
+            objectName: `${record.amenity?.name} - Phòng ${selectedRoom?.roomNumber}`,
+            description: `Báo hỏng/mất vật tư: ${record.amenity?.name} tại phòng ${selectedRoom?.roomNumber}. Giá bù trừ: ${record.amenity?.price || record.amenity?.importPrice || 500000} đ`,
+            newValue: { 
+              amenity: record.amenity?.name, 
+              roomNumber: selectedRoom?.roomNumber,
+              quantity: 1,
+              penaltyAmount: record.amenity?.price || record.amenity?.importPrice || 500000,
+              status: 'Chưa đền bù'
+            },
+          });
+          
+          message.success(`✅ Đã lập biên bản báo hỏng ${record.amenity?.name}! Lễ tân đã nhận được thông báo.`);
           
           setRoomInventory(prev => prev.map(item => 
               item.id === record.id ? { ...item, isActive: false } : item
           ));
         } catch (error) {
-          message.error("Lỗi báo hỏng!");
+          message.error("❌ Lỗi báo hỏng!");
         }
       }
     });
@@ -204,13 +268,35 @@ const HousekeepingManagement = () => {
         open={isInventoryVisible}
         onCancel={() => setIsInventoryVisible(false)}
         footer={[
-          <Button key="close" type="primary" onClick={() => setIsInventoryVisible(false)}>Đã kiểm tra xong</Button>
+          <Button key="close" type="primary" onClick={() => {
+            const userName = localStorage.getItem('userName') || 'Housekeeping Staff';
+            const userEmail = localStorage.getItem('userEmail') || 'housekeeper@hotel.com';
+            
+            // Thêm audit log hoàn thành kiểm tra
+            addAuditLog({
+              userId: 'USR_CURRENT',
+              userName: userName,
+              email: userEmail,
+              action: 'Hoàn thành',
+              actionType: 'OTHER',
+              module: 'Nhiệm vụ Dọn Phòng',
+              objectName: `Phòng ${selectedRoom?.roomNumber} - Kiểm tra đồ đạc hoàn thành`,
+              description: `Hoàn thành kiểm tra tài sản của phòng ${selectedRoom?.roomNumber}. Số vật tư hỏng/mất: ${roomInventory.filter(i => !i.isActive).length}/${roomInventory.length}`,
+              newValue: { 
+                totalItems: roomInventory.length, 
+                damageItems: roomInventory.filter(i => !i.isActive).length 
+              },
+            });
+            
+            message.success(`✅ Hoàn thành kiểm tra phòng ${selectedRoom?.roomNumber}`);
+            setIsInventoryVisible(false);
+          }}>Đã kiểm tra xong</Button>
         ]}
         width={700}
       >
         <Spin spinning={loadingInventory}>
           <div style={{ marginBottom: 16 }}>
-            <Text type="danger">Lưu ý: Báo hỏng ngay lập tức nếu phát hiện thiếu sót để Lễ tân thu tiền khách!</Text>
+            <Text type="danger">⚠️ Lưu ý: Báo hỏng ngay lập tức nếu phát hiện thiếu sót để Lễ tân thu tiền khách!</Text>
           </div>
           <Table columns={columns} dataSource={roomInventory} rowKey="id" pagination={false} bordered />
         </Spin>

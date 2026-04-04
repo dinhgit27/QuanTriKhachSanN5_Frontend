@@ -92,6 +92,9 @@ const AuditLogsPage = () => {
   const [pagination, setPagination] = useState({ current: 1, pageSize: 10 });
   const [detailDrawerVisible, setDetailDrawerVisible] = useState(false);
   const [selectedLog, setSelectedLog] = useState(null);
+  const [selectedRows, setSelectedRows] = useState([]); // Xóa hàng loạt
+  const [bulkDeleteConfirm, setBulkDeleteConfirm] = useState(false);
+  const deleteMultipleAuditLogs = useAuditLogStore((state) => state.deleteMultipleAuditLogs);
 
   // --- FILTERS ---
   const [searchText, setSearchText] = useState('');
@@ -194,6 +197,21 @@ const AuditLogsPage = () => {
   const handleViewDetail = (record) => {
     setSelectedLog(record);
     setDetailDrawerVisible(true);
+  };
+
+  const handleBulkDelete = () => {
+    if (selectedRows.length === 0) {
+      message.warning('Vui lòng chọn ít nhất 1 bản ghi!');
+      return;
+    }
+    setBulkDeleteConfirm(true);
+  };
+
+  const handleConfirmBulkDelete = () => {
+    deleteMultipleAuditLogs(selectedRows);
+    setSelectedRows([]);
+    setBulkDeleteConfirm(false);
+    message.success(`Đã xóa ${selectedRows.length} bản ghi!`);
   };
 
   // --- COLUMNS TABLE ---
@@ -354,6 +372,51 @@ const AuditLogsPage = () => {
     bookingStatus: 'Trạng thái đặt',
   };
 
+  // Dịch các giá trị tiếng Anh sang tiếng Việt
+  const ENGLISH_TO_VI = {
+    // Status
+    'Active': 'Hoạt động',
+    'Inactive': 'Không hoạt động',
+    'Pending': 'Chờ xử lý',
+    'Paid': 'Đã thanh toán',
+    'Unpaid': 'Chưa thanh toán',
+    'Confirmed': 'Đã xác nhận',
+    'Cancelled': 'Đã hủy',
+    'Completed': 'Hoàn thành',
+    
+    // Room status
+    'Available': 'Có sẵn',
+    'Occupied': 'Đã cho thuê',
+    'Dirty': 'Bẩn',
+    'Clean': 'Sạch',
+    'Maintenance': 'Bảo trì',
+    
+    // Check-in/out
+    'Checked-in': 'Đã nhận phòng',
+    'Checked-out': 'Đã trả phòng',
+    'Full': 'Đầy',
+    'Partial': 'Thiếu',
+    
+    // Payment
+    'Cash': 'Tiền mặt',
+    'Card': 'Thẻ',
+    'Bank Transfer': 'Chuyển khoản',
+    'Router': 'Bộ phát WiFi',
+    
+    // Role
+    'Admin': 'Quản trị viên',
+    'Manager': 'Quản lý',
+    'Receptionist': 'Lễ tân',
+    'Housekeeper': 'Nhân viên vệ sinh',
+  };
+
+  const translateValue = (value) => {
+    if (typeof value === 'string' && ENGLISH_TO_VI[value]) {
+      return ENGLISH_TO_VI[value];
+    }
+    return value;
+  };
+
   const translateFieldName = (fieldName) => {
     return FIELD_NAME_VI[fieldName] || fieldName;
   };
@@ -364,7 +427,7 @@ const AuditLogsPage = () => {
 
     // Nếu không có oldValue/newValue, dùng description
     if (!oldValue && !newValue) {
-      return description;
+      return translateValue(description);
     }
 
     let changeText = '';
@@ -375,7 +438,10 @@ const AuditLogsPage = () => {
         const changes = Object.entries(newValue)
           .filter(([key, value]) => value !== null && value !== undefined && value !== '')
           .slice(0, 3)
-          .map(([key, value]) => `${translateFieldName(key)}: ${String(value).slice(0, 30)}`)
+          .map(([key, value]) => {
+            const translatedVal = translateValue(String(value).slice(0, 30));
+            return `${translateFieldName(key)}: ${translatedVal}`;
+          })
           .join(', ');
         if (changes) changeText += ` (${changes})`;
       }
@@ -385,7 +451,10 @@ const AuditLogsPage = () => {
         const info = Object.entries(oldValue)
           .filter(([key, value]) => value !== null && value !== undefined)
           .slice(0, 2)
-          .map(([key, value]) => `${translateFieldName(key)}: ${String(value).slice(0, 20)}`)
+          .map(([key, value]) => {
+            const translatedVal = translateValue(String(value).slice(0, 20));
+            return `${translateFieldName(key)}: ${translatedVal}`;
+          })
           .join(', ');
         if (info) changeText += ` (${info})`;
       }
@@ -396,8 +465,8 @@ const AuditLogsPage = () => {
         const changes = [];
         Object.keys(newValue).forEach((key) => {
           if (oldValue[key] !== newValue[key]) {
-            const oldVal = String(oldValue[key] || '-').slice(0, 20);
-            const newVal = String(newValue[key] || '-').slice(0, 20);
+            const oldVal = oldValue[key] === true || oldValue[key] === false ? '-' : translateValue(String(oldValue[key] || '-').slice(0, 20));
+            const newVal = newValue[key] === true || newValue[key] === false ? '-' : translateValue(String(newValue[key] || '-').slice(0, 20));
             changes.push(`${translateFieldName(key)}: "${oldVal}" → "${newVal}"`);
           }
         });
@@ -419,6 +488,8 @@ const AuditLogsPage = () => {
 
     const formatValue = (value) => {
       if (value === null || value === undefined) return '-';
+      if (value === true) return '-';
+      if (value === false) return '-';
       if (typeof value === 'object') {
         return JSON.stringify(value, null, 2);
       }
@@ -584,6 +655,18 @@ const AuditLogsPage = () => {
                 Xuất Excel
               </Button>
             </Col>
+            {selectedRows.length > 0 && (
+              <Col>
+                <Button
+                  type="primary"
+                  danger
+                  icon={<DeleteOutlined />}
+                  onClick={handleBulkDelete}
+                >
+                  Xóa ({selectedRows.length})
+                </Button>
+              </Col>
+            )}
           </Row>
         </Form>
       </Card>
@@ -595,6 +678,12 @@ const AuditLogsPage = () => {
           dataSource={filteredLogs}
           rowKey="id"
           loading={localLoading}
+          rowSelection={{
+            selectedRowKeys: selectedRows,
+            onChange: (selectedRowKeys) => {
+              setSelectedRows(selectedRowKeys);
+            },
+          }}
           pagination={{
             current: pagination.current,
             pageSize: pagination.pageSize,
@@ -617,6 +706,33 @@ const AuditLogsPage = () => {
 
       {/* --- DETAIL DRAWER --- */}
       {renderDetailDrawer()}
+
+      {/* --- BULK DELETE MODAL --- */}
+      <Modal
+        title="Xác nhận xóa hàng loạt"
+        open={bulkDeleteConfirm}
+        onCancel={() => setBulkDeleteConfirm(false)}
+        footer={[
+          <Button key="cancel" onClick={() => setBulkDeleteConfirm(false)}>
+            Hủy
+          </Button>,
+          <Button
+            key="delete"
+            type="primary"
+            danger
+            onClick={handleConfirmBulkDelete}
+          >
+            Xóa ({selectedRows.length} bản ghi)
+          </Button>,
+        ]}
+      >
+        <p>
+          Bạn chắc chắn muốn xóa <strong>{selectedRows.length} bản ghi</strong> này không?
+        </p>
+        <p style={{ color: '#ff4d4f' }}>
+          ⚠️ Hành động này không thể hoàn tác!
+        </p>
+      </Modal>
     </div>
   );
 };

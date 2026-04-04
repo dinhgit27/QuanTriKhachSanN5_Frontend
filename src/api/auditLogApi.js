@@ -210,4 +210,20 @@ export const auditLogApi = {
     // return api.post('/audit-logs/export', filters, { responseType: 'blob' });
     return Promise.resolve({ data: null });
   },
+
+   // Thêm audit log mới
+  createAuditLog: (logData) => {
+    const newLog = {
+      id: MOCK_AUDIT_LOGS.length + 1,
+      timestamp: new Date().toISOString(),
+      userId: 'USR_CURRENT', // Sẽ lấy từ localStorage hoặc context
+      userName: 'Housekeeper', // Sẽ lấy từ localStorage hoặc context
+      email: 'housekeeper@hotel.com', // Sẽ lấy từ localStorage hoặc context
+      ipAddress: '192.168.1.XXX',
+      ...logData,
+    };
+    
+    MOCK_AUDIT_LOGS.unshift(newLog);
+    return Promise.resolve({ data: newLog });
+  },
 };

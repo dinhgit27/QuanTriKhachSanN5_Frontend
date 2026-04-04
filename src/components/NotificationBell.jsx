@@ -23,55 +23,137 @@ const ACTION_COLORS = {
   OTHER: '#666',
 };
 
+// Dịch các giá trị tiếng Anh sang tiếng Việt
+const ENGLISH_TO_VI = {
+  // Status
+  'Active': 'Hoạt động',
+  'Inactive': 'Không hoạt động',
+  'Pending': 'Chờ xử lý',
+  'Paid': 'Đã thanh toán',
+  'Unpaid': 'Chưa thanh toán',
+  'Confirmed': 'Đã xác nhận',
+  'Cancelled': 'Đã hủy',
+  'Completed': 'Hoàn thành',
+  
+  // Room status
+  'Available': 'Có sẵn',
+  'Occupied': 'Đã cho thuê',
+  'Dirty': 'Bẩn',
+  'Clean': 'Sạch',
+  'Maintenance': 'Bảo trì',
+  
+  // Check-in/out
+  'Checked-in': 'Đã nhận phòng',
+  'Checked-out': 'Đã trả phòng',
+  'Full': 'Đầy',
+  'Partial': 'Thiếu',
+  
+  // Payment
+  'Cash': 'Tiền mặt',
+  'Card': 'Thẻ',
+  'Bank Transfer': 'Chuyển khoản',
+  'Router': 'Bộ phát WiFi',
+  
+  // Role
+  'Admin': 'Quản trị viên',
+  'Manager': 'Quản lý',
+  'Receptionist': 'Lễ tân',
+  'Housekeeper': 'Nhân viên vệ sinh',
+};
+
+const translateValue = (value) => {
+  if (typeof value === 'string' && ENGLISH_TO_VI[value]) {
+    return ENGLISH_TO_VI[value];
+  }
+  return value;
+};
+
 const NotificationBell = () => {
   const notifications = useAuditLogStore((state) => state.notifications);
   const markNotificationAsRead = useAuditLogStore((state) => state.markNotificationAsRead);
   const markAllNotificationsAsRead = useAuditLogStore((state) => state.markAllNotificationsAsRead);
+  const deleteNotification = useAuditLogStore((state) => state.deleteNotification);
+  const [deleteConfirm, setDeleteConfirm] = React.useState(null);
 
   console.log('🔔 [NotificationBell] Rendered with notifications count:', notifications.length);
   console.log('🔔 [NotificationBell] Notifications:', notifications);
 
   // Render item notification
-  const renderNotificationItem = (notification) => (
-    <div
-      key={notification.id}
-      style={{
-        padding: '12px 16px',
-        borderBottom: '1px solid #f0f0f0',
-        cursor: 'pointer',
-        transition: 'background 0.3s',
-      }}
-      onMouseEnter={(e) => (e.currentTarget.style.background = '#fafafa')}
-      onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
-      onClick={() => markNotificationAsRead(notification.id)}
-    >
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 8 }}>
-        <div style={{ flex: 1 }}>
-          <div style={{ marginBottom: 4 }}>
-            <Tag color={ACTION_COLORS[notification.actionType] || ACTION_COLORS.OTHER}>
-              {notification.action}
-            </Tag>
-            <Text strong style={{ marginLeft: 8 }}>
-              {notification.module}
+  const renderNotificationItem = (notification) => {
+    const isDeleting = deleteConfirm === notification.id;
+    return (
+      <div
+        key={notification.id}
+        style={{
+          padding: '12px 16px',
+          borderBottom: '1px solid #f0f0f0',
+          cursor: 'pointer',
+          transition: 'background 0.3s',
+          backgroundColor: isDeleting ? '#fff7e6' : 'transparent',
+        }}
+        onMouseEnter={(e) => !isDeleting && (e.currentTarget.style.background = '#fafafa')}
+        onMouseLeave={(e) => !isDeleting && (e.currentTarget.style.background = 'transparent')}
+        onClick={() => !isDeleting && markNotificationAsRead(notification.id)}
+      >
+        {isDeleting ? (
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12, justifyContent: 'space-between' }}>
+            <Text style={{ fontSize: 13 }}>
+              ✓ Xác nhận xóa?
             </Text>
+            <Space size="small">
+              <Button 
+                type="primary" 
+                danger 
+                size="small"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  deleteNotification(notification.id);
+                  setDeleteConfirm(null);
+                }}
+              >
+                Xóa
+              </Button>
+              <Button 
+                size="small"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setDeleteConfirm(null);
+                }}
+              >
+                Hủy
+              </Button>
+            </Space>
           </div>
-          <div style={{ fontSize: 13, color: '#595959', marginBottom: 4 }}>
-            {notification.description}
+        ) : (
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 8 }}>
+            <div style={{ flex: 1 }}>
+              <div style={{ marginBottom: 4 }}>
+                <Tag color={ACTION_COLORS[notification.actionType] || ACTION_COLORS.OTHER}>
+                  {notification.action}
+                </Tag>
+                <Text strong style={{ marginLeft: 8 }}>
+                  {notification.module}
+                </Text>
+              </div>
+              <div style={{ fontSize: 13, color: '#595959', marginBottom: 4 }}>
+                {translateValue(notification.description)}
+              </div>
+              <div style={{ fontSize: 12, color: '#999' }}>
+                👤 {notification.userName} • {dayjs(notification.timestamp).fromNow()}
+              </div>
+            </div>
+            <DeleteOutlined
+              style={{ fontSize: 12, color: '#ff4d4f', cursor: 'pointer' }}
+              onClick={(e) => {
+                e.stopPropagation();
+                setDeleteConfirm(notification.id);
+              }}
+            />
           </div>
-          <div style={{ fontSize: 12, color: '#999' }}>
-            👤 {notification.userName} • {dayjs(notification.timestamp).fromNow()}
-          </div>
-        </div>
-        <DeleteOutlined
-          style={{ fontSize: 12, color: '#999', cursor: 'pointer' }}
-          onClick={(e) => {
-            e.stopPropagation();
-            markNotificationAsRead(notification.id);
-          }}
-        />
+        )}
       </div>
-    </div>
-  );
+    );
+  };
 
   const items = [
     {

@@ -55,6 +55,32 @@ export const useAuditLogStore = create(
     }));
   },
 
+  // Xóa notification cụ thể
+  deleteNotification: (notificationId) => {
+    set((state) => ({
+      notifications: state.notifications.filter((n) => n.id !== notificationId),
+      allNotifications: state.allNotifications.filter((n) => n.id !== notificationId),
+    }));
+  },
+
+  // Xóa audit log cụ thể
+  deleteAuditLog: (logId) => {
+    set((state) => ({
+      auditLogs: state.auditLogs.filter((log) => log.id !== logId),
+      notifications: state.notifications.filter((n) => n.id !== logId),
+      allNotifications: state.allNotifications.filter((n) => n.id !== logId),
+    }));
+  },
+
+  // Xóa nhiều audit logs
+  deleteMultipleAuditLogs: (logIds) => {
+    set((state) => ({
+      auditLogs: state.auditLogs.filter((log) => !logIds.includes(log.id)),
+      notifications: state.notifications.filter((n) => !logIds.includes(n.id)),
+      allNotifications: state.allNotifications.filter((n) => !logIds.includes(n.id)),
+    }));
+  },
+
   // Lấy audit logs
   getAuditLogs: () => get().auditLogs,
 

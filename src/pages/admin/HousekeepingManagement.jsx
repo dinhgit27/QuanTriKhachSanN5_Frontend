@@ -36,7 +36,8 @@ const HousekeepingManagement = () => {
          // Cố gắng bắt mọi trạng thái liên quan đến việc dọn phòng
          return r.status === 'Cleaning' || 
                 r.cleaningStatus === 'Inspecting' || 
-                r.cleaningStatus === 'Cleaning';
+                r.cleaningStatus === 'Cleaning' ||
+                r.cleaningStatus === 'Dirty';
       });
 
       setRooms(cleaningRooms);
@@ -230,7 +231,10 @@ const HousekeepingManagement = () => {
           <Row gutter={[24, 24]}>
             {rooms.map(room => (
               <Col xs={24} sm={12} md={8} lg={6} key={room.id}>
-                <Badge.Ribbon text="Đang Dọn" color="#1890ff">
+                <Badge.Ribbon 
+                  text={room.cleaningStatus === 'Inspecting' ? 'Đang Kiểm Tra' : 'Đang Dọn'} 
+                  color={room.cleaningStatus === 'Inspecting' ? '#faad14' : '#1890ff'}
+                >
                   <Card hoverable style={{ borderRadius: 16, border: '1px solid #91d5ff' }}>
                     <div style={{ textAlign: 'center', marginBottom: 20 }}>
                       <ClearOutlined style={{ fontSize: 40, color: '#1890ff', marginBottom: 10 }} />
@@ -239,20 +243,24 @@ const HousekeepingManagement = () => {
                     </div>
                     
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-                      <Button type="default" block icon={<BuildOutlined />} onClick={() => handleCheckInventory(room)}>
-                        Kiểm tra đồ đạc
-                      </Button>
-                      
-                      <Popconfirm 
-                        title="Xác nhận phòng đã sạch?" 
-                        description="Phòng sẽ được chuyển sang trạng thái Sẵn sàng bán."
-                        onConfirm={() => handleCompleteCleaning(room.id)} 
-                        okText="Xác nhận" cancelText="Chưa xong"
-                      >
-                        <Button type="primary" block style={{ backgroundColor: '#52c41a' }} icon={<CheckCircleOutlined />}>
-                          Hoàn tất sạch sẽ
+                      {room.cleaningStatus === 'Inspecting' && (
+                        <Button type="default" block icon={<BuildOutlined />} onClick={() => handleCheckInventory(room)}>
+                          Kiểm tra đồ đạc
                         </Button>
-                      </Popconfirm>
+                      )}
+                      
+                      {(room.cleaningStatus === 'Cleaning' || room.cleaningStatus === 'Dirty') && (
+                        <Popconfirm 
+                          title="Xác nhận phòng đã sạch?" 
+                          description="Phòng sẽ được chuyển sang trạng thái Sẵn sàng bán."
+                          onConfirm={() => handleCompleteCleaning(room.id)} 
+                          okText="Xác nhận" cancelText="Chưa xong"
+                        >
+                          <Button type="primary" block style={{ backgroundColor: '#52c41a' }} icon={<CheckCircleOutlined />}>
+                            Hoàn tất sạch sẽ
+                          </Button>
+                        </Popconfirm>
+                      )}
                     </div>
                   </Card>
                 </Badge.Ribbon>
@@ -268,28 +276,46 @@ const HousekeepingManagement = () => {
         open={isInventoryVisible}
         onCancel={() => setIsInventoryVisible(false)}
         footer={[
-          <Button key="close" type="primary" onClick={() => {
+          <Button key="close" type="primary" onClick={async () => {
             const userName = localStorage.getItem('userName') || 'Housekeeping Staff';
             const userEmail = localStorage.getItem('userEmail') || 'housekeeper@hotel.com';
             
-            // Thêm audit log hoàn thành kiểm tra
-            addAuditLog({
-              userId: 'USR_CURRENT',
-              userName: userName,
-              email: userEmail,
-              action: 'Hoàn thành',
-              actionType: 'OTHER',
-              module: 'Nhiệm vụ Dọn Phòng',
-              objectName: `Phòng ${selectedRoom?.roomNumber} - Kiểm tra đồ đạc hoàn thành`,
-              description: `Hoàn thành kiểm tra tài sản của phòng ${selectedRoom?.roomNumber}. Số vật tư hỏng/mất: ${roomInventory.filter(i => !i.isActive).length}/${roomInventory.length}`,
-              newValue: { 
-                totalItems: roomInventory.length, 
-                damageItems: roomInventory.filter(i => !i.isActive).length 
-              },
-            });
-            
-            message.success(`✅ Hoàn thành kiểm tra phòng ${selectedRoom?.roomNumber}`);
-            setIsInventoryVisible(false);
+            try {
+              const token = localStorage.getItem('token');
+              
+              // Cập nhật trạng thái phòng từ "Inspecting" sang "Clean"
+              await axios.put(`https://localhost:5070/api/Rooms/${selectedRoom.id}`, {
+                ...selectedRoom,
+                cleaningStatus: 'Clean'
+              }, {
+                headers: { Authorization: `Bearer ${token}` }
+              });
+              
+              // Thêm audit log hoàn thành kiểm tra
+              addAuditLog({
+                userId: 'USR_CURRENT',
+                userName: userName,
+                email: userEmail,
+                action: 'Hoàn thành',
+                actionType: 'UPDATE',
+                module: 'Nhiệm vụ Dọn Phòng',
+                objectName: `Phòng ${selectedRoom?.roomNumber} - Kiểm tra đồ đạc hoàn thành`,
+                description: `Hoàn thành kiểm tra tài sản của phòng ${selectedRoom?.roomNumber}. Trạng thái chuyển từ "Inspecting" sang "Clean". Số vật tư hỏng/mất: ${roomInventory.filter(i => !i.isActive).length}/${roomInventory.length}`,
+                oldValue: { cleaningStatus: 'Inspecting' },
+                newValue: { 
+                  cleaningStatus: 'Clean',
+                  totalItems: roomInventory.length, 
+                  damageItems: roomInventory.filter(i => !i.isActive).length 
+                },
+              });
+              
+              message.success(`✅ Hoàn thành kiểm tra phòng ${selectedRoom?.roomNumber}! Trạng thái đã được cập nhật.`);
+              setIsInventoryVisible(false);
+              fetchCleaningRooms(); // Tải lại danh sách phòng
+            } catch (error) {
+              console.error(error);
+              message.error("❌ Lỗi khi cập nhật trạng thái phòng!");
+            }
           }}>Đã kiểm tra xong</Button>
         ]}
         width={700}

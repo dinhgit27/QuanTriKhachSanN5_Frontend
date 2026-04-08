@@ -211,7 +211,11 @@ export const auditLogApi = {
     return Promise.resolve({ data: null });
   },
 
+<<<<<<< HEAD
    // Thêm audit log mới
+=======
+  // Thêm audit log mới
+>>>>>>> origin/phihung
   createAuditLog: (logData) => {
     const newLog = {
       id: MOCK_AUDIT_LOGS.length + 1,

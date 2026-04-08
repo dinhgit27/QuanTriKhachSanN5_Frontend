@@ -10,6 +10,7 @@ import {
 import axios from 'axios';
 import { useAuditLog } from '../../hooks/useAuditLog';
 import { useDamageEventStore } from '../../store/damageEventStore';
+import { useEquipmentEventStore } from '../../store/equipmentEventStore';
 
 const { Title, Text } = Typography;
 const { Option } = Select;
@@ -19,74 +20,64 @@ const WarehouseManagement = () => {
   // Subscribe to global damage updates - real-time from store
   const lastDamageUpdate = useDamageEventStore((state) => state.lastDamageUpdate);
   
-  console.log('🏭 [Warehouse] Component rendered, lastDamageUpdate:', lastDamageUpdate);
-  
   const [data, setData] = useState([]);
   const [loading, setLoading] = useState(false);
   const [isModalVisible, setIsModalVisible] = useState(false);
   const [editingItem, setEditingItem] = useState(null);
-  const [damagedCount, setDamagedCount] = useState({}); // Lưu số lượng hỏng/mất cho mỗi vật tư
+  const [damagedCount, setDamagedCount] = useState({}); 
   
   const [imageUrl, setImageUrl] = useState('');
   const [uploading, setUploading] = useState(false);
 
   const [form] = Form.useForm();
-  const lastKnownUpdateRef = useRef(0); // Track last damage update we've processed
+  const lastKnownUpdateRef = useRef(0); 
 
   // --- FETCH DỮ LIỆU HỎNG/MẤT TỪ API ---
   const fetchDamagedCount = useCallback(async () => {
     try {
-      console.log('🔄 [Warehouse] Fetching damaged count...');
       const token = localStorage.getItem('token');
       const res = await axios.get('https://localhost:5070/api/LossAndDamages', {
         headers: { Authorization: `Bearer ${token}` }
       });
       
-      console.log('📊 [Warehouse] LossAndDamages API response:', res.data);
-      
-      // Group and count chỉ những record với status "Chưa đền bù" (still active damage)
       const counted = {};
       let totalDamaged = 0;
       
       res.data.forEach(record => {
-        console.log(`📋 Record: ${record.description} | Status: ${record.status} | Qty: ${record.quantity}`);
-        
-        // Chỉ count những record chưa được xử lý
         if (record.status === 'Chưa đền bù' || !record.status) {
-          const key = record.description;
-          if (!counted[key]) {
-            counted[key] = 0;
-          }
+          // Enhanced matching: exact name from parsed description + room
+          const nameMatch = record.description.match(/^(.*?) - (Phòng|P\.)\s*\w+/i);
+          const equipmentName = nameMatch ? nameMatch[1].trim() : record.description;
+          const key = equipmentName;
+          if (!counted[key]) counted[key] = 0;
           counted[key] += record.quantity || 1;
           totalDamaged++;
         }
       });
-      
-      console.log('✅ [Warehouse] Counted damaged items:', counted);
-      console.log('📈 [Warehouse] Total damaged records:', totalDamaged);
+
       
       setDamagedCount(counted);
       return counted;
     } catch (err) {
-      console.error('❌ [Warehouse] Lỗi fetch dữ liệu hỏng/mất:', err);
+      console.error('❌ Lỗi fetch dữ liệu hỏng/mất:', err);
       return {};
     }
   }, []);
 
-  // --- 1. LẤY DỮ LIỆU TỪ KHO ---
+  // --- 1. LẤY DỮ LIỆU TỪ BẢNG EQUIPMENTS ---
   const fetchData = async () => {
     setLoading(true);
     try {
       const token = localStorage.getItem('token');
-      const res = await axios.get('https://localhost:5070/api/Amenities', {
+      // ĐỔI API TỪ Amenities SANG Equipments
+      const res = await axios.get('https://localhost:5070/api/Equipments', {
         headers: { Authorization: `Bearer ${token}` }
       });
       setData(res.data);
-      // Fetch damaged count after getting warehouse data
       fetchDamagedCount();
     } catch (err) {
       console.error(err);
-      message.error("Lỗi khi tải dữ liệu kho!");
+      message.error("Lỗi khi tải dữ liệu kho (Kiểm tra xem đã tạo API EquipmentsController chưa)!");
     } finally {
       setLoading(false);
     }
@@ -94,23 +85,12 @@ const WarehouseManagement = () => {
 
   useEffect(() => {
     fetchData();
-    // Load damaged count from localStorage on mount
     const saved = localStorage.getItem('damagedCount');
-    if (saved) {
-      setDamagedCount(JSON.parse(saved));
-    }
+    if (saved) setDamagedCount(JSON.parse(saved));
     
-    // Auto-refresh damaged count every 5 seconds to stay in sync
-    const interval = setInterval(() => {
-      fetchDamagedCount();
-    }, 5000);
+    const interval = setInterval(() => { fetchDamagedCount(); }, 5000);
     
-    // Listen for damage status updates from other pages (LossAndDamageManagement)
-    const handleDamageStatusChange = () => {
-      console.log('🔔 [Warehouse] Global damage update detected - refreshing damaged count');
-      fetchDamagedCount();
-    };
-    
+    const handleDamageStatusChange = () => { fetchDamagedCount(); };
     const unsubscribe = useDamageEventStore.subscribe(
       (state) => state.lastDamageUpdate,
       handleDamageStatusChange
@@ -122,24 +102,19 @@ const WarehouseManagement = () => {
     };
   }, []);
 
-  // Additional effect to handle damage updates even when component remounts
   useEffect(() => {
-    console.log('🔔 [Warehouse] useEffect triggered: lastDamageUpdate =', lastDamageUpdate, ', lastKnownUpdate =', lastKnownUpdateRef.current);
-    
     if (lastDamageUpdate > 0 && lastDamageUpdate !== lastKnownUpdateRef.current) {
-      console.log('🔔 [Warehouse] Detected NEW damage update! lastDamageUpdate:', lastDamageUpdate, '- fetching damaged count');
       lastKnownUpdateRef.current = lastDamageUpdate;
       fetchDamagedCount();
     }
   }, [lastDamageUpdate, fetchDamagedCount]);
 
-  // --- 2. UPLOAD ẢNH LÊN CLOUDINARY (ĐÃ FIX THEO HÌNH NÍ CHỤP) ---
+  // --- 2. UPLOAD ẢNH LÊN CLOUDINARY ---
   const handleUploadCloudinary = async (options) => {
     const { file, onSuccess, onError } = options;
     setUploading(true);
     
     const CLOUDINARY_URL = 'https://api.cloudinary.com/v1_1/dqx8hqmcv/image/upload';
-    // Tên Preset ní vừa tạo: QuanTriKhachSanN5_IMG
     const UPLOAD_PRESET = 'QuanTriKhachSanN5_IMG'; 
 
     const formData = new FormData();
@@ -154,7 +129,6 @@ const WarehouseManagement = () => {
       onSuccess("Ok");
       message.success('Tải ảnh lên Cloud thành công!');
     } catch (err) {
-      console.error("Lỗi upload Cloudinary:", err);
       onError({ err });
       message.error('Tải ảnh thất bại! Kiểm tra lại cấu hình Unsigned.');
     } finally {
@@ -174,50 +148,54 @@ const WarehouseManagement = () => {
   const handleEdit = (record) => {
     setEditingItem(record);
     setImageUrl(record.imageUrl); 
-    form.setFieldsValue(record);
+    const editValues = {
+      ...record,
+      compensationPrice: record.compensationPrice || record.defaultPriceIfLost || 0
+    };
+    form.setFieldsValue(editValues);
     setIsModalVisible(true);
   };
 
-  // --- 5. LƯU DỮ LIỆU ---
+
+  // --- 5. LƯU DỮ LIỆU VÀO EQUIPMENTS ---
   const handleSave = async () => {
     try {
       const values = await form.validateFields();
       const token = localStorage.getItem('token');
       const headers = { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' };
 
+      // Tự động tính toán InStock khi tạo mới
+      const finalPayload = {
+        ...values,
+        inStockQuantity: editingItem ? editingItem.inStockQuantity : values.totalQuantity,
+        inUseQuantity: editingItem ? editingItem.inUseQuantity : 0,
+        damagedQuantity: editingItem ? editingItem.damagedQuantity : 0,
+        isActive: true
+      };
+
       if (editingItem) {
-        // Update
-        await axios.put(`https://localhost:5070/api/Amenities/${editingItem.id}`, { ...editingItem, ...values }, { headers });
+        await axios.put(`https://localhost:5070/api/Equipments/${editingItem.id}`, { ...editingItem, ...finalPayload }, { headers });
         
-        // Log action
         logAction({
-          action: 'Sửa',
-          actionType: 'UPDATE',
-          module: 'Kho Vật Tư',
-          objectName: values.name,
-          description: `Cập nhật thông tin vật tư: ${values.name}`,
-          oldValue: editingItem,
-          newValue: values,
+          action: 'Sửa', actionType: 'UPDATE', module: 'Kho Vật Tư',
+          objectName: values.name, description: `Cập nhật thông tin vật tư: ${values.name}`,
+          oldValue: editingItem, newValue: values,
         });
-        
         message.success('Đã cập nhật thông tin vật tư!');
       } else {
-        // Create
-        await axios.post('https://localhost:5070/api/Amenities', values, { headers });
+        await axios.post('https://localhost:5070/api/Equipments', finalPayload, { headers });
         
-        // Log action
         logAction({
-          action: 'Thêm',
-          actionType: 'CREATE',
-          module: 'Kho Vật Tư',
-          objectName: values.name,
-          description: `Thêm vật tư mới: ${values.name}`,
+          action: 'Thêm', actionType: 'CREATE', module: 'Kho Vật Tư',
+          objectName: values.name, description: `Thêm vật tư mới: ${values.name}`,
           newValue: values,
         });
-        
         message.success('Đã nhập vật tư mới vào kho!');
       }
 
+      // Trigger global equipment update to sync with other pages
+      useEquipmentEventStore.getState().triggerEquipmentUpdate();
+      
       setIsModalVisible(false);
       fetchData();
     } catch (error) {
@@ -229,24 +207,21 @@ const WarehouseManagement = () => {
   const handleDelete = async (id) => {
     try {
       const token = localStorage.getItem('token');
-      
-      // Tìm item để ghi log
       const deletingItem = data.find(item => item.id === id);
       const itemName = deletingItem?.name || 'Vật tư';
       
-      await axios.delete(`https://localhost:5070/api/Amenities/${id}`, {
+      await axios.delete(`https://localhost:5070/api/Equipments/${id}`, {
         headers: { Authorization: `Bearer ${token}` }
       });
       
-      // Log action
       logAction({
-        action: 'Xóa',
-        actionType: 'DELETE',
-        module: 'Kho Vật Tư',
-        objectName: itemName,
-        description: `Xóa vật tư: ${itemName}`,
-        oldValue: { name: itemName, quantity: deletingItem?.quantity, price: deletingItem?.price },
+        action: 'Xóa', actionType: 'DELETE', module: 'Kho Vật Tư',
+        objectName: itemName, description: `Xóa vật tư: ${itemName}`,
+        oldValue: deletingItem,
       });
+      
+      // Trigger global equipment update to sync with other pages
+      useEquipmentEventStore.getState().triggerEquipmentUpdate();
       
       message.success("Đã xóa vật tư!");
       fetchData();
@@ -255,6 +230,7 @@ const WarehouseManagement = () => {
     }
   };
 
+  // CHỈNH SỬA CỘT MAP VỚI BẢNG EQUIPMENTS MỚI
   const columns = [
     { 
       title: 'Ảnh', 
@@ -262,64 +238,52 @@ const WarehouseManagement = () => {
       key: 'imageUrl', 
       render: (img) => img ? <img src={img} alt="item" style={{ width: 45, height: 45, objectFit: 'cover', borderRadius: 6, border: '1px solid #f0f0f0' }} /> : <Tag>No Image</Tag>
     },
-    { title: 'Tên vật tư', dataIndex: 'name', key: 'name', render: t => <Text strong>{t}</Text> },
+    { title: 'Mã VT', dataIndex: 'itemCode', key: 'itemCode', render: t => <Tag color="purple" style={{ fontWeight: 'bold' }}>{t}</Tag> },
+    { title: 'Tên thiết bị/vật tư', dataIndex: 'name', key: 'name', render: t => <Text strong>{t}</Text> },
     { 
-      title: 'Tổng sở hữu', 
+      title: 'Tổng kho', 
       dataIndex: 'totalQuantity', 
       key: 'totalQuantity',
       render: (q, record) => <Tag color="blue">{q} {record.unit}</Tag>
     },
-
-    // CỘT 2: ĐÃ CẤP CHO PHÒNG
     { 
-      title: 'Đã cấp cho phòng', 
-      dataIndex: 'issuedQuantity', 
-      key: 'issuedQuantity',
+      title: 'Đang dùng', 
+      dataIndex: 'inUseQuantity', 
+      key: 'inUseQuantity',
       render: (q, record) => <Tag color="orange">{q} {record.unit}</Tag>
     },
-
-    // CỘT 3: CÓ THỂ CẤP (CÒN TRONG KHO)
     { 
-      title: 'Có thể cấp (Kho)', 
-      dataIndex: 'availableQuantity', 
-      key: 'availableQuantity',
+      title: 'Có thể cấp', 
+      dataIndex: 'inStockQuantity', 
+      key: 'inStockQuantity',
       render: (q, record) => (
         <b style={{ color: q > 0 ? '#52c41a' : '#f5222d' }}>
           {q} {record.unit}
         </b>
       )
     },
-
-    // CỘT MỚI: MẤT/HỎNG
     { 
-      title: 'Mất/Hỏng', 
+      title: 'Sự cố (Cảnh báo)', 
       dataIndex: 'damagedCount', 
       key: 'damagedCount',
       render: (_, record) => {
-        // Count how many damage records contain this amenity name
         let count = 0;
         Object.keys(damagedCount).forEach(key => {
-          if (key.includes(record.name)) {
-            count += damagedCount[key];
-          }
+          if (key === record.name || key.includes(record.name)) count += damagedCount[key];
         });
-        
+
         return (
-          <Tag 
-            color={count > 0 ? 'red' : 'default'}
-            style={{ cursor: count > 0 ? 'pointer' : 'default' }}
-          >
+          <Tag color={count > 0 ? 'red' : 'default'} style={{ cursor: count > 0 ? 'pointer' : 'default' }}>
             {count} {count > 0 ? '⚠️' : '✓'}
           </Tag>
         );
       }
     },
-
-    { title: 'Danh mục', dataIndex: 'category', key: 'category', render: c => <Tag color="blue">{c}</Tag> },
+    { title: 'Danh mục', dataIndex: 'category', key: 'category', render: c => <Tag color="geekblue">{c}</Tag> },
     { 
       title: 'Giá nhập', 
-      dataIndex: 'importPrice', 
-      key: 'importPrice',
+      dataIndex: 'basePrice', 
+      key: 'basePrice',
       render: p => <span>{new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(p || 0)}</span>
     },
     {
@@ -341,7 +305,7 @@ const WarehouseManagement = () => {
       <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 24 }}>
         <div>
           <Title level={3} style={{ margin: 0 }}>Kho Vật Tư Khách Sạn</Title>
-          <Text type="secondary">Quản lý nhập xuất vật tư tổng trên hệ thống Cloud</Text>
+          <Text type="secondary">Quản lý nhập xuất vật tư tổng trên hệ thống Cloudinary</Text>
         </div>
         <Space>
           <Button type="primary" size="large" icon={<PlusOutlined />} onClick={handleAddNew} style={{ borderRadius: 8, height: 45 }}>
@@ -385,11 +349,17 @@ const WarehouseManagement = () => {
               </Form.Item>
             </Col>
 
-            <Col span={12}>
+            <Col span={8}>
+              <Form.Item label="Mã vật tư" name="itemCode" rules={[{ required: true }]}>
+                <Input placeholder="VD: VT001" />
+              </Form.Item>
+            </Col>
+            <Col span={16}>
               <Form.Item label="Tên vật tư" name="name" rules={[{ required: true }]}>
                 <Input placeholder="VD: Khăn tắm, Tivi..." />
               </Form.Item>
             </Col>
+            
             <Col span={12}>
               <Form.Item label="Danh mục" name="category" rules={[{ required: true }]}>
                 <Select placeholder="Chọn danh mục">
@@ -401,31 +371,32 @@ const WarehouseManagement = () => {
               </Form.Item>
             </Col>
 
-            <Col span={8}>
-              <Form.Item label="Đơn vị tính" name="unit" rules={[{ required: true }]}>
-                <Input placeholder="Cái, Chiếc..." />
-              </Form.Item>
-            </Col>
-            <Col span={8}>
-              <Form.Item label="Số lượng tổng" name="totalQuantity" rules={[{ required: true }]}>
-                <InputNumber style={{ width: '100%' }} min={0} />
-              </Form.Item>
-            </Col>
-            <Col span={8}>
+            <Col span={12}>
               <Form.Item label="Nhà cung cấp" name="supplier">
                 <Input placeholder="Tên công ty" />
               </Form.Item>
             </Col>
 
             <Col span={12}>
-              <Form.Item label="Giá nhập" name="importPrice" rules={[{ required: true }]}>
+              <Form.Item label="Đơn vị tính" name="unit" rules={[{ required: true }]}>
+                <Input placeholder="Cái, Chiếc..." />
+              </Form.Item>
+            </Col>
+            <Col span={12}>
+              <Form.Item label="Số lượng tổng" name="totalQuantity" rules={[{ required: true }]}>
+                <InputNumber style={{ width: '100%' }} min={0} />
+              </Form.Item>
+            </Col>
+
+            <Col span={12}>
+              <Form.Item label="Giá nhập" name="basePrice" rules={[{ required: true }]}>
                 <InputNumber style={{ width: '100%' }} formatter={v => `₫ ${v}`.replace(/\B(?=(\d{3})+(?!\d))/g, ',')} />
               </Form.Item>
             </Col>
             <Col span={12}>
-              <Form.Item label="Giá đền bù" name="compensationPrice" rules={[{ required: true }]}>
+              <Form.Item label="Giá đền bù (Nếu mất/hỏng)" name="compensationPrice" rules={[{ required: true }]}>  
                 <InputNumber style={{ width: '100%' }} formatter={v => `₫ ${v}`.replace(/\B(?=(\d{3})+(?!\d))/g, ',')} />
-              </Form.Item>
+              </Form.Item>  
             </Col>
           </Row>
         </Form>
@@ -435,3 +406,4 @@ const WarehouseManagement = () => {
 };
 
 export default WarehouseManagement;
+

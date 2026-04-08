@@ -1,6 +1,12 @@
 import React, { useState, useEffect } from 'react';
-import { Table, Button, Tag, Space, message, Typography, Popconfirm, Card } from 'antd';
-import { CheckCircleOutlined, CloseCircleOutlined } from '@ant-design/icons';
+import { 
+  Table, Button, Tag, Space, message, Typography, 
+  Popconfirm, Card, Image, Tooltip, Empty 
+} from 'antd';
+import { 
+  CheckCircleOutlined, CloseCircleOutlined, 
+  ClockCircleOutlined, PictureOutlined, ReloadOutlined 
+} from '@ant-design/icons';
 import axios from 'axios';
 import { useAuditLog } from '../../hooks/useAuditLog';
 import { useDamageEventStore } from '../../store/damageEventStore';
@@ -12,7 +18,10 @@ const LossAndDamageManagement = () => {
   const [loading, setLoading] = useState(false);
   const { logAction } = useAuditLog();
 
-  // --- 1. KÉO DỮ LIỆU TỪ SQL LÊN ---
+  // 🚨 BÍ KÍP MỚI TẠI ĐÂY: Móc trực tiếp cái biến tín hiệu ra (Cách này 1000% không bao giờ xịt)
+  const lastDamageUpdate = useDamageEventStore((state) => state.lastDamageUpdate);
+
+  // --- 1. LẤY DỮ LIỆU TỪ BACKEND ---
   const fetchData = async () => {
     setLoading(true);
     try {
@@ -20,8 +29,9 @@ const LossAndDamageManagement = () => {
       const res = await axios.get('https://localhost:5070/api/LossAndDamages', {
         headers: { Authorization: `Bearer ${token}` }
       });
-      // Đảo ngược mảng để biên bản mới nhất lên đầu
-      setData(res.data.reverse()); 
+      // Đưa biên bản mới nhất lên đầu bảng
+      const sortedData = res.data.sort((a, b) => b.id - a.id);
+      setData(sortedData);
     } catch (error) {
       console.error("Lỗi fetch biên bản:", error);
       message.error("Không tải được danh sách biên bản đền bù!");
@@ -30,17 +40,26 @@ const LossAndDamageManagement = () => {
     }
   };
 
+  // Chạy lần đầu tiên khi vừa mở trang
   useEffect(() => {
     fetchData();
   }, []);
 
-  // --- 2. HÀM CẬP NHẬT TRẠNG THÁI (ĐÃ ĐỀN BÙ / HỦY) ---
+  // Lắng nghe mỗi khi có ai đó bấm nút "Báo hỏng" hoặc "Thay mới" ở trang khác
+  useEffect(() => {
+    if (lastDamageUpdate > 0) {
+      console.log('🔄 Đã nhận tín hiệu có thay đổi, tự động tải lại bảng đền bù...');
+      fetchData();
+    }
+  }, [lastDamageUpdate]); // Bất cứ khi nào lastDamageUpdate thay đổi số, nó sẽ tự gọi fetchData()
+
+  // --- 2. CẬP NHẬT TRẠNG THÁI BIÊN BẢN ---
   const handleUpdateStatus = async (id, newStatus) => {
     try {
       const token = localStorage.getItem('token');
       const currentRecord = data.find(item => item.id === id);
       
-      // 🚨 BÍ KÍP C# ASP.NET: Gửi string [FromBody] phải bọc trong dấu ngoặc kép ""
+      // Gửi raw string bọc trong ngoặc kép theo chuẩn ASP.NET [FromBody]
       await axios.put(`https://localhost:5070/api/LossAndDamages/status/${id}`, 
         `"${newStatus}"`, 
         {
@@ -55,105 +74,142 @@ const LossAndDamageManagement = () => {
         action: 'Cập nhật',
         actionType: 'UPDATE',
         module: 'Biên Bản Thiệt Hại',
-        objectName: `Biên bản #${id}`,
+        objectName: `Biên bản #DB${id}`,
         description: `Cập nhật trạng thái biên bản thành: ${newStatus}`,
         oldValue: { status: currentRecord?.status },
         newValue: { status: newStatus },
       });
       
-      message.success(`Đã cập nhật trạng thái biên bản thành: ${newStatus}`);
+      message.success(`Đã cập nhật trạng thái: ${newStatus}`);
       
-      // Trigger global damage update - will notify all pages instantly
-      console.log('📢 [LossAndDamage] Triggering global damage update');
+      // Thông báo cho toàn hệ thống cập nhật lại số liệu hỏng hóc
       useDamageEventStore.getState().triggerDamageUpdate();
       
-      fetchData(); // Bắt React load lại bảng để thấy sự thay đổi ngay lập tức
-      
+      fetchData(); 
     } catch (error) {
-      console.error(error);
-      message.error("Lỗi cập nhật trạng thái! Vui lòng kiểm tra lại backend.");
+      message.error("Lỗi cập nhật! Kiểm tra lại kết nối Server.");
     }
   };
 
-  // --- 3. CỘT CỦA BẢNG ---
+  // --- 3. ĐỊNH NGHĨA CÁC CỘT CỦA BẢNG ---
   const columns = [
     {
-      title: 'Mã Biên Bản',
+      title: 'Mã số',
       dataIndex: 'id',
       key: 'id',
+      width: 100,
       align: 'center',
-      render: (id) => <b>#DB{id}</b>
+      render: (id) => <Tag color="blue">#DB{id}</Tag>
     },
     {
-      title: 'Mô tả / Tên vật tư',
+      title: 'Hình ảnh',
+      dataIndex: 'imageUrl',
+      key: 'imageUrl',
+      width: 120,
+      align: 'center',
+      render: (url) => url ? (
+        <Image 
+          src={url} 
+          width={60} 
+          height={45} 
+          style={{ objectFit: 'cover', borderRadius: 4, border: '1px solid #f0f0f0' }} 
+          fallback="https://via.placeholder.com/60?text=No+Img"
+        />
+      ) : (
+        <div style={{ backgroundColor: '#fafafa', padding: '8px', borderRadius: 4 }}>
+          <PictureOutlined style={{ color: '#bfbfbf', fontSize: 20 }} />
+        </div>
+      )
+    },
+    {
+      title: 'Nội dung sự cố',
       dataIndex: 'description',
       key: 'description',
-      render: (text) => <Text strong>{text || 'Chưa rõ'}</Text>
+      render: (text) => (
+        <div>
+          <Text strong style={{ fontSize: 15, color: '#141414' }}>{text || 'Chưa có mô tả'}</Text>
+          <div style={{ fontSize: 12, color: '#8c8c8c', marginTop: 4 }}>
+            <ClockCircleOutlined style={{ marginRight: 4 }} />
+            Kiểm tra lúc báo hỏng
+          </div>
+        </div>
+      )
     },
     {
       title: 'Số lượng',
       dataIndex: 'quantity',
       key: 'quantity',
+      width: 100,
       align: 'center',
-      render: (qty) => <Tag color="blue" style={{fontWeight: 'bold'}}>{qty}</Tag>
+      render: (qty) => <b style={{ fontSize: 16 }}>{qty}</b>
     },
     {
-      title: 'Tiền phạt',
+      title: 'Tiền đền bù',
       dataIndex: 'penaltyAmount',
       key: 'penaltyAmount',
-      render: (val) => <b style={{color: '#ff4d4f', fontSize: '15px'}}>{val ? val.toLocaleString('vi-VN') : 0} đ</b>
+      width: 150,
+      render: (val) => (
+        <Text type="danger" strong style={{ fontSize: 16 }}>
+          {new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(val || 0)}
+        </Text>
+      )
     },
     {
       title: 'Trạng thái',
       dataIndex: 'status',
       key: 'status',
+      width: 140,
       align: 'center',
       render: (status) => {
-        let color = 'gold'; // Màu vàng cho Chưa xử lý / Chưa đền bù
-        if (status === 'Đã đền bù') color = 'green';
-        if (status === 'Đã hủy' || status === 'Hủy') color = 'red';
-        return <Tag color={color} style={{ fontWeight: 'bold' }}>{status ? status.toUpperCase() : 'CHƯA XỬ LÝ'}</Tag>;
+        let config = { color: 'gold', text: 'CHỜ XỬ LÝ' };
+        if (status === 'Đã đền bù') config = { color: 'green', text: 'ĐÃ THU TIỀN' };
+        if (status === 'Đã hủy' || status === 'Hủy') config = { color: 'red', text: 'ĐÃ HỦY PHẠT' };
+        
+        return (
+          <Tag color={config.color} style={{ fontWeight: 'bold', borderRadius: 10, padding: '2px 10px' }}>
+            {config.text}
+          </Tag>
+        );
       }
     },
     {
-      title: 'Thao tác (Lễ Tân)',
+      title: 'Thao tác Lễ tân',
       key: 'action',
+      width: 220,
       align: 'center',
       render: (_, record) => {
-        // Nếu đã xử lý xong (Đã thu tiền hoặc Đã hủy) thì khóa nút lại
-        const isCompleted = record.status === 'Đã đền bù' || record.status === 'Đã hủy';
+        const isDone = record.status === 'Đã đền bù' || record.status === 'Đã hủy';
         
         return (
           <Space>
             <Popconfirm
-              title="Khách đã thanh toán tiền phạt?"
-              description="Hành động này sẽ chốt sổ biên bản."
+              title="Khách đã nộp tiền?"
               onConfirm={() => handleUpdateStatus(record.id, 'Đã đền bù')}
-              disabled={isCompleted}
+              disabled={isDone}
               okText="Xác nhận"
-              cancelText="Không"
+              cancelText="Đóng"
             >
-              <Button 
-                type="primary" 
-                icon={<CheckCircleOutlined />} 
-                disabled={isCompleted} 
-                style={!isCompleted ? {backgroundColor: '#52c41a'} : {}}
-              >
-                Đã thu tiền
-              </Button>
+              <Tooltip title={isDone ? "Đã xử lý xong" : "Bấm khi khách đã trả tiền"}>
+                <Button 
+                  type="primary" 
+                  icon={<CheckCircleOutlined />} 
+                  disabled={isDone}
+                  style={!isDone ? { backgroundColor: '#52c41a', borderColor: '#52c41a' } : {}}
+                >
+                  Thu tiền
+                </Button>
+              </Tooltip>
             </Popconfirm>
 
             <Popconfirm
-              title="Bạn muốn hủy biên bản này?"
-              description="Khách không cần đền bù cho mục này."
+              title="Xác nhận hủy biên bản này?"
               onConfirm={() => handleUpdateStatus(record.id, 'Đã hủy')}
-              disabled={isCompleted}
+              disabled={isDone}
               okText="Hủy phạt"
               okType="danger"
-              cancelText="Đóng"
             >
-              <Button danger icon={<CloseCircleOutlined />} disabled={isCompleted}>
-                Hủy Phạt
+              <Button danger icon={<CloseCircleOutlined />} disabled={isDone} ghost>
+                Hủy
               </Button>
             </Popconfirm>
           </Space>
@@ -163,16 +219,25 @@ const LossAndDamageManagement = () => {
   ];
 
   return (
-    <div style={{ padding: '24px 32px', backgroundColor: '#f5f7fa', minHeight: '100vh' }}>
+    <div style={{ padding: '24px 40px', backgroundColor: '#f0f2f5', minHeight: '100vh' }}>
       <Card 
         bordered={false} 
-        style={{ borderRadius: '12px', boxShadow: '0 2px 8px rgba(0,0,0,0.08)' }}
-        styles={{ body: { padding: '24px' } }}
+        style={{ borderRadius: 12, boxShadow: '0 4px 12px rgba(0,0,0,0.05)' }}
       >
-        <Title level={3} style={{ marginTop: 0 }}>Biên Bản Thất Thoát & Đền Bù</Title>
-        <Text type="secondary" style={{ display: 'block', marginBottom: 24, fontSize: '15px' }}>
-          Nơi Lễ tân theo dõi và thu tiền phạt khi khách làm hỏng hoặc làm mất tài sản phòng.
-        </Text>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 }}>
+          <div>
+            <Title level={3} style={{ margin: 0 }}>Quản Lý Đền Bù Tài Sản</Title>
+            <Text type="secondary">Danh sách biên bản hỏng hóc, mất mát cần Lễ tân xử lý thu tiền</Text>
+          </div>
+          <Button 
+            type="default" 
+            icon={<ReloadOutlined />} 
+            onClick={fetchData}
+            loading={loading}
+          >
+            Làm mới
+          </Button>
+        </div>
         
         <Table
           columns={columns}
@@ -180,7 +245,10 @@ const LossAndDamageManagement = () => {
           rowKey="id"
           loading={loading}
           bordered
-          pagination={{ pageSize: 8 }}
+          pagination={{ pageSize: 7 }}
+          locale={{ 
+            emptyText: <Empty description="Hiện không có biên bản đền bù nào cần xử lý." /> 
+          }}
         />
       </Card>
     </div>

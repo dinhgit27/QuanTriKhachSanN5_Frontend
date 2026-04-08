@@ -210,8 +210,7 @@ export const auditLogApi = {
     // return api.post('/audit-logs/export', filters, { responseType: 'blob' });
     return Promise.resolve({ data: null });
   },
-
-  // Thêm audit log mới
+  
   createAuditLog: (logData) => {
     const newLog = {
       id: MOCK_AUDIT_LOGS.length + 1,

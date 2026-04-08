@@ -138,7 +138,6 @@ const WarehouseManagement = () => {
     const { file, onSuccess, onError } = options;
     setUploading(true);
     
-    // Thông tin lấy từ hình ní gửi: Cloud Name là dqx8hqmcv
     const CLOUDINARY_URL = 'https://api.cloudinary.com/v1_1/dqx8hqmcv/image/upload';
     // Tên Preset ní vừa tạo: QuanTriKhachSanN5_IMG
     const UPLOAD_PRESET = 'QuanTriKhachSanN5_IMG'; 

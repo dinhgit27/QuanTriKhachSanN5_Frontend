@@ -276,30 +276,6 @@ const HousekeepingManagement = () => {
         open={isInventoryVisible}
         onCancel={() => setIsInventoryVisible(false)}
         footer={[
-<<<<<<< HEAD
-          <Button key="close" type="primary" onClick={() => {
-            const userName = localStorage.getItem('userName') || 'Housekeeping Staff';
-            const userEmail = localStorage.getItem('userEmail') || 'housekeeper@hotel.com';
-            
-            // Thêm audit log hoàn thành kiểm tra
-            addAuditLog({
-              userId: 'USR_CURRENT',
-              userName: userName,
-              email: userEmail,
-              action: 'Hoàn thành',
-              actionType: 'OTHER',
-              module: 'Nhiệm vụ Dọn Phòng',
-              objectName: `Phòng ${selectedRoom?.roomNumber} - Kiểm tra đồ đạc hoàn thành`,
-              description: `Hoàn thành kiểm tra tài sản của phòng ${selectedRoom?.roomNumber}. Số vật tư hỏng/mất: ${roomInventory.filter(i => !i.isActive).length}/${roomInventory.length}`,
-              newValue: { 
-                totalItems: roomInventory.length, 
-                damageItems: roomInventory.filter(i => !i.isActive).length 
-              },
-            });
-            
-            message.success(`✅ Hoàn thành kiểm tra phòng ${selectedRoom?.roomNumber}`);
-            setIsInventoryVisible(false);
-=======
           <Button key="close" type="primary" onClick={async () => {
             const userName = localStorage.getItem('userName') || 'Housekeeping Staff';
             const userEmail = localStorage.getItem('userEmail') || 'housekeeper@hotel.com';
@@ -340,7 +316,6 @@ const HousekeepingManagement = () => {
               console.error(error);
               message.error("❌ Lỗi khi cập nhật trạng thái phòng!");
             }
->>>>>>> origin/phihung
           }}>Đã kiểm tra xong</Button>
         ]}
         width={700}

@@ -20,6 +20,8 @@ import LossAndDamageManagement from "./pages/admin/LossAndDamageManagement";
 import AuditLogsPage from "./pages/admin/AuditLogsPage"; 
 import HousekeepingManagement from './pages/admin/HousekeepingManagement';
 
+// 🚨 THÊM IMPORT TRANG ĐẶT PHÒNG Ở ĐÂY
+import BookingManagement from "./pages/admin/BookingManagement"; 
 
 const NotFoundPage = () => <h1>404 - Đường dẫn này không tồn tại 😢</h1>;
 const UnauthorizedPage = () => (
@@ -32,29 +34,29 @@ function App() {
       <Routes>
         <Route path="/" element={<Navigate to="/homepage" replace />} />
 
-        {/* 2. TUYẾN ĐƯỜNG TỰ DO (Chưa đăng nhập cũng vào được) */}
+        {/* 2. TUYẾN ĐƯỜNG TỰ DO */}
         <Route path="/login" element={<LoginPage />} />
         <Route path="/homepage" element={<HomePage />} />
         <Route path="/register" element={<RegisterPage />} />
         <Route path="/forgot-password" element={<ForgotPasswordPage />} />
         <Route path="/unauthorized" element={<UnauthorizedPage />} />
-        
-        
-        {/* ĐÃ BẾ TRANG LOSS-AND-DAMAGE KHỎI ĐÂY VÌ NÓ LÀ VÙNG CẤM */}
 
-        {/* 3. VÙNG CẤM CHUNG (Chỉ cần có Token là lọt qua lớp 1) */}
+        {/* 3. VÙNG CẤM CHUNG */}
         <Route element={<ProtectedRoute />}>
 
           {/* --- KHU VỰC DÙNG CHUNG CHO ADMIN & LỄ TÂN --- */}
           <Route element={<RoleBasedRoute allowedRoles={["Admin", "Receptionist"]} />}>
             <Route element={<AdminLayout />}>
-              {/* Trang đền bù phải nằm trong này, bọc layout đàng hoàng */}
               <Route path="/admin/warehouse" element={<WarehouseManagement />} />
               <Route path="/admin/loss-and-damage" element={<LossAndDamageManagement />} />
+              
+              {/* 🚨 GẮN LINK ĐẶT PHÒNG VÀO ĐÂY ĐỂ ADMIN VÀ LỄ TÂN ĐỀU XÀI ĐƯỢC */}
+              <Route path="/admin/bookings" element={<BookingManagement />} />
+              
             </Route>
           </Route>
 
-          {/* --- KHU VỰC DÀNH RIÊNG CHO ADMIN (Giám Đốc) --- */}
+          {/* --- KHU VỰC DÀNH RIÊNG CHO ADMIN --- */}
           <Route element={<RoleBasedRoute allowedRoles={["Admin"]} />}>
             <Route element={<AdminLayout />}>
               <Route path="/admin/users" element={<UserListPage />} />
@@ -65,27 +67,26 @@ function App() {
             </Route>
           </Route>
           
-          {/* --- KHU VỰC DÀNH CHO RECEPTIONIST (Lễ Tân) --- */}
+          {/* --- KHU VỰC DÀNH CHO RECEPTIONIST --- */}
           <Route element={<RoleBasedRoute allowedRoles={["Receptionist"]} />}>
             <Route element={<AdminLayout />}>
               <Route path="/receptionist/dashboard" element={<ReceptionistDashboard />} />
             </Route>
           </Route>
 
-          {/* --- KHU VỰC DÀNH CHO HOUSEKEEPER (Lao Công) --- */}
+          {/* --- KHU VỰC DÀNH CHO HOUSEKEEPER --- */}
           <Route element={<RoleBasedRoute allowedRoles={["Housekeeping"]} />}>
             <Route path="/housekeeper/dashboard" element={<HousekeeperDashboard />} />
             <Route path="/admin/housekeeping" element={<HousekeepingManagement />} />
           </Route>
 
-          {/* --- KHU VỰC DÀNH CHO GUEST (Khách Hàng) --- */}
+          {/* --- KHU VỰC DÀNH CHO GUEST --- */}
           <Route element={<RoleBasedRoute allowedRoles={["Guest"]} />}>
             <Route path="/guest/dashboard" element={<GuestDashboard />} />
           </Route>
           
         </Route>
 
-        {/* 4. Bắt lỗi nhập sai link */}
         <Route path="*" element={<NotFoundPage />} />
       </Routes>
     </BrowserRouter>

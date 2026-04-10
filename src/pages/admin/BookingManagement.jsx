@@ -1,11 +1,12 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
-  Row, Col, Card, Button, Typography, message, Empty, Tag, Space, Spin, 
-  DatePicker, InputNumber, Divider, Modal, Form, Input 
+  Row, Col, Card, Button, Typography, message, Tag, Space, Spin, 
+  DatePicker, InputNumber, Divider, Modal, Form, Input, Table, Tooltip, Popconfirm, Descriptions
 } from 'antd';
 import { 
-  SearchOutlined, CalendarOutlined, TeamOutlined, CheckCircleOutlined,
-  UserOutlined, PhoneOutlined, MailOutlined, HomeOutlined
+  SearchOutlined, LeftOutlined, CheckCircleFilled, CheckOutlined,
+  UserOutlined, PhoneOutlined, MailOutlined, HomeOutlined,
+  EyeOutlined, CloseCircleOutlined
 } from '@ant-design/icons';
 import axios from 'axios';
 import dayjs from 'dayjs';
@@ -14,288 +15,267 @@ const { Title, Text } = Typography;
 const { RangePicker } = DatePicker;
 
 const BookingManagement = () => {
+  const [currentStep, setCurrentStep] = useState(1);
   const [loading, setLoading] = useState(false);
   const [availableRoomTypes, setAvailableRoomTypes] = useState([]);
   
-  // State tìm kiếm
+  const [bookingsList, setBookingsList] = useState([]);
+  const [loadingList, setLoadingList] = useState(false);
+
+  // 🚨 THÊM STATE CHO MODAL XEM CHI TIẾT
+  const [isDetailModalVisible, setIsDetailModalVisible] = useState(false);
+  const [bookingDetail, setBookingDetail] = useState(null);
+  const [loadingDetail, setLoadingDetail] = useState(false);
+
   const [dates, setDates] = useState(null);
   const [adults, setAdults] = useState(1);
   const [children, setChildren] = useState(0);
-
-  // State giỏ hàng (Phòng đã chọn)
   const [selectedRooms, setSelectedRooms] = useState([]); 
   
-  // State Modal đặt phòng
   const [isModalVisible, setIsModalVisible] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [form] = Form.useForm();
 
-  // =======================================================
-  // 1. TÌM PHÒNG TRỐNG
-  // =======================================================
-  const handleSearch = async () => {
-    if (!dates || dates.length !== 2) {
-      message.warning("Vui lòng chọn ngày nhận và trả phòng!");
-      return;
-    }
-
-    setLoading(true);
-    setSelectedRooms([]); // Reset giỏ hàng mỗi lần tìm mới
-    
+  // 1. TẢI DANH SÁCH BẢNG
+  const fetchBookingsList = async () => {
+    setLoadingList(true);
     try {
       const token = localStorage.getItem('token');
-      const payload = {
-        checkIn: dates[0].format('YYYY-MM-DDTHH:mm:ss'),
-        checkOut: dates[1].format('YYYY-MM-DDTHH:mm:ss'),
-        adults: adults,
-        children: children
-      };
+      const res = await axios.get('https://localhost:5070/api/Bookings', { headers: { Authorization: `Bearer ${token}` } });
+      setBookingsList(res.data);
+    } catch (error) { message.error("Lỗi khi tải danh sách!"); } 
+    finally { setLoadingList(false); }
+  };
 
-      // 🚨 GỌI API BACKEND ĐÃ FIX: Bookings (có 's')
-      const res = await axios.post('https://localhost:5070/api/Bookings/available-rooms', payload, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
-      
+  useEffect(() => { fetchBookingsList(); }, []);
+
+  // 2. TÌM PHÒNG
+  const handleSearch = async () => {
+    if (!dates || dates.length !== 2) return message.warning("Chọn ngày nhận và trả phòng!");
+    setLoading(true); setSelectedRooms([]); 
+    try {
+      const token = localStorage.getItem('token');
+      const payload = { checkIn: dates[0].format('YYYY-MM-DDTHH:mm:ss'), checkOut: dates[1].format('YYYY-MM-DDTHH:mm:ss'), adults, children };
+      const res = await axios.post('https://localhost:5070/api/Bookings/available-rooms', payload, { headers: { Authorization: `Bearer ${token}` } });
       setAvailableRoomTypes(res.data);
-      if (res.data.length === 0) {
-        message.info("Rất tiếc, không còn phòng trống cho khoảng thời gian này.");
-      }
-    } catch (error) {
-      message.error(error.response?.data?.message || "Lỗi khi tìm phòng trống!");
-    } finally {
-      setLoading(false);
-    }
+      if (res.data.length === 0) message.info("Không còn phòng trống!"); else setCurrentStep(2);
+    } catch (error) { message.error("Lỗi khi tìm phòng!"); } finally { setLoading(false); }
   };
 
-  // =======================================================
-  // 2. CHỌN / BỎ CHỌN PHÒNG VÀO GIỎ HÀNG
-  // =======================================================
   const toggleRoomSelection = (room, roomType) => {
-    const isAlreadySelected = selectedRooms.some(r => r.id === room.id);
-    
-    if (isAlreadySelected) {
-      // Bỏ chọn
-      setSelectedRooms(selectedRooms.filter(r => r.id !== room.id));
-    } else {
-      // Chọn thêm
-      setSelectedRooms([...selectedRooms, { 
-        ...room, 
-        roomTypeName: roomType.roomTypeName, 
-        pricePerNight: roomType.pricePerNight 
-      }]);
-    }
+    if (selectedRooms.some(r => r.id === room.id)) setSelectedRooms(selectedRooms.filter(r => r.id !== room.id));
+    else setSelectedRooms([...selectedRooms, { ...room, roomTypeName: roomType.roomTypeName, pricePerNight: roomType.pricePerNight }]);
   };
 
-  // =======================================================
-  // 3. TÍNH TỔNG TIỀN
-  // =======================================================
-  const calculateTotal = () => {
+  const { nights, total } = (() => {
     if (!dates || dates.length !== 2 || selectedRooms.length === 0) return { nights: 0, total: 0 };
-    
-    const nights = dates[1].diff(dates[0], 'day');
-    const totalNightPrice = selectedRooms.reduce((sum, room) => sum + room.pricePerNight, 0);
-    
-    return { nights, total: totalNightPrice * nights };
-  };
+    const n = dates[1].diff(dates[0], 'day') || 1;
+    return { nights: n, total: selectedRooms.reduce((sum, r) => sum + r.pricePerNight, 0) * n };
+  })();
 
-  const { nights, total } = calculateTotal();
-
-  // =======================================================
-  // 4. CHỐT ĐƠN (GỬI LÊN BACKEND)
-  // =======================================================
+  // 3. TẠO ĐƠN
   const handleConfirmBooking = async (values) => {
     setSubmitting(true);
     try {
       const token = localStorage.getItem('token');
-      const payload = {
-        guestName: values.guestName,
-        guestPhone: values.guestPhone,
-        guestEmail: values.guestEmail,
-        checkIn: dates[0].format('YYYY-MM-DDTHH:mm:ss'),
-        checkOut: dates[1].format('YYYY-MM-DDTHH:mm:ss'),
-        selectedRoomIds: selectedRooms.map(r => r.id)
-      };
+      const payload = { ...values, checkIn: dates[0].format('YYYY-MM-DDTHH:mm:ss'), checkOut: dates[1].format('YYYY-MM-DDTHH:mm:ss'), selectedRoomIds: selectedRooms.map(r => r.id) };
+      await axios.post('https://localhost:5070/api/Bookings/create', payload, { headers: { Authorization: `Bearer ${token}` } });
+      message.success("Đặt phòng thành công!");
+      setIsModalVisible(false); form.resetFields(); setCurrentStep(1); setSelectedRooms([]); fetchBookingsList(); 
+    } catch (error) { message.error("Lỗi tạo đơn!"); } finally { setSubmitting(false); }
+  };
 
-      // 🚨 GỌI API BACKEND ĐÃ FIX: Bookings (có 's')
-      const res = await axios.post('https://localhost:5070/api/Bookings/create', payload, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
-
-      message.success(`Đặt phòng thành công! Mã đơn: ${res.data.bookingCode}`);
-      setIsModalVisible(false);
-      form.resetFields();
-      
-      // Load lại danh sách phòng trống để ẩn mấy phòng vừa đặt đi
-      handleSearch(); 
+  // 🚨 4. HÀM XEM CHI TIẾT
+  const handleViewDetail = async (id) => {
+    setIsDetailModalVisible(true);
+    setLoadingDetail(true);
+    try {
+      const token = localStorage.getItem('token');
+      const res = await axios.get(`https://localhost:5070/api/Bookings/${id}`, { headers: { Authorization: `Bearer ${token}` } });
+      setBookingDetail(res.data);
     } catch (error) {
-      message.error(error.response?.data?.message || "Lỗi khi tạo đơn đặt phòng!");
+      message.error("Lỗi khi tải chi tiết!");
+      setIsDetailModalVisible(false);
     } finally {
-      setSubmitting(false);
+      setLoadingDetail(false);
     }
   };
+
+  // 🚨 5. HÀM ĐỔI TRẠNG THÁI (XÁC NHẬN / HỦY)
+  const handleChangeStatus = async (id, newStatus) => {
+    try {
+      const token = localStorage.getItem('token');
+      await axios.put(`https://localhost:5070/api/Bookings/${id}/status`, { status: newStatus }, { headers: { Authorization: `Bearer ${token}` } });
+      message.success(newStatus === 'Cancelled' ? "Đã hủy đơn đặt phòng!" : "Đã xác nhận đơn thành công!");
+      fetchBookingsList(); // Load lại bảng
+    } catch (error) {
+      message.error("Lỗi cập nhật trạng thái!");
+    }
+  };
+
+  const getStatusTag = (status) => {
+    const map = { 'Pending': { c: 'gold', t: 'Chờ xác nhận' }, 'Confirmed': { c: 'cyan', t: 'Đã xác nhận' }, 'Checked_in': { c: 'geekblue', t: 'Đang ở' }, 'Completed': { c: 'green', t: 'Hoàn tất' }, 'Cancelled': { c: 'red', t: 'Đã hủy' } };
+    const { c, t } = map[status] || { c: 'default', t: 'Không rõ' };
+    return <Tag color={c} style={{ borderRadius: 12, padding: '2px 10px' }}>{t}</Tag>;
+  };
+
+  const tableColumns = [
+    { title: 'Mã Booking', dataIndex: 'bookingCode', key: 'bookingCode', render: text => <b>{text}</b> },
+    { title: 'Khách hàng', dataIndex: 'guestName', key: 'guestName', render: text => text || 'Khách vãng lai' },
+    { title: 'Ngày Check-in', dataIndex: 'checkInDate', key: 'checkInDate', render: date => date ? dayjs(date).format('DD/MM/YYYY HH:mm') : 'N/A' },
+    { title: 'Trạng thái', dataIndex: 'status', key: 'status', render: status => getStatusTag(status) },
+    {
+      title: 'Thao tác', key: 'action', align: 'center',
+      render: (_, record) => (
+        <Space size="middle">
+          {/* Nút Xem chi tiết */}
+          <Tooltip title="Xem chi tiết">
+            <Button type="text" style={{ color: '#1890ff' }} icon={<EyeOutlined />} onClick={() => handleViewDetail(record.id)} />
+          </Tooltip>
+
+          {/* Nút Xác nhận (Chỉ hiện khi Pending) */}
+          {record.status === 'Pending' && (
+            <Popconfirm title="Xác nhận đơn phòng này?" onConfirm={() => handleChangeStatus(record.id, 'Confirmed')} okText="Xác nhận" cancelText="Hủy">
+              <Tooltip title="Xác nhận đơn">
+                <Button type="text" style={{ color: '#52c41a' }} icon={<CheckOutlined />} />
+              </Tooltip>
+            </Popconfirm>
+          )}
+
+          {/* Nút Hủy (Chặn hủy nếu đã hoàn tất hoặc đã hủy) */}
+          <Popconfirm title="Bạn có chắc chắn muốn hủy đơn này?" onConfirm={() => handleChangeStatus(record.id, 'Cancelled')} okText="Hủy đơn" okButtonProps={{ danger: true }} cancelText="Quay lại">
+             <Tooltip title="Hủy đơn">
+               <Button type="text" danger icon={<CloseCircleOutlined />} disabled={record.status === 'Completed' || record.status === 'Cancelled'} />
+             </Tooltip>
+          </Popconfirm>
+        </Space>
+      )
+    }
+  ];
 
   return (
     <div style={{ padding: '24px 32px', backgroundColor: '#f5f7fa', minHeight: '100vh' }}>
       
-      {/* 1. KHU VỰC TÌM KIẾM */}
-      <Card style={{ borderRadius: 12, boxShadow: '0 4px 12px rgba(0,0,0,0.05)', marginBottom: 24 }} bodyStyle={{ padding: '24px' }}>
-        <Title level={3} style={{ marginTop: 0, color: '#1f1f1f' }}>Đăng Ký Đặt Phòng</Title>
-        <Text type="secondary" style={{ display: 'block', marginBottom: 20 }}>Tìm kiếm phòng trống và tạo lịch đặt phòng mới cho khách hàng</Text>
-        
-        <Row gutter={16} align="bottom">
-          <Col span={8}>
-            <Text strong style={{ display: 'block', marginBottom: 8 }}><CalendarOutlined /> Nhận / Trả phòng</Text>
-            <RangePicker 
-              size="large" 
-              style={{ width: '100%' }} 
-              format="DD/MM/YYYY"
-              onChange={setDates}
-              disabledDate={(current) => current && current < dayjs().startOf('day')} // Chặn ngày quá khứ
-            />
-          </Col>
-          <Col span={4}>
-            <Text strong style={{ display: 'block', marginBottom: 8 }}><TeamOutlined /> Người lớn</Text>
-            <InputNumber size="large" min={1} value={adults} onChange={setAdults} style={{ width: '100%' }} />
-          </Col>
-          <Col span={4}>
-            <Text strong style={{ display: 'block', marginBottom: 8 }}><TeamOutlined /> Trẻ em</Text>
-            <InputNumber size="large" min={0} value={children} onChange={setChildren} style={{ width: '100%' }} />
-          </Col>
-          <Col span={4}>
-            <Button type="primary" size="large" block icon={<SearchOutlined />} onClick={handleSearch} loading={loading}>
-              Tìm Phòng
-            </Button>
-          </Col>
-        </Row>
-      </Card>
-
-      {/* 2. HIỂN THỊ DANH SÁCH PHÒNG TRỐNG */}
-      <Spin spinning={loading} description="Đang quét sơ đồ phòng...">
-        {availableRoomTypes.length === 0 && !loading ? (
-          <Empty description="Vui lòng chọn ngày và bấm Tìm kiếm" style={{ marginTop: 60 }} />
-        ) : (
-          availableRoomTypes.map(type => (
-            <Card key={type.roomTypeId} style={{ borderRadius: 12, marginBottom: 16, borderLeft: '6px solid #1890ff' }}>
-              <Row justify="space-between" align="middle" style={{ marginBottom: 16 }}>
-                <div>
-                  <Title level={4} style={{ margin: 0, color: '#1890ff' }}>{type.roomTypeName}</Title>
-                  <Text type="secondary">Tối đa: {type.capacityAdults} người lớn, {type.capacityChildren} trẻ em</Text>
-                </div>
-                <div style={{ textAlign: 'right' }}>
-                  <Text style={{ fontSize: 20, fontWeight: 'bold', color: '#ff4d4f' }}>
-                    {new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(type.pricePerNight)}
-                  </Text>
-                  <Text type="secondary" style={{ display: 'block' }}>/ đêm</Text>
-                </div>
+      {/* MÀN HÌNH 1: TÌM KIẾM */}
+      {currentStep === 1 && (
+        <>
+          <Card style={{ borderRadius: 12, boxShadow: '0 4px 12px rgba(0,0,0,0.05)', marginBottom: 24 }} bodyStyle={{ padding: '24px' }}>
+            <Title level={4} style={{ marginTop: 0, color: '#1f1f1f' }}>Tìm phòng trống & Đặt phòng</Title>
+            <div style={{ backgroundColor: '#e6f4ff', padding: '20px 24px', borderRadius: 12, marginTop: 16 }}>
+              <Row gutter={24} align="bottom">
+                <Col span={10}>
+                  <Text strong style={{ display: 'block', marginBottom: 8, color: '#0050b3' }}>* Ngày nhận - trả phòng</Text>
+                  <RangePicker size="large" style={{ width: '100%', borderRadius: 8 }} format="DD/MM/YYYY" onChange={setDates} disabledDate={(c) => c && c < dayjs().startOf('day')} />
+                </Col>
+                <Col span={5}><Text strong style={{ display: 'block', marginBottom: 8, color: '#0050b3' }}>Người lớn</Text><InputNumber size="large" min={1} value={adults} onChange={setAdults} style={{ width: '100%', borderRadius: 8 }} /></Col>
+                <Col span={5}><Text strong style={{ display: 'block', marginBottom: 8, color: '#0050b3' }}>Trẻ em</Text><InputNumber size="large" min={0} value={children} onChange={setChildren} style={{ width: '100%', borderRadius: 8 }} /></Col>
+                <Col span={4}><Button type="primary" size="large" block icon={<SearchOutlined />} onClick={handleSearch} loading={loading} style={{ borderRadius: 24, fontWeight: 'bold' }}>Tìm phòng</Button></Col>
               </Row>
-              
-              <Divider style={{ margin: '12px 0' }} />
-              
-              {/* CÁC NÚT BẤM CHỌN PHÒNG */}
-              <Space size={[12, 12]} wrap>
-                {type.availableRooms.map(room => {
-                  const isSelected = selectedRooms.some(r => r.id === room.id);
-                  return (
-                    <Button 
-                      key={room.id}
-                      type={isSelected ? "primary" : "default"}
-                      size="large"
-                      style={{ 
-                        borderRadius: 8, width: 100, 
-                        backgroundColor: isSelected ? '#52c41a' : '',
-                        borderColor: isSelected ? '#52c41a' : ''
-                      }}
-                      onClick={() => toggleRoomSelection(room, type)}
-                    >
-                      P. {room.roomNumber}
-                    </Button>
-                  );
-                })}
-              </Space>
-            </Card>
-          ))
-        )}
-      </Spin>
+            </div>
+          </Card>
 
-      {/* 3. GIỎ HÀNG NỔI LÊN KHI CHỌN PHÒNG */}
-      {selectedRooms.length > 0 && (
-        <Card 
-          style={{ 
-            position: 'sticky', bottom: 20, zIndex: 1000, 
-            borderRadius: 12, boxShadow: '0 -4px 20px rgba(0,0,0,0.1)', borderTop: '4px solid #52c41a'
-          }}
-          bodyStyle={{ padding: '16px 24px' }}
-        >
-          <Row justify="space-between" align="middle">
-            <Col>
-              <Title level={5} style={{ margin: 0 }}>
-                Đã chọn <span style={{ color: '#1890ff' }}>{selectedRooms.length}</span> phòng cho <span style={{ color: '#1890ff' }}>{nights}</span> đêm
-              </Title>
-              <Space style={{ marginTop: 8 }} wrap>
-                {selectedRooms.map(r => (
-                  <Tag color="blue" key={r.id}>P. {r.roomNumber} ({r.roomTypeName})</Tag>
-                ))}
-              </Space>
-            </Col>
-            <Col style={{ textAlign: 'right' }}>
-              <Text type="secondary" style={{ fontSize: 16 }}>Tổng tiền tạm tính:</Text>
-              <Title level={2} style={{ margin: 0, color: '#ff4d4f' }}>
-                {new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(total)}
-              </Title>
-              <Button 
-                type="primary" size="large" icon={<CheckCircleOutlined />} 
-                style={{ marginTop: 12, borderRadius: 8, width: 200, height: 45, fontSize: 16 }}
-                onClick={() => setIsModalVisible(true)}
-              >
-                Tiến Hành Đặt Phòng
-              </Button>
-            </Col>
-          </Row>
+          <Card style={{ borderRadius: 12, boxShadow: '0 4px 12px rgba(0,0,0,0.05)' }} bodyStyle={{ padding: '24px' }}>
+            <Title level={4} style={{ margin: '0 0 20px 0', color: '#1f1f1f' }}>Danh sách đơn đặt phòng</Title>
+            <Table columns={tableColumns} dataSource={bookingsList} rowKey="id" loading={loadingList} pagination={{ pageSize: 5 }} bordered={false} />
+          </Card>
+        </>
+      )}
+
+      {/* MÀN HÌNH 2: CHỌN PHÒNG */}
+      {currentStep === 2 && (
+        <Card style={{ borderRadius: 12, boxShadow: '0 4px 12px rgba(0,0,0,0.05)', minHeight: '80vh' }} bodyStyle={{ padding: '24px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', marginBottom: 24 }}><Button type="text" icon={<LeftOutlined />} onClick={() => setCurrentStep(1)} style={{ fontSize: 16, fontWeight: 'bold' }}>Chọn phòng</Button></div>
+          <div style={{ display: 'flex', alignItems: 'center', backgroundColor: '#fafafa', padding: '16px 24px', border: '1px solid #f0f0f0', borderRadius: 8, marginBottom: 32 }}>
+            <div style={{ flex: 1, borderRight: '1px solid #e8e8e8' }}><Text type="secondary" style={{ fontSize: 12, display: 'block' }}>Nhận phòng</Text><Text strong>{dates && dates[0] ? dates[0].format('DD/MM/YYYY') : '--'}</Text></div>
+            <div style={{ flex: 1, paddingLeft: 24, borderRight: '1px solid #e8e8e8' }}><Text type="secondary" style={{ fontSize: 12, display: 'block' }}>Trả phòng</Text><Text strong>{dates && dates[1] ? dates[1].format('DD/MM/YYYY') : '--'}</Text></div>
+            <div style={{ flex: 1, paddingLeft: 24, borderRight: '1px solid #e8e8e8' }}><Text type="secondary" style={{ fontSize: 12, display: 'block' }}>Người lớn</Text><Text strong>{adults}</Text></div>
+            <div style={{ flex: 1, paddingLeft: 24 }}><Text type="secondary" style={{ fontSize: 12, display: 'block' }}>Trẻ em</Text><Text strong>{children}</Text></div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 16, marginLeft: 'auto' }}><Text style={{ fontSize: 14 }}>Đã chọn: <Text strong style={{ color: '#1890ff', fontSize: 16 }}>{selectedRooms.length}</Text> phòng</Text><Button type="primary" size="large" style={{ borderRadius: 24, padding: '0 32px' }} disabled={selectedRooms.length === 0} onClick={() => setIsModalVisible(true)}>Tiếp tục</Button></div>
+          </div>
+
+          <Spin spinning={loading}>
+            {availableRoomTypes.map(type => (
+              <div key={type.roomTypeId} style={{ marginBottom: 32 }}>
+                <Text strong style={{ fontSize: 16, color: '#1890ff', display: 'block' }}>{type.roomTypeName} - {new Intl.NumberFormat('vi-VN').format(type.pricePerNight)} VNĐ/Đêm</Text>
+                <Text type="secondary" style={{ fontSize: 13, marginBottom: 16, display: 'block' }}>Sức chứa: {type.capacityAdults} NL {type.capacityChildren} TE</Text>
+                <Space size={[16, 16]} wrap>
+                  {type.availableRooms.map(room => {
+                    const isSelected = selectedRooms.some(r => r.id === room.id);
+                    return (
+                      <div key={room.id} onClick={() => toggleRoomSelection(room, type)}
+                        style={{ width: 140, padding: '16px 12px', borderRadius: 8, cursor: 'pointer', position: 'relative', border: isSelected ? '2px solid #1890ff' : '1px solid #d9d9d9', backgroundColor: isSelected ? '#e6f4ff' : '#fff', textAlign: 'center' }}>
+                        {isSelected && <CheckCircleFilled style={{ position: 'absolute', top: 8, right: 8, color: '#1890ff', fontSize: 16 }} />}
+                        <div style={{ fontSize: 18, fontWeight: 'bold', color: isSelected ? '#1890ff' : '#262626', marginBottom: 4 }}>P.{room.roomNumber}</div>
+                        <div style={{ fontSize: 13, color: isSelected ? '#69c0ff' : '#8c8c8c' }}>{room.floor ? `Tầng ${room.floor}` : 'Không rõ'}</div>
+                      </div>
+                    );
+                  })}
+                </Space>
+                <Divider style={{ margin: '24px 0 0 0' }} />
+              </div>
+            ))}
+          </Spin>
         </Card>
       )}
 
-      {/* 4. MODAL NHẬP THÔNG TIN KHÁCH */}
+      {/* MODAL TẠO ĐƠN (Gõ thông tin khách) */}
+      <Modal title={<Title level={4} style={{ margin: 0 }}><HomeOutlined /> Xác nhận Đặt phòng</Title>} open={isModalVisible} onCancel={() => setIsModalVisible(false)} footer={null} centered width={600} destroyOnClose>
+        <div style={{ backgroundColor: '#fffbe6', padding: 16, borderRadius: 8, border: '1px solid #ffe58f', marginBottom: 20 }}>
+           <Text strong>Tổng tiền dự kiến ({nights} đêm): </Text>
+           <Text strong style={{ color: '#ff4d4f', fontSize: 18 }}>{new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(total)}</Text>
+        </div>
+        <Form form={form} layout="vertical" onFinish={handleConfirmBooking}>
+          <Form.Item name="guestName" label="Họ tên người đại diện" rules={[{ required: true, message: 'Vui lòng nhập họ tên!' }]}><Input size="large" /></Form.Item>
+          <Row gutter={16}>
+            <Col span={12}><Form.Item name="guestPhone" label="Số điện thoại" rules={[{ required: true }]}><Input size="large" /></Form.Item></Col>
+            <Col span={12}><Form.Item name="guestEmail" label="Email"><Input size="large" /></Form.Item></Col>
+          </Row>
+          <Button type="primary" htmlType="submit" size="large" block loading={submitting} style={{ marginTop: 12, height: 50 }}>Xác Nhận & Tạo Đơn</Button>
+        </Form>
+      </Modal>
+
+      {/* 🚨 MODAL XEM CHI TIẾT ĐƠN ĐẶT PHÒNG 🚨 */}
       <Modal
-        title={<Title level={4} style={{ margin: 0 }}><HomeOutlined /> Xác nhận thông tin Đặt phòng</Title>}
-        open={isModalVisible}
-        onCancel={() => setIsModalVisible(false)}
-        footer={null}
+        title={<Title level={4} style={{ margin: 0 }}>Chi Tiết Mã Đơn: <span style={{ color: '#1890ff' }}>{bookingDetail?.bookingCode}</span></Title>}
+        open={isDetailModalVisible}
+        onCancel={() => setIsDetailModalVisible(false)}
+        footer={[ <Button key="close" type="primary" onClick={() => setIsDetailModalVisible(false)}>Đóng</Button> ]}
         centered
-        width={600}
+        width={700}
         destroyOnClose
       >
-        <div style={{ backgroundColor: '#f9f9f9', padding: 16, borderRadius: 8, marginBottom: 24, marginTop: 16 }}>
-          <Row justify="space-between">
-            <Col><Text strong>Nhận phòng:</Text> <Text>{dates?.[0]?.format('DD/MM/YYYY')}</Text></Col>
-            <Col><Text strong>Trả phòng:</Text> <Text>{dates?.[1]?.format('DD/MM/YYYY')}</Text></Col>
-          </Row>
-          <Divider style={{ margin: '12px 0' }}/>
-          <Row justify="space-between">
-            <Col><Text strong>Tổng tiền ({nights} đêm):</Text></Col>
-            <Col><Text strong style={{ color: '#ff4d4f', fontSize: 18 }}>{new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(total)}</Text></Col>
-          </Row>
-        </div>
+        <Spin spinning={loadingDetail}>
+          {bookingDetail && (
+            <div style={{ marginTop: 20 }}>
+              <Descriptions bordered column={2} size="small" labelStyle={{ fontWeight: 'bold', width: '150px' }}>
+                <Descriptions.Item label="Khách hàng" span={2}>{bookingDetail.guestName || 'N/A'}</Descriptions.Item>
+                <Descriptions.Item label="Số điện thoại">{bookingDetail.guestPhone || 'N/A'}</Descriptions.Item>
+                <Descriptions.Item label="Trạng thái">{getStatusTag(bookingDetail.status)}</Descriptions.Item>
+                <Descriptions.Item label="Tổng tiền" span={2}>
+                  <Text type="danger" strong style={{ fontSize: 16 }}>
+                    {new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(bookingDetail.totalAmount)}
+                  </Text>
+                </Descriptions.Item>
+              </Descriptions>
 
-        <Form form={form} layout="vertical" onFinish={handleConfirmBooking}>
-          <Form.Item name="guestName" label="Họ tên người đại diện" rules={[{ required: true, message: 'Vui lòng nhập họ tên!' }]}>
-            <Input prefix={<UserOutlined />} size="large" placeholder="Nguyễn Văn A" />
-          </Form.Item>
-          <Row gutter={16}>
-            <Col span={12}>
-              <Form.Item name="guestPhone" label="Số điện thoại" rules={[{ required: true, message: 'Vui lòng nhập số ĐT!' }]}>
-                <Input prefix={<PhoneOutlined />} size="large" placeholder="0909..." />
-              </Form.Item>
-            </Col>
-            <Col span={12}>
-              <Form.Item name="guestEmail" label="Email (Không bắt buộc)">
-                <Input prefix={<MailOutlined />} size="large" placeholder="email@domain.com" />
-              </Form.Item>
-            </Col>
-          </Row>
-          <Button type="primary" htmlType="submit" size="large" block loading={submitting} style={{ marginTop: 12, height: 50, fontSize: 16 }}>
-            Xác Nhận Đặt & Tạo Đơn
-          </Button>
-        </Form>
+              <Title level={5} style={{ marginTop: 24, marginBottom: 12 }}>Danh sách phòng đã đặt</Title>
+              <Table 
+                dataSource={bookingDetail.details} 
+                rowKey="roomNumber" 
+                pagination={false} 
+                bordered
+                size="small"
+                columns={[
+                  { title: 'Phòng', dataIndex: 'roomNumber', key: 'roomNumber', render: t => <b>P.{t}</b> },
+                  { title: 'Loại phòng', dataIndex: 'roomTypeName', key: 'roomTypeName' },
+                  { title: 'Check-in', dataIndex: 'checkIn', render: d => dayjs(d).format('DD/MM/YYYY') },
+                  { title: 'Check-out', dataIndex: 'checkOut', render: d => dayjs(d).format('DD/MM/YYYY') },
+                  { title: 'Giá / Đêm', dataIndex: 'pricePerNight', render: p => new Intl.NumberFormat('vi-VN').format(p) }
+                ]} 
+              />
+            </div>
+          )}
+        </Spin>
       </Modal>
 
     </div>

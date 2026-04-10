@@ -19,7 +19,6 @@ import {
   FileDoneOutlined,
   MenuUnfoldOutlined,
   MenuFoldOutlined,
-  // 🚨 IMPORT THÊM ICON CHO CÁC THƯ MỤC CHÍNH 🚨
   AppstoreOutlined,
   SolutionOutlined,
   DatabaseOutlined,
@@ -51,11 +50,28 @@ const AdminLayout = () => {
   const location = useLocation();
   
   const [collapsed, setCollapsed] = useState(false);
+  const [openKeys, setOpenKeys] = useState([]); // 🚨 ĐÃ THÊM: Quản lý thư mục đang mở
 
   useEffect(() => {
     const roles = getUserRoles(); 
     setUserRoles(Array.isArray(roles) ? roles : [roles]); 
   }, []);
+
+  // 🚨 ĐÃ THÊM: Tự động tính toán và mở đúng thư mục mỗi khi chuyển trang
+  useEffect(() => {
+    const path = location.pathname;
+    let keys = [];
+    if (path.includes('/admin/bookings') || path.includes('/admin/checkout') || path.includes('/admin/arrivals') || path.includes('/admin/in-house') || path.includes('/admin/invoices')) {
+      keys = ['folder-reception'];
+    } else if (path.includes('/admin/warehouse') || path.includes('/admin/inventory') || path.includes('/admin/loss-and-damage')) {
+      keys = ['folder-assets'];
+    } else if (path.includes('/homepage') || path.includes('/receptionist/dashboard')) {
+      keys = ['folder-links'];
+    } else {
+      keys = ['folder-main'];
+    }
+    setOpenKeys(keys);
+  }, [location.pathname]);
 
   const handleLogout = () => {
     clearAuth();
@@ -67,10 +83,6 @@ const AdminLayout = () => {
   const isReceptionist = userRoles.includes("Receptionist");
   const isHousekeeping = userRoles.includes("Housekeeping"); 
 
-  // =========================================================
-  // 🚨 THIẾT KẾ LẠI MENU THÀNH DẠNG FOLDER (BẤM VÀO MỚI BUNG)
-  // Đổi từ type: 'group' sang dạng item bình thường có children
-  // =========================================================
   const menuItems = [
     (isAdmin || isHousekeeping) && {
       key: 'folder-main',
@@ -127,12 +139,9 @@ const AdminLayout = () => {
     { key: "logout", label: <span style={{ color: 'red' }}>Đăng xuất</span>, icon: <LogoutOutlined style={{ color: 'red' }}/>, onClick: handleLogout },
   ];
 
-  // Hàm tự động mở thư mục chứa trang hiện tại đang đứng
-  const getOpenKeys = () => {
-    if (location.pathname.includes('/admin/bookings') || location.pathname.includes('/admin/checkout') || location.pathname.includes('/admin/arrivals') || location.pathname.includes('/admin/in-house') || location.pathname.includes('/admin/invoices')) return ['folder-reception'];
-    if (location.pathname.includes('/admin/warehouse') || location.pathname.includes('/admin/inventory') || location.pathname.includes('/admin/loss-and-damage')) return ['folder-assets'];
-    if (location.pathname.includes('/homepage') || location.pathname.includes('/receptionist/dashboard')) return ['folder-links'];
-    return ['folder-main'];
+  // 🚨 ĐÃ THÊM: Xử lý sự kiện khi người dùng tự bấm mở/đóng thư mục
+  const onOpenChange = (keys) => {
+    setOpenKeys(keys);
   };
 
   return (
@@ -168,7 +177,8 @@ const AdminLayout = () => {
               theme="dark"
               mode="inline"
               selectedKeys={[location.pathname]}
-              defaultOpenKeys={getOpenKeys()} // Tự động mở thư mục chứa trang đang đứng
+              openKeys={openKeys} // 🚨 ĐÃ SỬA: Chuyển thành trạng thái động
+              onOpenChange={onOpenChange} // 🚨 ĐÃ SỬA
               items={menuItems}
               style={{ background: COLORS.siderMenuBg, borderRight: 'none', padding: collapsed ? '0' : '0 10px' }}
             />
@@ -230,25 +240,20 @@ const AdminLayout = () => {
         </Content>
       </Layout>
 
-      {/* 🚨 CSS BỔ SUNG ĐỂ LÀM ĐẸP CHO THƯ MỤC (SUBMENU) 🚨 */}
       <style>{`
         .custom-menu-scroll::-webkit-scrollbar { width: 6px; }
         .custom-menu-scroll::-webkit-scrollbar-track { background: transparent; }
         .custom-menu-scroll::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, 0.1); border-radius: 4px; }
         .custom-menu-scroll:hover::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, 0.3); }
 
-        /* Chỉnh màu cơ bản */
         .ant-menu-dark .ant-menu-item { color: ${COLORS.textColor}; border-radius: 8px; margin-bottom: 4px; }
         .ant-menu-dark .ant-menu-item:hover { color: white !important; background: rgba(255,255,255,0.08) !important; }
         
-        /* Chỉnh màu cho mục đang chọn */
         .ant-menu-dark.ant-menu-dark .ant-menu-item-selected { background-color: ${COLORS.activeItemBg} !important; color: ${COLORS.activeItemColor} !important; font-weight: bold; }
         .ant-menu-dark.ant-menu-dark .ant-menu-item-selected .anticon { color: ${COLORS.activeItemColor} !important; }
 
-        /* 🚨 Chỉnh màu cho Thư mục (SubMenu) 🚨 */
         .ant-menu-dark .ant-menu-submenu-title { color: ${COLORS.textColor}; border-radius: 8px; margin-bottom: 4px; }
         .ant-menu-dark .ant-menu-submenu-title:hover { color: white !important; background: rgba(255,255,255,0.08) !important; }
-        /* Xóa màu nền đen mặc định của Antd khi mở thư mục */
         .ant-menu-dark .ant-menu-sub { background: transparent !important; }
       `}</style>
     </Layout>

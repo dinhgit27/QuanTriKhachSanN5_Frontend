@@ -19,9 +19,12 @@ import WarehouseManagement from "./pages/admin/WarehouseManagement";
 import LossAndDamageManagement from "./pages/admin/LossAndDamageManagement";
 import AuditLogsPage from "./pages/admin/AuditLogsPage"; 
 import HousekeepingManagement from './pages/admin/HousekeepingManagement';
-
-// 🚨 THÊM IMPORT TRANG ĐẶT PHÒNG Ở ĐÂY
 import BookingManagement from "./pages/admin/BookingManagement"; 
+import CheckoutList from "./pages/admin/CheckoutList";
+
+// 🚨 THÊM IMPORT 2 TRANG LỄ TÂN Ở ĐÂY
+import Arrivals from "./pages/admin/Arrivals";
+import InHouse from "./pages/admin/InHouse";
 
 const NotFoundPage = () => <h1>404 - Đường dẫn này không tồn tại 😢</h1>;
 const UnauthorizedPage = () => (
@@ -49,9 +52,12 @@ function App() {
             <Route element={<AdminLayout />}>
               <Route path="/admin/warehouse" element={<WarehouseManagement />} />
               <Route path="/admin/loss-and-damage" element={<LossAndDamageManagement />} />
-              
-              {/* 🚨 GẮN LINK ĐẶT PHÒNG VÀO ĐÂY ĐỂ ADMIN VÀ LỄ TÂN ĐỀU XÀI ĐƯỢC */}
               <Route path="/admin/bookings" element={<BookingManagement />} />
+              <Route path="/admin/checkout" element={<CheckoutList />} />
+              
+              {/* 🚨 GẮN LINK ARRIVALS VÀ IN-HOUSE VÀO ĐÂY */}
+              <Route path="/admin/arrivals" element={<Arrivals />} />
+              <Route path="/admin/in-house" element={<InHouse />} />
               
             </Route>
           </Route>

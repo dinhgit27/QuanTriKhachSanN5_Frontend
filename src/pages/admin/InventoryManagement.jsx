@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { 
-  Row, Col, Card, Badge, Modal, Table, Button, 
+  Row, Col, Card, Badge, Modal, Table, Button, Input, 
   Typography, message, Empty, Tag, Space, Spin, Form, Select, InputNumber, Popconfirm, Divider, Image, Tabs
 } from 'antd';
+
 import { 
   HomeOutlined, BuildOutlined, ExclamationCircleOutlined,
   CheckCircleOutlined, SyncOutlined, PlusOutlined, DeleteOutlined,
@@ -23,15 +24,49 @@ const InventoryManagement = () => {
   
   const [selectedRoom, setSelectedRoom] = useState(null); 
   const [roomInventory, setRoomInventory] = useState([]); 
+  const [searchText, setSearchText] = useState('');
+  const [filterStatus, setFilterStatus] = useState('all');
   const [isDetailVisible, setIsDetailVisible] = useState(false);
   const [loadingDetails, setLoadingDetails] = useState(false);
 
   const [isAddModalVisible, setIsAddModalVisible] = useState(false);
-  const [amenitiesList, setAmenitiesList] = useState([]);
+  const [amenitiesList, setAmenitiesList] = useState([]);  
+  const [addSearchText, setAddSearchText] = useState('');
   const [form] = Form.useForm();
+
+  // Reset add search when opening modal
+  const resetAddFilters = () => {
+    setAddSearchText('');
+  };
+
+
+
+  // Filtered inventory logic
+  const filteredInventory = roomInventory.filter(record => {
+    const matchesSearch = !searchText || 
+      (record.amenity?.name || '').toLowerCase().includes(searchText.toLowerCase());
+    const matchesStatus = filterStatus === 'all' || 
+      (filterStatus === 'active' && record.isActive === true) ||
+      (filterStatus === 'damaged' && record.isActive === false);
+    return matchesSearch && matchesStatus;
+  });
+
+  // Filtered amenities for add modal
+  const filteredAmenities = amenitiesList.filter(item => {
+    const matchesSearch = !addSearchText || item.name.toLowerCase().includes(addSearchText.toLowerCase());
+    // Filter by category if needed in future
+    return matchesSearch;
+  });
+
+
+  const resetFilters = () => {
+    setSearchText('');
+    setFilterStatus('all');
+  };
 
   const [selectedFloor, setSelectedFloor] = useState('all');
   const [selectedRoomType, setSelectedRoomType] = useState('all');
+
 
   const fetchData = async () => {
     setLoadingRooms(true);
@@ -52,6 +87,8 @@ const InventoryManagement = () => {
   };
 
   const fetchRoomInventoryDetails = async (roomId) => {
+    setSearchText('');
+    setFilterStatus('all');
     setLoadingDetails(true);
     try {
       const token = localStorage.getItem('token');
@@ -66,6 +103,7 @@ const InventoryManagement = () => {
     }
   };
 
+
   useEffect(() => {
     fetchData();
     const handleDamageStatusChange = () => { if (selectedRoom) fetchRoomInventoryDetails(selectedRoom.id); };
@@ -79,15 +117,18 @@ const InventoryManagement = () => {
     fetchRoomInventoryDetails(room.id);
   };
 
-  const handleAddInventory = async (values) => {
+  const handleAddInventory = async () => {
     try {
-      const token = localStorage.getItem('token');
-      const itemsToAdd = values.items;
+      await form.validateFields();
+      const values = form.getFieldsValue();
+      const itemsToAdd = values.items || [];
 
-      if (!itemsToAdd || itemsToAdd.length === 0) {
-        message.warning("Vui lòng thêm ít nhất 1 vật tư!");
+      if (!itemsToAdd || itemsToAdd.length === 0 || itemsToAdd.some(item => !item.amenityId || !item.quantity)) {
+        message.warning("Vui lòng chọn vật tư và số lượng hợp lệ!");
         return;
       }
+
+      const token = localStorage.getItem('token');
 
       setLoadingDetails(true);
 
@@ -96,7 +137,12 @@ const InventoryManagement = () => {
         amenityId: parseInt(item.amenityId, 10), 
         quantity: parseInt(item.quantity, 10),
         isActive: true
-      }));
+      })).filter(item => item.amenityId && item.quantity > 0);
+
+      if (payloadBulk.length === 0) {
+        message.warning("Không có vật tư hợp lệ để thêm!");
+        return;
+      }
 
       await axios.post(`https://localhost:5070/api/RoomInventory/rooms/${selectedRoom.id}/inventory/bulk`, payloadBulk, {
         headers: { Authorization: `Bearer ${token}` }
@@ -105,19 +151,25 @@ const InventoryManagement = () => {
       logAction({
         action: 'Thêm', actionType: 'CREATE', module: 'Vật Tư Theo Phòng',
         objectName: `Phòng ${selectedRoom?.roomNumber}`,
-        description: `Cấp phát thêm ${itemsToAdd.length} loại vật tư vào phòng`,
+        description: `Cấp phát thêm ${payloadBulk.length} loại vật tư vào phòng`,
       });
 
-      message.success('Đã cấp phát vật tư thành công!');
+      message.success(`Đã cấp phát ${payloadBulk.length} vật tư thành công!`);
       setIsAddModalVisible(false);
       form.resetFields();
       fetchRoomInventoryDetails(selectedRoom.id);
     } catch (error) {
-      message.error(error.response?.data?.message || "Có lỗi xảy ra, không thể thêm vật tư!");
+      console.error('Form validation error:', error);
+      if (error.errorFields) {
+        message.error("Vui lòng điền đầy đủ thông tin vật tư!");
+      } else {
+        message.error(error.response?.data?.message || "Có lỗi xảy ra!");
+      }
     } finally {
       setLoadingDetails(false);
     }
   };
+
 
   const handleDeleteInventory = async (inventoryId) => {
     try {
@@ -288,26 +340,100 @@ const InventoryManagement = () => {
         </div>
       </Spin>
 
-      <Modal title={`Danh sách tài sản - P.${selectedRoom?.roomNumber}`} open={isDetailVisible} onCancel={() => setIsDetailVisible(false)} footer={null} width={850} destroyOnHidden centered>
-        <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 16 }}>
-          <Button type="primary" icon={<PlusOutlined />} onClick={() => setIsAddModalVisible(true)}>Thêm Vật Tư</Button>
+      <Modal title={`Danh sách tài sản - P.${selectedRoom?.roomNumber}`} open={isDetailVisible} onCancel={() => { resetFilters(); setIsDetailVisible(false); }} footer={null} width={950} destroyOnHidden centered>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16, flexWrap: 'wrap', gap: 12 }}>
+          <div style={{ display: 'flex', gap: 12, flex: 1 }}>
+            <Input.Search 
+              placeholder="Tìm theo tên vật tư..." 
+              value={searchText} 
+              onChange={e => setSearchText(e.target.value)} 
+              style={{ width: 280 }}
+              allowClear
+            />
+            <Select 
+              value={filterStatus}
+              onChange={setFilterStatus}
+              style={{ width: 160 }}
+              placeholder="Lọc trạng thái"
+            >
+              <Option value="all">Tất cả</Option>
+              <Option value="active">Hoạt động tốt</Option>
+              <Option value="damaged">Hỏng/Cần thay</Option>
+            </Select>
+          </div>
+          <div style={{ display: 'flex', gap: 8 }}>
+            <Button onClick={resetFilters}>Xóa bộ lọc</Button>
+            <Button type="primary" icon={<PlusOutlined />} onClick={() => setIsAddModalVisible(true)}>Thêm Vật Tư</Button>
+          </div>
         </div>
-        <Table columns={columns} dataSource={roomInventory} rowKey="id" pagination={false} bordered />
+        <div style={{ marginBottom: 16, padding: '12px 16px', backgroundColor: '#f5f7fa', borderRadius: 8, border: '1px solid #e8e8e8' }}>
+          <Text strong>Kết quả: {filteredInventory.length} / {roomInventory.length} vật tư</Text>
+        </div>
+        <Table columns={columns} dataSource={filteredInventory} rowKey="id" pagination={false} bordered loading={loadingDetails} />
       </Modal>
 
-      <Modal title={`Cấp phát vật tư - P.${selectedRoom?.roomNumber}`} open={isAddModalVisible} onCancel={() => { setIsAddModalVisible(false); form.resetFields(); }} footer={null} centered width={550} destroyOnClose>
-        <Form form={form} layout="vertical" onFinish={handleAddInventory} initialValues={{ items: [{ amenityId: undefined, quantity: 1 }] }}>
+
+      <Modal title={`Cấp phát vật tư - P.${selectedRoom?.roomNumber}`} open={isAddModalVisible} onOk={handleAddInventory} onCancel={() => { resetAddFilters(); setIsAddModalVisible(false); form.resetFields(); }} width={1000} centered>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16, flexWrap: 'wrap', gap: 12 }}>
+          <div style={{ display: 'flex', gap: 12, flex: 1 }}>
+            <Input.Search 
+              placeholder="Tìm vật tư để thêm..." 
+              value={addSearchText} 
+              onChange={e => setAddSearchText(e.target.value)} 
+              style={{ width: 280 }}
+              allowClear
+              onSearch={resetAddFilters}
+            />
+          </div>
+          <div style={{ display: 'flex', gap: 8 }}>
+            <span style={{ fontWeight: 'bold', color: '#1890ff' }}>{filteredAmenities.length}/{amenitiesList.length} vật tư</span>
+          </div>
+        </div>
+        
+        <div style={{ maxHeight: 400, overflow: 'auto', border: '1px solid #d9d9d9', borderRadius: 8, marginBottom: 16 }}>
+          <Table
+            size="small"
+            pagination={false}
+            columns={[
+              {
+                title: 'Vật tư available',
+                render: (_, item, index) => (
+                  <Space>
+                    {item.imageUrl ? <img src={item.imageUrl} style={{width: 32, height: 32, objectFit: 'cover', borderRadius: 4}} /> : <PictureOutlined />}
+                    <div>
+                      <div style={{ fontWeight: 'bold' }}>{item.name}</div>
+                      <Text type="secondary" style={{ fontSize: 12 }}>ID: {item.id}</Text>
+                    </div>
+                  </Space>
+                )
+              }
+            ]}
+            dataSource={filteredAmenities.slice(0, 20)}
+            rowKey="id"
+            onRow={(record) => ({
+              onClick: () => {
+                form.setFieldsValue({
+                  items: [{ amenityId: record.id, quantity: 1 }]
+                });
+              }
+            })}
+            rowClassName="selectable-row"
+            locale={{ emptyText: 'Không tìm thấy vật tư nào' }}
+          />
+        </div>
+        
+        <Form form={form} layout="vertical">
           <Form.List name="items">
             {(fields, { add, remove }) => (
               <>
                 {fields.map(({ key, name, ...restField }) => (
                   <Space key={key} style={{ display: 'flex', marginBottom: 8 }} align="baseline">
                     <Form.Item {...restField} name={[name, 'amenityId']} rules={[{ required: true, message: 'Chọn món đồ!' }]} style={{ width: 320, marginBottom: 0 }}>
-                      <Select placeholder="-- Chọn vật tư --" showSearch optionFilterProp="label" size="large">
-                        {amenitiesList.map(item => (
+                      <Select showSearch optionFilterProp="label" size="large">
+                        {filteredAmenities.map(item => (
                           <Option key={item.id} value={item.id} label={item.name}>
                             <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                              {item.imageUrl ? <img src={item.imageUrl} alt="" style={{width: 24, height: 24, objectFit: 'cover', borderRadius: 4}}/> : <PictureOutlined />}
+                              {item.imageUrl ? <img src={item.imageUrl} style={{width: 24, height: 24, objectFit: 'cover', borderRadius: 4}}/> : <PictureOutlined />}
                               {item.name}
                             </div>
                           </Option>
@@ -320,14 +446,17 @@ const InventoryManagement = () => {
                     {fields.length > 1 ? <MinusCircleOutlined style={{ color: 'red', fontSize: 20, cursor: 'pointer' }} onClick={() => remove(name)} /> : null}
                   </Space>
                 ))}
-                <Form.Item style={{ marginTop: 16 }}><Button type="dashed" onClick={() => add()} block icon={<PlusOutlined />} size="large">Thêm dòng khác</Button></Form.Item>
+                <Form.Item style={{ marginTop: 16 }}>
+                  <Button type="dashed" onClick={() => add()} block icon={<PlusOutlined />} size="large">
+                    Thêm dòng khác
+                  </Button>
+                </Form.Item>
               </>
             )}
           </Form.List>
-          <Divider style={{ margin: '12px 0' }}/>
-          <Button type="primary" htmlType="submit" block size="large" loading={loadingDetails}>Lưu tất cả vật tư</Button>
         </Form>
       </Modal>
+
     </div>
   );
 };

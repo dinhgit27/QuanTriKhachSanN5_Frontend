@@ -165,7 +165,14 @@ const BookingManagement = () => {
               <Row gutter={24} align="bottom">
                 <Col span={10}>
                   <Text strong style={{ display: 'block', marginBottom: 8, color: '#0050b3' }}>* Ngày nhận - trả phòng</Text>
-                  <RangePicker size="large" style={{ width: '100%', borderRadius: 8 }} format="DD/MM/YYYY" onChange={setDates} disabledDate={(c) => c && c < dayjs().startOf('day')} />
+                  <RangePicker 
+                    size="large" 
+                    style={{ width: '100%', borderRadius: 8 }} 
+                    showTime={{ format: 'HH:mm' }} 
+                    format="DD/MM/YYYY HH:mm" 
+                    onChange={setDates} 
+                    disabledDate={(c) => c && c < dayjs().startOf('day')} 
+                    />
                 </Col>
                 <Col span={5}><Text strong style={{ display: 'block', marginBottom: 8, color: '#0050b3' }}>Người lớn</Text><InputNumber size="large" min={1} value={adults} onChange={setAdults} style={{ width: '100%', borderRadius: 8 }} /></Col>
                 <Col span={5}><Text strong style={{ display: 'block', marginBottom: 8, color: '#0050b3' }}>Trẻ em</Text><InputNumber size="large" min={0} value={children} onChange={setChildren} style={{ width: '100%', borderRadius: 8 }} /></Col>

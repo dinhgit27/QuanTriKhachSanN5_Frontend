@@ -13,14 +13,17 @@ import InventoryManagement from "./pages/admin/InventoryManagement";
 import ReceptionistDashboard from "./pages/receptionist/ReceptionistDashboard";
 import HousekeeperDashboard from "./pages/housekeeper/HousekeeperDashboard";
 import GuestDashboard from "./pages/guest/GuestDashboard";
-import RegisterPage from "./pages/RegisterPage"; 
+import RegisterPage from "./pages/RegisterPage";
 import ForgotPasswordPage from "./pages/ForgotPasswordPage";
 import WarehouseManagement from "./pages/admin/WarehouseManagement";
 import LossAndDamageManagement from "./pages/admin/LossAndDamageManagement";
-import AuditLogsPage from "./pages/admin/AuditLogsPage"; 
+import AuditLogsPage from "./pages/admin/AuditLogsPage";
 import HousekeepingManagement from './pages/admin/HousekeepingManagement';
-import BookingManagement from "./pages/admin/BookingManagement"; 
+import BookingManagement from "./pages/admin/BookingManagement";
 import CheckoutList from "./pages/admin/CheckoutList";
+import InvoiceDraftPage from "./pages/receptionist/InvoiceDraftPage";
+import InvoicePage from "./pages/receptionist/InvoicePage";
+import CheckoutPage from "./pages/receptionist/CheckoutPage";
 
 // 🚨 THÊM IMPORT 2 TRANG LỄ TÂN Ở ĐÂY
 import Arrivals from "./pages/admin/Arrivals";
@@ -54,11 +57,12 @@ function App() {
               <Route path="/admin/loss-and-damage" element={<LossAndDamageManagement />} />
               <Route path="/admin/bookings" element={<BookingManagement />} />
               <Route path="/admin/checkout" element={<CheckoutList />} />
-              
+
               {/* 🚨 GẮN LINK ARRIVALS VÀ IN-HOUSE VÀO ĐÂY */}
               <Route path="/admin/arrivals" element={<Arrivals />} />
               <Route path="/admin/in-house" element={<InHouse />} />
-              
+              <Route path="/admin/invoices" element={<InvoiceDraftPage />} />
+
             </Route>
           </Route>
 
@@ -72,11 +76,24 @@ function App() {
               <Route path="/admin/housekeeping" element={<HousekeepingManagement />} />
             </Route>
           </Route>
-          
+
           {/* --- KHU VỰC DÀNH CHO RECEPTIONIST --- */}
           <Route element={<RoleBasedRoute allowedRoles={["Receptionist"]} />}>
             <Route element={<AdminLayout />}>
               <Route path="/receptionist/dashboard" element={<ReceptionistDashboard />} />
+              <Route
+                path="/receptionist/invoice-draft/:bookingId"
+                element={<InvoiceDraftPage />}
+              />
+
+              <Route
+                path="/admin/invoice/:id"
+                element={<InvoicePage />}
+              />
+              <Route
+                path="/admin/checkout"
+                element={<CheckoutPage />}
+              />
             </Route>
           </Route>
 
@@ -90,7 +107,7 @@ function App() {
           <Route element={<RoleBasedRoute allowedRoles={["Guest"]} />}>
             <Route path="/guest/dashboard" element={<GuestDashboard />} />
           </Route>
-          
+
         </Route>
 
         <Route path="*" element={<NotFoundPage />} />

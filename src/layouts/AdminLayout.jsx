@@ -8,9 +8,9 @@ import {
   HomeOutlined,
   SafetyCertificateOutlined,
   LineChartOutlined,
-  InboxOutlined,      
-  ShopOutlined,       
-  WarningOutlined,    
+  InboxOutlined,
+  ShopOutlined,
+  WarningOutlined,
   ClearOutlined,
   CalendarOutlined,
   UsergroupAddOutlined,
@@ -33,14 +33,14 @@ const { Header, Content, Sider } = Layout;
 const { Text } = Typography;
 
 const COLORS = {
-  siderBg: '#141414',       
-  siderMenuBg: '#141414',   
-  activeItemBg: '#fadb14',  
-  activeItemColor: '#000',  
-  textColor: '#a6a6a6',     
-  headerBg: '#ffffff',      
-  contentBg: '#f0f2f5',     
-  cardBg: '#ffffff'         
+  siderBg: '#141414',
+  siderMenuBg: '#141414',
+  activeItemBg: '#fadb14',
+  activeItemColor: '#000',
+  textColor: '#a6a6a6',
+  headerBg: '#ffffff',
+  contentBg: '#f0f2f5',
+  cardBg: '#ffffff'
 };
 
 const AdminLayout = () => {
@@ -48,13 +48,13 @@ const AdminLayout = () => {
   const navigate = useNavigate();
   const clearAuth = useAdminAuthStore((state) => state.clearAuth);
   const location = useLocation();
-  
+
   const [collapsed, setCollapsed] = useState(false);
   const [openKeys, setOpenKeys] = useState([]); // 🚨 ĐÃ THÊM: Quản lý thư mục đang mở
 
   useEffect(() => {
-    const roles = getUserRoles(); 
-    setUserRoles(Array.isArray(roles) ? roles : [roles]); 
+    const roles = getUserRoles();
+    setUserRoles(Array.isArray(roles) ? roles : [roles]);
   }, []);
 
   // 🚨 ĐÃ THÊM: Tự động tính toán và mở đúng thư mục mỗi khi chuyển trang
@@ -81,7 +81,7 @@ const AdminLayout = () => {
 
   const isAdmin = userRoles.includes("Admin");
   const isReceptionist = userRoles.includes("Receptionist");
-  const isHousekeeping = userRoles.includes("Housekeeping"); 
+  const isHousekeeping = userRoles.includes("Housekeeping");
 
   const menuItems = [
     (isAdmin || isHousekeeping) && {
@@ -107,19 +107,23 @@ const AdminLayout = () => {
         { key: "/admin/arrivals", icon: <UsergroupAddOutlined />, label: <Link to="/admin/arrivals">Khách đến hôm nay</Link> },
         { key: "/admin/in-house", icon: <TeamOutlined />, label: <Link to="/admin/in-house">Khách đang lưu trú</Link> },
         { key: "/admin/checkout", icon: <ExportOutlined />, label: <Link to="/admin/checkout">Trả phòng</Link> },
-        { key: "/admin/invoices", icon: <FileDoneOutlined />, label: <Link to="/admin/invoices">Hóa đơn</Link> }
+        {
+          key: "/admin/invoices",
+          icon: <FileDoneOutlined />,
+          label: <span onClick={() => navigate("/receptionist/invoice-draft/1")}>Hóa đơn</span>
+        }
       ].filter(Boolean)
     },
 
     (isAdmin || isReceptionist || isHousekeeping) && {
-        key: 'folder-assets',
-        icon: <DatabaseOutlined />,
-        label: <span style={{ fontWeight: 'bold' }}>QUẢN LÝ TÀI SẢN</span>,
-        children: [
-          isAdmin && { key: "/admin/warehouse", icon: <InboxOutlined />, label: <Link to="/admin/warehouse">Kho Vật Tư</Link> },
-          (isAdmin || isHousekeeping) && { key: "/admin/inventory", icon: <ShopOutlined />, label: <Link to="/admin/inventory">Vật Tư Phòng</Link> },
-          (isAdmin || isReceptionist) && { key: "/admin/loss-and-damage", icon: <WarningOutlined />, label: <Link to="/admin/loss-and-damage">Đền Bù</Link> }
-        ].filter(Boolean)
+      key: 'folder-assets',
+      icon: <DatabaseOutlined />,
+      label: <span style={{ fontWeight: 'bold' }}>QUẢN LÝ TÀI SẢN</span>,
+      children: [
+        isAdmin && { key: "/admin/warehouse", icon: <InboxOutlined />, label: <Link to="/admin/warehouse">Kho Vật Tư</Link> },
+        (isAdmin || isHousekeeping) && { key: "/admin/inventory", icon: <ShopOutlined />, label: <Link to="/admin/inventory">Vật Tư Phòng</Link> },
+        (isAdmin || isReceptionist) && { key: "/admin/loss-and-damage", icon: <WarningOutlined />, label: <Link to="/admin/loss-and-damage">Đền Bù</Link> }
+      ].filter(Boolean)
     },
 
     {
@@ -136,7 +140,7 @@ const AdminLayout = () => {
   const userMenuItems = [
     { key: "profile", icon: <UserOutlined />, label: "Hồ sơ của tôi" },
     { type: 'divider' },
-    { key: "logout", label: <span style={{ color: 'red' }}>Đăng xuất</span>, icon: <LogoutOutlined style={{ color: 'red' }}/>, onClick: handleLogout },
+    { key: "logout", label: <span style={{ color: 'red' }}>Đăng xuất</span>, icon: <LogoutOutlined style={{ color: 'red' }} />, onClick: handleLogout },
   ];
 
   // 🚨 ĐÃ THÊM: Xử lý sự kiện khi người dùng tự bấm mở/đóng thư mục
@@ -146,16 +150,16 @@ const AdminLayout = () => {
 
   return (
     <Layout style={{ minHeight: "100vh", fontFamily: "'Inter', sans-serif" }}>
-      
-      <Sider 
-        trigger={null} 
-        collapsible 
+
+      <Sider
+        trigger={null}
+        collapsible
         collapsed={collapsed}
-        width={250} 
-        collapsedWidth={80} 
-        style={{ 
-          background: COLORS.siderBg, 
-          display: 'flex', flexDirection: 'column', height: '100vh', 
+        width={250}
+        collapsedWidth={80}
+        style={{
+          background: COLORS.siderBg,
+          display: 'flex', flexDirection: 'column', height: '100vh',
           position: 'fixed', left: 0, top: 0, bottom: 0, zIndex: 100,
           transition: 'all 0.2s ease'
         }}
@@ -173,46 +177,46 @@ const AdminLayout = () => {
         </div>
 
         <div className="custom-menu-scroll" style={{ flex: 1, overflowY: 'auto', overflowX: 'hidden' }}>
-            <Menu
-              theme="dark"
-              mode="inline"
-              selectedKeys={[location.pathname]}
-              openKeys={openKeys} // 🚨 ĐÃ SỬA: Chuyển thành trạng thái động
-              onOpenChange={onOpenChange} // 🚨 ĐÃ SỬA
-              items={menuItems}
-              style={{ background: COLORS.siderMenuBg, borderRight: 'none', padding: collapsed ? '0' : '0 10px' }}
-            />
+          <Menu
+            theme="dark"
+            mode="inline"
+            selectedKeys={[location.pathname]}
+            openKeys={openKeys} // 🚨 ĐÃ SỬA: Chuyển thành trạng thái động
+            onOpenChange={onOpenChange} // 🚨 ĐÃ SỬA
+            items={menuItems}
+            style={{ background: COLORS.siderMenuBg, borderRight: 'none', padding: collapsed ? '0' : '0 10px' }}
+          />
         </div>
 
         <div style={{ padding: collapsed ? '16px 0' : '16px 20px', borderTop: '1px solid #333', background: '#0d0d0d', display: 'flex', justifyContent: collapsed ? 'center' : 'space-between', alignItems: 'center' }}>
-            {!collapsed && (
-              <Dropdown menu={{ items: userMenuItems }} placement="topRight">
-                <div style={{ display: 'flex', alignItems: 'center', gap: 12, cursor: 'pointer' }}>
-                    <Avatar size={32} style={{ backgroundColor: COLORS.activeItemBg, color: COLORS.activeItemColor, fontWeight: 'bold' }}>
-                        {userRoles[0]?.charAt(0).toUpperCase() || 'U'}
-                    </Avatar>
-                    <div style={{ overflow: 'hidden' }}>
-                        <div style={{ color: 'white', fontWeight: 'bold', fontSize: 13, whiteSpace: 'nowrap', textOverflow: 'ellipsis' }}>
-                            {isAdmin ? 'Quản Lý' : (isHousekeeping ? 'Buồng Phòng' : 'Nhân Viên')}
-                        </div>
-                    </div>
+          {!collapsed && (
+            <Dropdown menu={{ items: userMenuItems }} placement="topRight">
+              <div style={{ display: 'flex', alignItems: 'center', gap: 12, cursor: 'pointer' }}>
+                <Avatar size={32} style={{ backgroundColor: COLORS.activeItemBg, color: COLORS.activeItemColor, fontWeight: 'bold' }}>
+                  {userRoles[0]?.charAt(0).toUpperCase() || 'U'}
+                </Avatar>
+                <div style={{ overflow: 'hidden' }}>
+                  <div style={{ color: 'white', fontWeight: 'bold', fontSize: 13, whiteSpace: 'nowrap', textOverflow: 'ellipsis' }}>
+                    {isAdmin ? 'Quản Lý' : (isHousekeeping ? 'Buồng Phòng' : 'Nhân Viên')}
+                  </div>
                 </div>
-              </Dropdown>
-            )}
-            
-            <Tooltip title={collapsed ? "Mở rộng" : "Thu gọn"} placement="right">
-              <Button 
-                type="text" 
-                icon={collapsed ? <MenuUnfoldOutlined /> : <MenuFoldOutlined />} 
-                onClick={() => setCollapsed(!collapsed)}
-                style={{ color: '#8c8c8c', fontSize: '18px', width: 40, height: 40 }}
-              />
-            </Tooltip>
+              </div>
+            </Dropdown>
+          )}
+
+          <Tooltip title={collapsed ? "Mở rộng" : "Thu gọn"} placement="right">
+            <Button
+              type="text"
+              icon={collapsed ? <MenuUnfoldOutlined /> : <MenuFoldOutlined />}
+              onClick={() => setCollapsed(!collapsed)}
+              style={{ color: '#8c8c8c', fontSize: '18px', width: 40, height: 40 }}
+            />
+          </Tooltip>
         </div>
       </Sider>
 
       <Layout style={{ marginLeft: collapsed ? 80 : 250, background: COLORS.contentBg, transition: 'all 0.2s ease' }}>
-        
+
         <Header style={{ background: COLORS.headerBg, padding: '0 24px', display: 'flex', alignItems: 'center', justifyContent: 'flex-end', boxShadow: '0 1px 3px rgba(0,0,0,0.1)', height: 64, position: 'sticky', top: 0, zIndex: 10 }}>
           <Space size={16} style={{ alignItems: 'center' }}>
             <NotificationBell />

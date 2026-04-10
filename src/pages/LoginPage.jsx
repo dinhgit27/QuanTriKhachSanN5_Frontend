@@ -76,25 +76,25 @@ const LoginPage = () => {
   return (
     <Row style={{ minHeight: "100vh", backgroundColor: "#fff" }}>
       {/* CỘT TRÁI: FORM ĐĂNG NHẬP */}
-      <Col xs={24} md={10} style={{ 
-        display: 'flex', 
-        flexDirection: 'column', 
-        justifyContent: 'center', 
+      <Col xs={24} md={10} style={{
+        display: 'flex',
+        flexDirection: 'column',
+        justifyContent: 'center',
         padding: '0 8%' // Căn lề hai bên cho form
       }}>
         <div style={{ maxWidth: 400, margin: '0 auto', width: '100%', textAlign: 'center' }}>
-          
+
           {/* Logo & Tiêu đề */}
           <div style={{ marginBottom: 40 }}>
-            <div style={{ 
-              width: 50, 
-              height: 50, 
-              background: COLORS.primary, 
-              borderRadius: 12, 
-              display: 'flex', 
-              justifyContent: 'center', 
-              alignItems: 'center', 
-              margin: '0 auto 15px auto' 
+            <div style={{
+              width: 50,
+              height: 50,
+              background: COLORS.primary,
+              borderRadius: 12,
+              display: 'flex',
+              justifyContent: 'center',
+              alignItems: 'center',
+              margin: '0 auto 15px auto'
             }}>
               <BankFilled style={{ color: '#fff', fontSize: 24 }} />
             </div>
@@ -117,9 +117,9 @@ const LoginPage = () => {
                 { type: 'email', message: 'Email không đúng định dạng!' }
               ]}
             >
-              <Input 
-                prefix={<MailOutlined style={{ color: COLORS.gray, marginRight: 8 }} />} 
-                placeholder="email@example.com" 
+              <Input
+                prefix={<MailOutlined style={{ color: COLORS.gray, marginRight: 8 }} />}
+                placeholder="email@example.com"
                 style={{ borderRadius: 8 }}
               />
             </Form.Item>
@@ -129,23 +129,23 @@ const LoginPage = () => {
               label={<Text strong>Mật khẩu</Text>}
               rules={[{ required: true, message: 'Vui lòng nhập mật khẩu!' }]}
             >
-              <Input.Password 
-                prefix={<LockOutlined style={{ color: COLORS.gray, marginRight: 8 }} />} 
-                placeholder="••••••••" 
+              <Input.Password
+                prefix={<LockOutlined style={{ color: COLORS.gray, marginRight: 8 }} />}
+                placeholder="••••••••"
                 style={{ borderRadius: 8 }}
               />
             </Form.Item>
 
             <Form.Item style={{ marginTop: 30 }}>
-              <Button 
-                type="primary" 
-                htmlType="submit" 
-                block 
+              <Button
+                type="primary"
+                htmlType="submit"
+                block
                 loading={loading} // Thêm loading vào đây
-                style={{ 
-                  background: COLORS.primary, 
-                  borderColor: COLORS.primary, 
-                  height: 45, 
+                style={{
+                  background: COLORS.primary,
+                  borderColor: COLORS.primary,
+                  height: 45,
                   borderRadius: 8,
                   fontWeight: 'bold',
                   fontSize: 16
@@ -171,7 +171,7 @@ const LoginPage = () => {
 
       {/* CỘT PHẢI: HÌNH ẢNH BACKGROUND */}
       <Col xs={0} md={14} style={{
-        backgroundImage: `url('https://res.cloudinary.com/dqx8hqmcv/image/upload/v1774629245/trang-dang-ky_hs5ann.jpg')`, 
+        backgroundImage: `url('https://res.cloudinary.com/dqx8hqmcv/image/upload/v1774629245/trang-dang-ky_hs5ann.jpg')`,
         backgroundSize: 'cover',
         backgroundPosition: 'center',
         position: 'relative'

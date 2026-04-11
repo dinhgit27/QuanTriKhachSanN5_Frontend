@@ -13,19 +13,20 @@ import InventoryManagement from "./pages/admin/InventoryManagement";
 import ReceptionistDashboard from "./pages/receptionist/ReceptionistDashboard";
 import HousekeeperDashboard from "./pages/housekeeper/HousekeeperDashboard";
 import GuestDashboard from "./pages/guest/GuestDashboard";
-import RegisterPage from "./pages/RegisterPage"; 
+import RegisterPage from "./pages/RegisterPage";
 import ForgotPasswordPage from "./pages/ForgotPasswordPage";
 import WarehouseManagement from "./pages/admin/WarehouseManagement";
 import LossAndDamageManagement from "./pages/admin/LossAndDamageManagement";
-import AuditLogsPage from "./pages/admin/AuditLogsPage"; 
+import AuditLogsPage from "./pages/admin/AuditLogsPage";
 import HousekeepingManagement from './pages/admin/HousekeepingManagement';
-import BookingManagement from "./pages/admin/BookingManagement"; 
+import BookingManagement from "./pages/admin/BookingManagement";
 import CheckoutList from "./pages/admin/CheckoutList";
+import InvoicePage from "./pages/receptionist/InvoicePage";
+import CheckoutPage from "./pages/receptionist/CheckoutPage";
 
-// 🚨 THÊM IMPORT 2 TRANG LỄ TÂN Ở ĐÂY
+// IMPORT 2 TRANG LỄ TÂN
 import Arrivals from "./pages/admin/Arrivals";
 import InHouse from "./pages/admin/InHouse";
-import RoleManagement from "./pages/admin/RoleManagement";
 
 const NotFoundPage = () => <h1>404 - Đường dẫn này không tồn tại 😢</h1>;
 const UnauthorizedPage = () => (
@@ -49,36 +50,43 @@ function App() {
         <Route element={<ProtectedRoute />}>
 
           {/* --- KHU VỰC DÙNG CHUNG CHO ADMIN & LỄ TÂN --- */}
-          <Route element={<RoleBasedRoute allowedRoles={["Admin", "Manager", "Receptionist"]} />}>
+          <Route element={<RoleBasedRoute allowedRoles={["Admin", "Receptionist"]} />}>
             <Route element={<AdminLayout />}>
               <Route path="/admin/warehouse" element={<WarehouseManagement />} />
               <Route path="/admin/loss-and-damage" element={<LossAndDamageManagement />} />
               <Route path="/admin/bookings" element={<BookingManagement />} />
               <Route path="/admin/checkout" element={<CheckoutList />} />
-              
-              {/* 🚨 GẮN LINK ARRIVALS VÀ IN-HOUSE VÀO ĐÂY */}
+              <Route path="/admin/invoice" element={<InvoicePage />} />
+              <Route path="/admin/invoice/:id" element={<InvoicePage />} />
+
               <Route path="/admin/arrivals" element={<Arrivals />} />
               <Route path="/admin/in-house" element={<InHouse />} />
-              
+              <Route path="/admin/invoices" element={<InvoicePage />} />
+
+              {/* 🚨 ĐÃ CHUYỂN CÁC TRANG HÓA ĐƠN LÊN ĐÂY ĐỂ ADMIN TRUY CẬP ĐƯỢC */}
+              <Route path="/receptionist/invoice-draft/:bookingId" element={<InvoicePage />} />
+              <Route path="/admin/invoice/:id" element={<InvoicePage />} />
             </Route>
           </Route>
 
           {/* --- KHU VỰC DÀNH RIÊNG CHO ADMIN --- */}
-          <Route element={<RoleBasedRoute allowedRoles={["Admin", "Manager"]} />}>
+          <Route element={<RoleBasedRoute allowedRoles={["Admin"]} />}>
             <Route element={<AdminLayout />}>
               <Route path="/admin/users" element={<UserListPage />} />
               <Route path="/admin/rooms" element={<RoomManagement />} />
               <Route path="/admin/inventory" element={<InventoryManagement />} />
               <Route path="/admin/audit" element={<AuditLogsPage />} />
               <Route path="/admin/housekeeping" element={<HousekeepingManagement />} />
-              <Route path="/admin/roles" element={<RoleManagement />} />
             </Route>
           </Route>
-          
+
           {/* --- KHU VỰC DÀNH CHO RECEPTIONIST --- */}
           <Route element={<RoleBasedRoute allowedRoles={["Receptionist"]} />}>
             <Route element={<AdminLayout />}>
               <Route path="/receptionist/dashboard" element={<ReceptionistDashboard />} />
+              
+              {/* Đã đổi tên path này để tránh trùng với CheckoutList của Admin */}
+              <Route path="/receptionist/checkout" element={<CheckoutPage />} />
             </Route>
           </Route>
 
@@ -92,7 +100,7 @@ function App() {
           <Route element={<RoleBasedRoute allowedRoles={["Guest"]} />}>
             <Route path="/guest/dashboard" element={<GuestDashboard />} />
           </Route>
-          
+
         </Route>
 
         <Route path="*" element={<NotFoundPage />} />

@@ -1,0 +1,229 @@
+import React, { useState, useEffect } from "react";
+import { Button, Card, Typography, Divider, Table, Row, Col, message, Modal, Spin, Tag } from "antd";
+import { PrinterOutlined, ExclamationCircleOutlined, RollbackOutlined, HistoryOutlined, EyeOutlined } from "@ant-design/icons";
+import { useNavigate, useParams } from "react-router-dom";
+import invoiceAPI from "../../api/invoiceAPI"; 
+
+const { Title, Text } = Typography;
+
+const InvoicePage = () => {
+  const navigate = useNavigate();
+  const { id } = useParams(); // Bắt ID trên thanh URL
+  
+  const [loading, setLoading] = useState(true);
+  const [invoiceData, setInvoiceData] = useState(null);
+  const [historyList, setHistoryList] = useState([]); // Chứa danh sách lịch sử
+
+  // 🚨 TỰ ĐỘNG CHUYỂN ĐỔI: Có ID thì lấy 1 Hóa đơn, Không có ID thì lấy Lịch sử
+  useEffect(() => {
+    if (id) {
+      fetchInvoiceDetail();
+    } else {
+      fetchHistoryList();
+    }
+  }, [id]);
+
+  // HÀM LẤY 1 HÓA ĐƠN
+  const fetchInvoiceDetail = async () => {
+    setLoading(true);
+    try {
+      const res = await invoiceAPI.getById(id);
+      setInvoiceData(res.data);
+    } catch (err) {
+      message.error("Không thể tải thông tin hóa đơn!");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // HÀM LẤY LỊCH SỬ
+  const fetchHistoryList = async () => {
+    setLoading(true);
+    try {
+      const res = await invoiceAPI.getAll();
+      setHistoryList(res.data);
+    } catch (err) {
+      message.error("Lỗi khi tải lịch sử hóa đơn!");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handlePrint = () => window.print();
+
+  const handleCancelInvoice = () => {
+    Modal.confirm({
+      title: 'Bạn có chắc chắn muốn HỦY hóa đơn này?',
+      icon: <ExclamationCircleOutlined />,
+      content: 'Phòng sẽ được khôi phục về trạng thái "Đang ở".',
+      okText: 'Xác nhận Hủy',
+      okType: 'danger',
+      cancelText: 'Quay lại',
+      onOk: async () => {
+        try {
+          await invoiceAPI.cancel(id); 
+          message.success("Hủy hóa đơn thành công! Phòng đã được khôi phục.");
+          navigate('/admin/checkout', { replace: true }); 
+          window.location.reload(); 
+        } catch (err) {
+          message.error(err.response?.data?.message || "Lỗi khi hủy hóa đơn!");
+        }
+      }
+    });
+  };
+
+  // ==========================================
+  // CẤU HÌNH CỘT CHO CÁC BẢNG
+  // ==========================================
+  const roomColumns = [
+    { title: 'Phòng', dataIndex: 'roomNumber', render: text => <b>P.{text}</b> },
+    { title: 'Số đêm', dataIndex: 'nights', align: 'center' },
+    { title: 'Đơn giá', dataIndex: 'pricePerNight', render: val => `${val?.toLocaleString()} đ` },
+    { title: 'Thành tiền', dataIndex: 'lineTotal', align: 'right', render: val => <b>{val?.toLocaleString()} đ</b> },
+  ];
+
+  const serviceColumns = [
+    { title: 'Dịch vụ / Phát sinh', dataIndex: 'serviceName' },
+    { title: 'Số lượng', dataIndex: 'quantity', align: 'center' },
+    { title: 'Đơn giá', dataIndex: 'unitPrice', render: val => `${val?.toLocaleString()} đ` },
+    { title: 'Thành tiền', dataIndex: 'total', align: 'right', render: val => <b>{val?.toLocaleString()} đ</b> },
+  ];
+
+  const penaltyColumns = [
+    { title: 'Sự cố / Vật dụng hỏng', dataIndex: 'itemName', render: text => <Text type="danger">{text}</Text> },
+    { title: 'Số lượng', dataIndex: 'quantity', align: 'center' },
+    { title: 'Phí đền bù', dataIndex: 'penaltyAmount', align: 'right', render: val => <b style={{color: '#f5222d'}}>{val?.toLocaleString()} đ</b> },
+  ];
+
+  // Bảng Lịch sử Hóa Đơn
+  const historyColumns = [
+    { title: 'Mã HĐ', dataIndex: 'id', render: id => <b>INV-{id}</b> },
+    { title: 'Mã Đặt Phòng', dataIndex: 'bookingId', render: bookingId => `Booking #${bookingId}` },
+    { title: 'Tổng tiền', dataIndex: 'finalTotal', align: 'right', render: val => <b style={{color: '#f5222d'}}>{val?.toLocaleString()} đ</b> },
+    { 
+      title: 'Trạng thái', dataIndex: 'status', align: 'center', 
+      render: status => (status === 'Cancelled' || status === 'Đã hủy' ? <Tag color="red">Đã hủy</Tag> : <Tag color="green">Đã thanh toán</Tag>)
+    },
+    { 
+      title: 'Thao tác', align: 'center', 
+      render: (_, record) => <Button type="primary" ghost icon={<EyeOutlined />} onClick={() => navigate(`/admin/invoice/${record.id}`)}>Xem</Button>
+    }
+  ];
+
+  if (loading) return <div style={{textAlign: 'center', marginTop: 100}}><Spin size="large" /></div>;
+
+  // =======================================================
+  // 1. GIAO DIỆN LỊCH SỬ HÓA ĐƠN (KHI KHÔNG CÓ ID)
+  // =======================================================
+  if (!id) {
+    return (
+      <div style={{ padding: '24px', background: '#f0f2f5', minHeight: '100vh' }}>
+        <Card style={{ borderRadius: 12, boxShadow: '0 4px 12px rgba(0,0,0,0.05)' }}>
+          <div style={{ display: 'flex', alignItems: 'center', marginBottom: 20 }}>
+            <HistoryOutlined style={{ fontSize: 28, color: '#1890ff', marginRight: 12 }} />
+            <div>
+              <Title level={3} style={{ margin: 0 }}>Lịch Sử Hóa Đơn</Title>
+              <Text type="secondary">Quản lý và tra cứu các hóa đơn đã xuất</Text>
+            </div>
+          </div>
+          <Table columns={historyColumns} dataSource={historyList} rowKey="id" pagination={{ pageSize: 10 }} bordered />
+        </Card>
+      </div>
+    );
+  }
+
+  // =======================================================
+  // 2. GIAO DIỆN CHI TIẾT (TỜ HÓA ĐƠN A4) (KHI CÓ ID)
+  // =======================================================
+  if (!invoiceData) return <div style={{textAlign: 'center', marginTop: 100}}><h2>Không tìm thấy dữ liệu hóa đơn!</h2></div>;
+
+  return (
+    <div style={{ padding: '24px', display: 'flex', justifyContent: 'center', background: '#f0f2f5', minHeight: '100vh' }}>
+      <style>{`
+        @media print {
+          body * { visibility: hidden; }
+          #printable-invoice, #printable-invoice * { visibility: visible; }
+          #printable-invoice { position: absolute; left: 0; top: 0; width: 100%; padding: 0; box-shadow: none; }
+          .no-print { display: none !important; }
+        }
+      `}</style>
+
+      <Card id="printable-invoice" style={{ width: '100%', maxWidth: 800, borderRadius: 8, boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }} bodyStyle={{ padding: '40px' }}>
+        <Row justify="space-between" align="middle" style={{ marginBottom: 40 }}>
+          <Col>
+            <Title level={2} style={{ margin: 0, color: '#1890ff' }}>HOTEL IT CODE</Title>
+            <Text type="secondary">123 Đường Sinh Viên, Biên Hòa, Đồng Nai</Text>
+          </Col>
+          <Col style={{ textAlign: 'right' }}>
+            <Title level={3} style={{ margin: 0 }}>HÓA ĐƠN THANH TOÁN</Title>
+            <Text strong>Mã Đơn: {invoiceData.bookingCode}</Text>
+          </Col>
+        </Row>
+
+        <Divider style={{ borderColor: '#d9d9d9' }} />
+
+        <div style={{ marginBottom: 24 }}>
+          <Text strong style={{ fontSize: 16 }}>Khách hàng: </Text>
+          <Text style={{ fontSize: 16 }}>{invoiceData.guestName}</Text>
+        </div>
+
+        <Title level={5}>I. Chi phí lưu trú</Title>
+        <Table columns={roomColumns} dataSource={invoiceData.roomDetails} pagination={false} size="small" rowKey="roomNumber" bordered style={{ marginBottom: 24 }} />
+
+        {invoiceData.serviceDetails && invoiceData.serviceDetails.length > 0 && (
+          <>
+            <Title level={5}>II. Dịch vụ & Phụ thu</Title>
+            <Table columns={serviceColumns} dataSource={invoiceData.serviceDetails} pagination={false} size="small" rowKey="serviceName" bordered style={{ marginBottom: 24 }} />
+          </>
+        )}
+
+        {invoiceData.penaltyDetails && invoiceData.penaltyDetails.length > 0 && (
+          <>
+            <Title level={5} type="danger">III. Phí đền bù & Phạt sự cố</Title>
+            <Table columns={penaltyColumns} dataSource={invoiceData.penaltyDetails} pagination={false} size="small" rowKey="itemName" bordered style={{ marginBottom: 24 }} />
+          </>
+        )}
+
+        <Divider style={{ borderColor: '#d9d9d9' }} />
+
+        <Row justify="end">
+          <Col span={10}>
+            <Row justify="space-between" style={{ marginBottom: 8 }}>
+              <Text>Cộng tiền phòng:</Text>
+              <Text strong>{invoiceData.totalRoomAmount?.toLocaleString()} đ</Text>
+            </Row>
+            <Row justify="space-between" style={{ marginBottom: 8 }}>
+              <Text>Cộng dịch vụ:</Text>
+              <Text strong>{invoiceData.totalServiceAmount?.toLocaleString()} đ</Text>
+            </Row>
+            {invoiceData.totalPenaltyAmount > 0 && (
+              <Row justify="space-between" style={{ marginBottom: 8 }}>
+                <Text type="danger">Cộng tiền phạt:</Text>
+                <Text strong type="danger">{invoiceData.totalPenaltyAmount?.toLocaleString()} đ</Text>
+              </Row>
+            )}
+            <Row justify="space-between" style={{ marginBottom: 8 }}>
+              <Text>Thuế VAT (8%):</Text>
+              <Text strong>{invoiceData.taxAmount?.toLocaleString()} đ</Text>
+            </Row>
+            <Divider style={{ margin: '12px 0' }} />
+            <Row justify="space-between" align="middle">
+              <Title level={4} style={{ margin: 0, color: '#f5222d' }}>TỔNG THANH TOÁN:</Title>
+              <Title level={4} style={{ margin: 0, color: '#f5222d' }}>{invoiceData.finalTotal?.toLocaleString()} đ</Title>
+            </Row>
+          </Col>
+        </Row>
+
+        {/* CÁC NÚT BẤM */}
+        <div className="no-print" style={{ marginTop: 40, display: 'flex', justifyContent: 'center', gap: 16 }}>
+          <Button size="large" type="primary" icon={<PrinterOutlined />} onClick={handlePrint}>In Hóa Đơn</Button>
+          <Button size="large" danger icon={<RollbackOutlined />} onClick={handleCancelInvoice}>Bỏ Hóa Đơn</Button>
+          {/* 🚨 NÚT QUAY LẠI LỊCH SỬ ĐƯỢC THÊM VÀO ĐÂY */}
+          <Button size="large" icon={<HistoryOutlined />} onClick={() => navigate('/admin/invoice')}>Lịch sử Hóa Đơn</Button>
+        </div>
+      </Card>
+    </div>
+  );
+};
+
+export default InvoicePage;

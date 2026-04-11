@@ -50,10 +50,17 @@ const CheckoutList = () => {
       cancelText: 'Hủy',
       onOk: async () => {
         try {
-          await axios.post(`https://localhost:5070/api/Invoices/checkout/${record.id}`);
+          // 1. Gọi API chốt trả phòng
+          const res = await axios.post(`https://localhost:5070/api/Invoices/checkout/${record.id}`);
           message.success("Trả phòng thành công!");
-          navigate(`/admin/invoices`); 
-        } catch (err) { message.error("Lỗi khi xử lý trả phòng!"); }
+          
+          // 2. 🚨 ĐÃ FIX LUỒNG: Lấy ID hóa đơn mới tạo và nhảy thẳng sang trang In Hóa Đơn!
+          const newInvoiceId = res.data.invoiceId; 
+          navigate(`/admin/invoice/${newInvoiceId}`); 
+          
+        } catch (err) { 
+          message.error("Lỗi khi xử lý trả phòng!"); 
+        }
       }
     });
   };

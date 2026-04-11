@@ -1,31 +1,30 @@
 import axios from "axios";
 
-const api = axios.create({
-    baseURL: "http://localhost:5070/api",
+// 1. Tạo instance Axios với cấu hình chuẩn
+const API = axios.create({
+    // Ní kiểm tra xem Backend là http hay https nha, thường là https://localhost:5070/api
+    baseURL: "https://localhost:5070/api", 
 });
 
-// Gắn token
-api.interceptors.request.use((config) => {
+// 2. Gắn interceptor để tự động chèn Token vào mỗi request
+API.interceptors.request.use((config) => {
     const token = localStorage.getItem("token");
-    if (token) config.headers.Authorization = `Bearer ${token}`;
+    if (token) {
+        config.headers.Authorization = `Bearer ${token}`;
+    }
     return config;
 });
 
-export const invoiceAPI = {
-    preview: (bookingId) => axios.get(`${API}/preview/${bookingId}`),
-    checkout: (bookingId) => axios.post(`${API}/checkout/${bookingId}`)
+// 3. Định nghĩa các hàm gọi API cho Hóa đơn
+const invoiceAPI = {
+    preview: (bookingId) => API.get(`/Invoices/preview/${bookingId}`),
+
+    checkout: (bookingId) => API.post(`/Invoices/checkout/${bookingId}`),
+
+    getAll: () => API.get('/Invoices'),
+    cancel: (invoiceId) => API.post(`/Invoices/cancel/${invoiceId}`),
+    getById: (invoiceId) => API.get(`/Invoices/${invoiceId}`),
 };
 
-// const invoiceAPI = {
-//     // 🔍 Xem trước hóa đơn
-//     preview: (bookingId) => {
-//         return api.get(`/Invoices/preview/${bookingId}`);
-//     },
-
-//     // 🧾 Checkout + tạo hóa đơn
-//     checkout: (bookingId) => {
-//         return api.post(`/Invoices/checkout/${bookingId}`);
-//     },
-// };
-
+// 4. Export duy nhất một lần
 export default invoiceAPI;

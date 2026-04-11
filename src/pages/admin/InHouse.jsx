@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { Card, Typography, Table, Tag, Button, Space, message, Tooltip, Modal, InputNumber, Select, Divider, List } from 'antd';
-import { PlusCircleOutlined, EyeOutlined } from '@ant-design/icons';
+import { Card, Typography, Table, Tag, Button, Space, message, Tooltip, Modal, InputNumber, Select, Divider, List, Input } from 'antd';
+import { PlusCircleOutlined, EyeOutlined, WarningOutlined } from '@ant-design/icons';
 import axios from 'axios';
 import dayjs from 'dayjs';
 
@@ -10,12 +10,23 @@ const InHouse = () => {
   const [data, setData] = useState([]);
   const [loading, setLoading] = useState(false);
 
-  // State Modal Dịch vụ
-  const [isServiceModalOpen, setIsServiceModalOpen] = useState(false);
+  // State dùng chung
   const [selectedBooking, setSelectedBooking] = useState(null);
+
+  // ==========================================
+  // STATE CHO MODAL THÊM DỊCH VỤ
+  // ==========================================
+  const [isServiceModalOpen, setIsServiceModalOpen] = useState(false);
   const [serviceId, setServiceId] = useState(null); 
   const [quantity, setQuantity] = useState(1);
   const [servicesList, setServicesList] = useState([]);
+
+  // ==========================================
+  // 🚨 STATE CHO MODAL BÁO HỎNG (ĐÃ BỔ SUNG ĐẦY ĐỦ)
+  // ==========================================
+  const [isDamageModalOpen, setIsDamageModalOpen] = useState(false);
+  const [damageDescription, setDamageDescription] = useState('');
+  const [damagePrice, setDamagePrice] = useState(0);
 
   // State Modal Xem Chi Tiết
   const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
@@ -36,7 +47,9 @@ const InHouse = () => {
 
   useEffect(() => { fetchData(); }, []);
 
-  // 1. MỞ MODAL THÊM DỊCH VỤ
+  // ==========================================
+  // CÁC HÀM XỬ LÝ DỊCH VỤ
+  // ==========================================
   const handleOpenService = (record) => {
     setSelectedBooking(record);
     setServiceId(null);
@@ -44,7 +57,6 @@ const InHouse = () => {
     setIsServiceModalOpen(true);
   };
 
-  // Gửi API Thêm dịch vụ
   const submitOrderService = async () => {
     if (!serviceId) return message.warning("Vui lòng chọn một dịch vụ!");
     try {
@@ -54,22 +66,51 @@ const InHouse = () => {
       message.success("Đã ghi sổ dịch vụ thành công!");
       setIsServiceModalOpen(false);
     } catch (err) { 
-      // 🚨 ĐÃ FIX: In chính xác lỗi của Database ra màn hình
       message.error(err.response?.data?.message || "Lỗi khi thêm dịch vụ!"); 
     }
   };
 
-  // 2. MỞ MODAL XEM CHI TIẾT (LẤY DỮ LIỆU TỪ PREVIEW INVOICE)
+  // ==========================================
+  // 🚨 CÁC HÀM XỬ LÝ BÁO HỎNG / ĐỀN BÙ
+  // ==========================================
+  const handleOpenDamage = (record) => {
+    setSelectedBooking(record);
+    setDamageDescription('');
+    setDamagePrice(0);
+    setIsDamageModalOpen(true);
+  };
+
+  const submitReportDamage = async () => {
+    if (!damageDescription) return message.warning("Vui lòng nhập lý do (VD: Vỡ ly, Hỏng TV)!");
+    if (!damagePrice || damagePrice <= 0) return message.warning("Vui lòng nhập số tiền phạt hợp lệ!");
+
+    try {
+      await axios.post(`https://localhost:5070/api/Reception/report-damage/${selectedBooking.id}`, {
+        description: damageDescription, 
+        fineAmount: damagePrice         
+      });
+      message.success("Đã ghi nhận phạt đền bù thành công!");
+      setIsDamageModalOpen(false); // Đóng Modal khi thành công
+    } catch (err) {
+      message.error(err.response?.data?.message || "Lỗi khi báo hỏng đồ!");
+    }
+  };
+
+  // ==========================================
+  // HÀM XEM CHI TIẾT
+  // ==========================================
   const handleViewDetails = async (record) => {
     setSelectedBooking(record);
     try {
-      // Gọi API xem trước hóa đơn để biết khách đã xài gì
       const res = await axios.get(`https://localhost:5070/api/Invoices/preview/${record.id}`);
       setBookingDetails(res.data);
       setIsDetailModalOpen(true);
     } catch (err) { message.error("Không lấy được thông tin tiêu thụ của phòng!"); }
   };
 
+  // ==========================================
+  // CẤU HÌNH CỘT BẢNG
+  // ==========================================
   const columns = [
     { title: 'Mã Booking', dataIndex: 'bookingCode', render: text => <b>{text}</b> },
     { title: 'Khách hàng', dataIndex: 'guestName', render: text => <b>{text || 'Khách vãng lai'}</b> },
@@ -85,7 +126,11 @@ const InHouse = () => {
             <Button icon={<EyeOutlined />} onClick={() => handleViewDetails(record)} />
           </Tooltip>
           <Tooltip title="Ghi sổ dịch vụ">
-            <Button type="dashed" icon={<PlusCircleOutlined />} onClick={() => handleOpenService(record)} style={{ color: '#1890ff', borderColor: '#1890ff' }}>+ Dịch vụ</Button>
+            <Button type="dashed" icon={<PlusCircleOutlined />} onClick={() => handleOpenService(record)} style={{ color: '#1890ff', borderColor: '#1890ff' }}>Dịch vụ</Button>
+          </Tooltip>
+          {/* 🚨 NÚT BÁO HỎNG XUẤT HIỆN Ở ĐÂY */}
+          <Tooltip title="Báo hỏng đồ đạc">
+            <Button danger icon={<WarningOutlined />} onClick={() => handleOpenDamage(record)}>Báo hỏng</Button>
           </Tooltip>
         </Space>
       )
@@ -115,6 +160,29 @@ const InHouse = () => {
         </div>
       </Modal>
 
+      {/* 🚨 MODAL BÁO HỎNG (MỚI THÊM) */}
+      <Modal title="Báo hỏng đồ / Phạt đền bù" open={isDamageModalOpen} onOk={submitReportDamage} onCancel={() => setIsDamageModalOpen(false)} okText="Ghi nhận Phạt" okType="danger" cancelText="Hủy">
+        <p>Phòng của khách: <b style={{ color: '#f5222d' }}>{selectedBooking?.guestName}</b></p>
+        <div style={{ marginTop: 20, display: 'flex', flexDirection: 'column', gap: 16 }}>
+          <div>
+            <div style={{ marginBottom: 4 }}><b>Lý do / Tên vật dụng hỏng:</b></div>
+            <Input placeholder="Ví dụ: Vỡ ly thủy tinh, Làm rách khăn tắm..." value={damageDescription} onChange={(e) => setDamageDescription(e.target.value)} />
+          </div>
+          <div>
+            <div style={{ marginBottom: 4 }}><b>Số tiền phạt (VNĐ):</b></div>
+            <InputNumber 
+              min={0} 
+              step={10000} 
+              style={{ width: '100%' }} 
+              formatter={value => `${value}`.replace(/\B(?=(\d{3})+(?!\d))/g, ',')}
+              parser={value => value.replace(/\$\s?|(,*)/g, '')}
+              value={damagePrice} 
+              onChange={setDamagePrice} 
+            />
+          </div>
+        </div>
+      </Modal>
+
       {/* MODAL XEM CHI TIẾT TIÊU THỤ */}
       <Modal title={`Chi tiết phòng - ${selectedBooking?.guestName}`} open={isDetailModalOpen} onCancel={() => setIsDetailModalOpen(false)} footer={[<Button key="close" onClick={() => setIsDetailModalOpen(false)}>Đóng</Button>]}>
         {bookingDetails && (
@@ -128,13 +196,16 @@ const InHouse = () => {
               style={{ marginTop: 10 }}
               dataSource={[
                 { title: 'Tiền phòng', amount: bookingDetails.totalRoomAmount },
-                { title: 'Tiền Dịch vụ & Đền bù', amount: bookingDetails.totalServiceAmount },
+                { title: 'Tiền Dịch vụ', amount: bookingDetails.totalServiceAmount },
+                { title: 'Tiền Phạt / Đền bù', amount: bookingDetails.totalPenaltyAmount },
                 { title: 'Thuế (VAT 8%)', amount: bookingDetails.taxAmount },
               ]}
               renderItem={item => (
                 <List.Item style={{ display: 'flex', justifyContent: 'space-between' }}>
                   <span>{item.title}</span>
-                  <b>{item.amount?.toLocaleString()} đ</b>
+                  <b style={{ color: item.title === 'Tiền Phạt / Đền bù' && item.amount > 0 ? '#f5222d' : 'inherit' }}>
+                    {item.amount?.toLocaleString()} đ
+                  </b>
                 </List.Item>
               )}
             />

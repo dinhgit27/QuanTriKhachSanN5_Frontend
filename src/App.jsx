@@ -21,11 +21,10 @@ import AuditLogsPage from "./pages/admin/AuditLogsPage";
 import HousekeepingManagement from './pages/admin/HousekeepingManagement';
 import BookingManagement from "./pages/admin/BookingManagement";
 import CheckoutList from "./pages/admin/CheckoutList";
-import InvoiceDraftPage from "./pages/receptionist/InvoiceDraftPage";
 import InvoicePage from "./pages/receptionist/InvoicePage";
 import CheckoutPage from "./pages/receptionist/CheckoutPage";
 
-// 🚨 THÊM IMPORT 2 TRANG LỄ TÂN Ở ĐÂY
+// IMPORT 2 TRANG LỄ TÂN
 import Arrivals from "./pages/admin/Arrivals";
 import InHouse from "./pages/admin/InHouse";
 
@@ -57,12 +56,16 @@ function App() {
               <Route path="/admin/loss-and-damage" element={<LossAndDamageManagement />} />
               <Route path="/admin/bookings" element={<BookingManagement />} />
               <Route path="/admin/checkout" element={<CheckoutList />} />
+              <Route path="/admin/invoice" element={<InvoicePage />} />
+              <Route path="/admin/invoice/:id" element={<InvoicePage />} />
 
-              {/* 🚨 GẮN LINK ARRIVALS VÀ IN-HOUSE VÀO ĐÂY */}
               <Route path="/admin/arrivals" element={<Arrivals />} />
               <Route path="/admin/in-house" element={<InHouse />} />
-              <Route path="/admin/invoices" element={<InvoiceDraftPage />} />
+              <Route path="/admin/invoices" element={<InvoicePage />} />
 
+              {/* 🚨 ĐÃ CHUYỂN CÁC TRANG HÓA ĐƠN LÊN ĐÂY ĐỂ ADMIN TRUY CẬP ĐƯỢC */}
+              <Route path="/receptionist/invoice-draft/:bookingId" element={<InvoicePage />} />
+              <Route path="/admin/invoice/:id" element={<InvoicePage />} />
             </Route>
           </Route>
 
@@ -81,19 +84,9 @@ function App() {
           <Route element={<RoleBasedRoute allowedRoles={["Receptionist"]} />}>
             <Route element={<AdminLayout />}>
               <Route path="/receptionist/dashboard" element={<ReceptionistDashboard />} />
-              <Route
-                path="/receptionist/invoice-draft/:bookingId"
-                element={<InvoiceDraftPage />}
-              />
-
-              <Route
-                path="/admin/invoice/:id"
-                element={<InvoicePage />}
-              />
-              <Route
-                path="/admin/checkout"
-                element={<CheckoutPage />}
-              />
+              
+              {/* Đã đổi tên path này để tránh trùng với CheckoutList của Admin */}
+              <Route path="/receptionist/checkout" element={<CheckoutPage />} />
             </Route>
           </Route>
 

@@ -30,7 +30,6 @@ import { useAdminAuthStore } from "../store/adminAuthStore";
 import NotificationBell from "../components/NotificationBell";
 
 const { Header, Content, Sider } = Layout;
-const { Text } = Typography;
 
 const COLORS = {
   siderBg: '#141414',
@@ -50,18 +49,18 @@ const AdminLayout = () => {
   const location = useLocation();
 
   const [collapsed, setCollapsed] = useState(false);
-  const [openKeys, setOpenKeys] = useState([]); // 🚨 ĐÃ THÊM: Quản lý thư mục đang mở
+  const [openKeys, setOpenKeys] = useState([]);
 
   useEffect(() => {
     const roles = getUserRoles();
     setUserRoles(Array.isArray(roles) ? roles : [roles]);
   }, []);
 
-  // 🚨 ĐÃ THÊM: Tự động tính toán và mở đúng thư mục mỗi khi chuyển trang
+  // Tự động tính toán và mở đúng thư mục mỗi khi chuyển trang
   useEffect(() => {
     const path = location.pathname;
     let keys = [];
-    if (path.includes('/admin/bookings') || path.includes('/admin/checkout') || path.includes('/admin/arrivals') || path.includes('/admin/in-house') || path.includes('/admin/invoices')) {
+    if (path.includes('/admin/bookings') || path.includes('/admin/checkout') || path.includes('/admin/arrivals') || path.includes('/admin/in-house') || path.includes('/admin/invoices') || path.includes('/receptionist/invoice-draft')) {
       keys = ['folder-reception'];
     } else if (path.includes('/admin/warehouse') || path.includes('/admin/inventory') || path.includes('/admin/loss-and-damage')) {
       keys = ['folder-assets'];
@@ -107,11 +106,7 @@ const AdminLayout = () => {
         { key: "/admin/arrivals", icon: <UsergroupAddOutlined />, label: <Link to="/admin/arrivals">Khách đến hôm nay</Link> },
         { key: "/admin/in-house", icon: <TeamOutlined />, label: <Link to="/admin/in-house">Khách đang lưu trú</Link> },
         { key: "/admin/checkout", icon: <ExportOutlined />, label: <Link to="/admin/checkout">Trả phòng</Link> },
-        {
-          key: "/admin/invoices",
-          icon: <FileDoneOutlined />,
-          label: <span onClick={() => navigate("/receptionist/invoice-draft/1")}>Hóa đơn</span>
-        }
+        { key: "/admin/invoices", icon: <FileDoneOutlined />, label: <Link to="/admin/invoices">Hóa đơn</Link> }
       ].filter(Boolean)
     },
 
@@ -143,14 +138,13 @@ const AdminLayout = () => {
     { key: "logout", label: <span style={{ color: 'red' }}>Đăng xuất</span>, icon: <LogoutOutlined style={{ color: 'red' }} />, onClick: handleLogout },
   ];
 
-  // 🚨 ĐÃ THÊM: Xử lý sự kiện khi người dùng tự bấm mở/đóng thư mục
+  // Xử lý sự kiện khi người dùng tự bấm mở/đóng thư mục
   const onOpenChange = (keys) => {
     setOpenKeys(keys);
   };
 
   return (
     <Layout style={{ minHeight: "100vh", fontFamily: "'Inter', sans-serif" }}>
-
       <Sider
         trigger={null}
         collapsible
@@ -181,8 +175,8 @@ const AdminLayout = () => {
             theme="dark"
             mode="inline"
             selectedKeys={[location.pathname]}
-            openKeys={openKeys} // 🚨 ĐÃ SỬA: Chuyển thành trạng thái động
-            onOpenChange={onOpenChange} // 🚨 ĐÃ SỬA
+            openKeys={openKeys}
+            onOpenChange={onOpenChange}
             items={menuItems}
             style={{ background: COLORS.siderMenuBg, borderRight: 'none', padding: collapsed ? '0' : '0 10px' }}
           />
@@ -216,7 +210,6 @@ const AdminLayout = () => {
       </Sider>
 
       <Layout style={{ marginLeft: collapsed ? 80 : 250, background: COLORS.contentBg, transition: 'all 0.2s ease' }}>
-
         <Header style={{ background: COLORS.headerBg, padding: '0 24px', display: 'flex', alignItems: 'center', justifyContent: 'flex-end', boxShadow: '0 1px 3px rgba(0,0,0,0.1)', height: 64, position: 'sticky', top: 0, zIndex: 10 }}>
           <Space size={16} style={{ alignItems: 'center' }}>
             <NotificationBell />

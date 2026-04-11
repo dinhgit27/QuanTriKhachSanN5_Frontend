@@ -188,12 +188,37 @@ const InventoryManagement = () => {
       onOk: async () => {
         try {
           const token = localStorage.getItem('token');
-          const payload = { roomInventoryId: record.id, quantity: 1, penaltyAmount: record.amenity?.price || 0, description: `Phòng ${selectedRoom?.roomNumber} - ${record.amenity?.name}`, status: 'Chưa đền bù' };
+          
+          const payload = { 
+            roomInventoryId: Number(record.id), 
+            quantity: 1, 
+            penaltyAmount: Number(record.amenity?.price || 0), 
+            description: `Phòng ${selectedRoom?.roomNumber} - ${record.amenity?.name}`, 
+            status: 'Chưa đền bù',
+            imageUrl: "" // Bùa chú lấp chỗ trống để C# khỏi ăn vạ
+          };
+
           await axios.post('https://localhost:5070/api/LossAndDamages', payload, { headers: { Authorization: `Bearer ${token}` } });
+          
           message.success(`Đã báo hỏng ${record.amenity?.name}!`);
           useDamageEventStore.getState().triggerDamageUpdate();
           fetchRoomInventoryDetails(selectedRoom.id);
-        } catch (error) { message.error("Lỗi báo hỏng!"); }
+        } catch (error) { 
+          // 🚨 BỨC CUNG LỖI THẬT: Ép React phải hiện chi tiết lỗi từ C#
+          console.error("Chi tiết lỗi Backend:", error.response?.data);
+          
+          let errorMsg = "Lỗi khi báo hỏng vật tư!";
+          if (error.response?.data?.message) {
+            // Lỗi do anh em mình tự viết (Ví dụ: "Không tìm thấy phòng...")
+            errorMsg = error.response.data.message; 
+          } else if (error.response?.data?.errors) {
+            // Lỗi tự động của C# (Ví dụ: Thiếu cột, sai kiểu số)
+            errorMsg = "Lỗi C#: " + JSON.stringify(error.response.data.errors);
+          }
+          
+          // Hiển thị cục thông báo đỏ choạng
+          message.error({ content: errorMsg, duration: 5 }); 
+        }
       }
     });
   };

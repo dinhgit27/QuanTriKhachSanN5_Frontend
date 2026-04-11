@@ -10,7 +10,10 @@ const RequirePermission = ({ permission, children }) => {
   // Kiểm tra xem user có quyền này không
   const hasPermission = permissions.includes(permission);
 
+  console.log("RequirePermission debug:", { permissions, permission, hasPermission });
+
   if (!hasPermission) {
+    console.error("RequirePermission fail - missing permission");
     // Xử lý lỗi 403 Forbidden theo đúng chuẩn tài liệu (Hiển thị thông báo, không logout) [cite: 720-722]
     notification.error({
       message: 'Lỗi phân quyền',

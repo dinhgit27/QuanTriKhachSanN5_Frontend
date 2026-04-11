@@ -94,6 +94,7 @@ const AdminLayout = () => {
         isAdmin && { key: "/admin/users", icon: <UserOutlined />, label: <Link to="/admin/users">Nhân viên & Quyền</Link> },
         isAdmin && { key: "/admin/accounting", icon: <LineChartOutlined />, label: <Link to="/admin/accounting">Kế toán</Link> },
         isAdmin && { key: "/admin/audit", icon: <SafetyCertificateOutlined />, label: <Link to="/admin/audit">Audit Logs</Link> },
+        isAdmin && { key: "/admin/roles", icon: <SafetyCertificateOutlined />, label: <Link to="/admin/roles">Phân quyền</Link> },
         (isAdmin || isHousekeeping) && { key: "/admin/housekeeping", icon: <ClearOutlined />, label: <Link to="/admin/housekeeping">Dọn Phòng</Link> }
       ].filter(Boolean)
     },

@@ -25,6 +25,7 @@ import CheckoutList from "./pages/admin/CheckoutList";
 // 🚨 THÊM IMPORT 2 TRANG LỄ TÂN Ở ĐÂY
 import Arrivals from "./pages/admin/Arrivals";
 import InHouse from "./pages/admin/InHouse";
+import RoleManagement from "./pages/admin/RoleManagement";
 
 const NotFoundPage = () => <h1>404 - Đường dẫn này không tồn tại 😢</h1>;
 const UnauthorizedPage = () => (
@@ -48,7 +49,7 @@ function App() {
         <Route element={<ProtectedRoute />}>
 
           {/* --- KHU VỰC DÙNG CHUNG CHO ADMIN & LỄ TÂN --- */}
-          <Route element={<RoleBasedRoute allowedRoles={["Admin", "Receptionist"]} />}>
+          <Route element={<RoleBasedRoute allowedRoles={["Admin", "Manager", "Receptionist"]} />}>
             <Route element={<AdminLayout />}>
               <Route path="/admin/warehouse" element={<WarehouseManagement />} />
               <Route path="/admin/loss-and-damage" element={<LossAndDamageManagement />} />
@@ -63,13 +64,14 @@ function App() {
           </Route>
 
           {/* --- KHU VỰC DÀNH RIÊNG CHO ADMIN --- */}
-          <Route element={<RoleBasedRoute allowedRoles={["Admin"]} />}>
+          <Route element={<RoleBasedRoute allowedRoles={["Admin", "Manager"]} />}>
             <Route element={<AdminLayout />}>
               <Route path="/admin/users" element={<UserListPage />} />
               <Route path="/admin/rooms" element={<RoomManagement />} />
               <Route path="/admin/inventory" element={<InventoryManagement />} />
               <Route path="/admin/audit" element={<AuditLogsPage />} />
               <Route path="/admin/housekeeping" element={<HousekeepingManagement />} />
+              <Route path="/admin/roles" element={<RoleManagement />} />
             </Route>
           </Route>
           

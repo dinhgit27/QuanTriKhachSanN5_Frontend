@@ -54,8 +54,8 @@ const LoginPage = () => {
 
       message.success("Đăng nhập thành công!");
 
-      // ✅ 🔥 DÙNG roles (KHÔNG dùng user.role nữa)
-      if (roles.includes("Admin")) {
+      // ✅ 🔥 DÙNG roles (KHÔNG dùng user.role nữa) - Added "Manager" support
+      if (roles.includes("Admin") || roles.includes("Manager")) {
         navigate("/admin/users");
       } else if (roles.includes("Receptionist")) {
         navigate("/receptionist/dashboard");

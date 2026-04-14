@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { Button, Card, Typography, Divider, Table, Row, Col, message, Modal, Spin, Tag } from "antd";
+import { Button, Card, Typography, Divider, Table, Row, Col, message, Modal, Spin, Tag, QRCode } from "antd";
 import { PrinterOutlined, ExclamationCircleOutlined, RollbackOutlined, HistoryOutlined, EyeOutlined } from "@ant-design/icons";
 import { useNavigate, useParams } from "react-router-dom";
 import invoiceAPI from "../../api/invoiceAPI"; 
@@ -186,7 +186,17 @@ const InvoicePage = () => {
 
         <Divider style={{ borderColor: '#d9d9d9' }} />
 
-        <Row justify="end">
+        <Row justify="space-between">
+          <Col span={10} style={{ textAlign: 'center' }}>
+            <Title level={5}>Quét mã Momo để thanh toán</Title>
+            <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 8 }}>
+              <QRCode 
+                value={`2|99|0901234567|TEN_KHACH_SAN||0|0|${invoiceData.finalTotal}|Thanh toan hoa don ${invoiceData.bookingCode}`} 
+                size={160} 
+              />
+            </div>
+            <Text type="secondary">Momo: 090 123 4567 (Tên Khách Sạn)</Text>
+          </Col>
           <Col span={10}>
             <Row justify="space-between" style={{ marginBottom: 8 }}>
               <Text>Cộng tiền phòng:</Text>

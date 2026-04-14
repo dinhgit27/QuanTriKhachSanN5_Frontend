@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { Card, InputNumber, Button, message, Typography, Divider } from "antd";
+import { Card, InputNumber, Button, message, Typography, Divider, QRCode } from "antd";
 import invoiceAPI from "../../api/invoiceAPI";
 
 const { Title, Text } = Typography;
@@ -75,6 +75,12 @@ const CheckoutPage = () => {
                     <Title level={4}>
                         Tổng: {preview.finalTotal.toLocaleString()} đ
                     </Title>
+
+                    <div style={{ textAlign: "center", margin: "20px 0" }}>
+                        <Title level={5}>Quét mã Momo để thanh toán</Title>
+                        <QRCode value={`2|99|0901234567|TEN_KHACH_SAN||0|0|${preview.finalTotal}|Thanh toan hoa don ${preview.bookingCode}`} size={160} style={{ margin: "auto" }} />
+                        <Text type="secondary" style={{ display: 'block', marginTop: 8 }}>Momo: 090 123 4567 (Tên Khách Sạn)</Text>
+                    </div>
 
                     <Text type="secondary">{preview.note}</Text>
 

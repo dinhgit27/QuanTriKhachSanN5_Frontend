@@ -1,11 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { 
   Table, Modal, Form, Input, Select, Button, Tag, Space, 
-  Typography, message, Card, Popconfirm 
+  Typography, message, Card, Popconfirm, Tabs, Row, Col, Checkbox
 } from 'antd';
 import { 
   PlusOutlined, EditOutlined, DeleteOutlined, 
-  UnlockOutlined, SearchOutlined, UserOutlined 
+  UnlockOutlined, SearchOutlined, UserOutlined, SafetyCertificateOutlined 
 } from '@ant-design/icons';
 import { useLoadingStore } from '../../store/loadingStore';
 import { userManagementAPI } from '../../api/userManagement';
@@ -32,6 +32,11 @@ const UserListPage = () => {
   const [form] = Form.useForm();
   const [roles, setRoles] = useState([]);
 
+  // --- ROLE & PERMISSION STATE ---
+  const [roleModalVisible, setRoleModalVisible] = useState(false);
+  const [selectedRole, setSelectedRole] = useState(null);
+  const [allPermissions, setAllPermissions] = useState([]);
+  const [rolePermissions, setRolePermissions] = useState([]);
   // --- FETCH DỮ LIỆU ---
   const fetchRoles = async () => {
     try {
@@ -59,9 +64,19 @@ const UserListPage = () => {
     }
   };
 
+  const fetchAllPermissions = async () => {
+    try {
+      const res = await roleAPI.getPermissions();
+      setAllPermissions(res.data || []);
+    } catch (e) {
+      console.error(e);
+    }
+  };
+
   useEffect(() => {
     fetchRoles();
     fetchUsers();
+    fetchAllPermissions();
   }, []);
 
   // --- BỘ LỌC TỔNG HỢP ---
@@ -190,6 +205,50 @@ const UserListPage = () => {
     }
   };
 
+  // --- XỬ LÝ PHÂN QUYỀN VAI TRÒ ---
+  const handleOpenRoleModal = async (role) => {
+    setSelectedRole(role);
+    setLocalLoading(true);
+    try {
+      const res = await roleAPI.getRolePermissions(role.id);
+      setRolePermissions(res.data || []);
+      setRoleModalVisible(true);
+    } catch (error) {
+      message.error("Lỗi khi tải quyền của chức vụ này!");
+    } finally {
+      setLocalLoading(false);
+    }
+  };
+
+  const handleSaveRolePermissions = async () => {
+    try {
+      setLocalLoading(true);
+      await roleAPI.assignPermissions(selectedRole.id, rolePermissions);
+      
+      logAction({
+          action: 'Sửa',
+          actionType: 'UPDATE',
+          module: 'Nhân viên & Quyền',
+          objectName: selectedRole.name,
+          description: `Cập nhật phân quyền cho chức vụ: ${selectedRole.name}`
+      });
+      message.success("Lưu phân quyền thành công!");
+      setRoleModalVisible(false);
+    } catch (error) {
+      message.error("Lỗi khi lưu quyền!");
+    } finally {
+      setLocalLoading(false);
+    }
+  };
+
+  const handleTogglePermission = (permissionId, e) => {
+    if (e.target.checked) {
+      setRolePermissions([...rolePermissions, permissionId]);
+    } else {
+      setRolePermissions(rolePermissions.filter(id => id !== permissionId));
+    }
+  };
+
   // --- CẤU HÌNH CỘT ---
   const columns = [
     { title: 'Họ tên', dataIndex: 'fullName', key: 'fullName', render: t => <b>{t}</b> },
@@ -228,19 +287,8 @@ const UserListPage = () => {
     },
   ];
 
-  return (
-    <Card style={{ margin: 24, borderRadius: 12, boxShadow: '0 4px 20px rgba(0,0,0,0.05)' }}>
-      {/* PHẦN ĐẦU */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 }}>
-        <div>
-          <Title level={3} style={{ margin: 0 }}>Nhân viên & Quyền</Title>
-          <Text type="secondary">Quản lý tài khoản nhân viên và phân quyền truy cập hệ thống</Text>
-        </div>
-        <Button type="primary" size="large" icon={<PlusOutlined />} onClick={handleAddNew} style={{ borderRadius: 8 }}>
-          Thêm nhân viên
-        </Button>
-      </div>
-
+  const userTabContent = (
+    <>
       {/* BỘ LỌC DÀN HÀNG NGANG */}
       <div style={{ display: 'flex', gap: '16px', marginBottom: 24, flexWrap: 'wrap' }}>
         <Input
@@ -285,6 +333,43 @@ const UserListPage = () => {
         }} 
         size="middle" 
       />
+    </>
+  );
+
+  const roleTabContent = (
+    <Table 
+      columns={[
+        { title: 'ID', dataIndex: 'id', key: 'id', width: 100, render: id => `#ROL-${id}` },
+        { title: 'TÊN VAI TRÒ', dataIndex: 'name', key: 'name', width: 200, render: (t) => <Space><SafetyCertificateOutlined style={{color: '#1890ff'}}/> <b>{t}</b></Space> },
+        { title: 'MÔ TẢ', dataIndex: 'description', key: 'description' },
+        { title: 'THAO TÁC', key: 'actions', width: 150, render: (_, record) => <Button type="primary" onClick={() => handleOpenRoleModal(record)}>PHÂN QUYỀN</Button> }
+      ]}
+      dataSource={roles}
+      rowKey="id"
+      pagination={false}
+      bordered
+    />
+  );
+
+  const tabItems = [
+    { key: 'users', label: 'Danh sách nhân viên', children: userTabContent },
+    { key: 'roles', label: 'Vai trò & Phân quyền', children: roleTabContent },
+  ];
+
+  return (
+    <Card style={{ margin: 24, borderRadius: 12, boxShadow: '0 4px 20px rgba(0,0,0,0.05)' }}>
+      {/* PHẦN ĐẦU */}
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 }}>
+        <div>
+          <Title level={3} style={{ margin: 0 }}>Nhân viên & Phân Quyền</Title>
+          <Text type="secondary">Quản lý tài khoản nhân viên và cấu hình phân quyền hệ thống</Text>
+        </div>
+        <Button type="primary" size="large" icon={<PlusOutlined />} onClick={handleAddNew} style={{ borderRadius: 8 }}>
+          Thêm nhân viên
+        </Button>
+      </div>
+
+      <Tabs items={tabItems} defaultActiveKey="users" />
 
       {/* MODAL THÊM/SỬA */}
       <Modal 
@@ -330,6 +415,36 @@ const UserListPage = () => {
             </Space>
           </Form.Item>
         </Form>
+      </Modal>
+
+      {/* MODAL PHÂN QUYỀN VAI TRÒ */}
+      <Modal
+        title={`Phân quyền cho: ${selectedRole?.name}`}
+        open={roleModalVisible}
+        onCancel={() => setRoleModalVisible(false)}
+        footer={[
+          <Button key="cancel" onClick={() => setRoleModalVisible(false)}>Hủy</Button>,
+          <Button key="save" type="primary" onClick={handleSaveRolePermissions} loading={localLoading}>Lưu thay đổi</Button>
+        ]}
+        width={700}
+        centered
+        destroyOnClose
+      >
+        <Text type="secondary" style={{ display: 'block', marginBottom: 24 }}>
+          Vui lòng tick chọn các chức năng mà vai trò này được phép truy cập
+        </Text>
+        <Row gutter={[16, 16]}>
+          {allPermissions.map(p => (
+             <Col span={8} key={p.id}>
+               <Checkbox 
+                 checked={rolePermissions.includes(p.id)} 
+                 onChange={(e) => handleTogglePermission(p.id, e)}
+               >
+                 {p.name}
+               </Checkbox>
+             </Col>
+          ))}
+        </Row>
       </Modal>
     </Card>
   );

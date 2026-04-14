@@ -17,8 +17,7 @@ export const roleAPI = {
     },
 
     // Lưu/Cập nhật cấu hình phân quyền mới cho một Role
-    assignPermissions: (data) => {
-        // data thường có dạng: { roleId: 1, permissionIds: [1, 2, 5] }
-        return axiosClient.post('/Roles/assign-permissions', data);
+    assignPermissions: (roleId, permissionIds) => {
+        return axiosClient.post(`/Roles/${roleId}/permissions`, permissionIds);
     }
 };

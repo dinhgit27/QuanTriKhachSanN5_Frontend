@@ -20,6 +20,7 @@ import {
   Divider,
   Descriptions,
 } from 'antd';
+import { minifyJson, prettyJson } from '../../utils/jsonHelpers';
 import {
   SearchOutlined,
   EyeOutlined,
@@ -488,10 +489,11 @@ const AuditLogsPage = () => {
 
     const formatValue = (value) => {
       if (value === null || value === undefined) return '-';
-      if (value === true) return '-';
-      if (value === false) return '-';
+      if (value === true) return 'true';
+      if (value === false) return 'false';
       if (typeof value === 'object') {
-        return JSON.stringify(value, null, 2);
+        // Use prettyJson for display (keep readability), minifyJson for storage/send
+        return prettyJson(value);
       }
       return String(value);
     };

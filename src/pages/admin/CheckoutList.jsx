@@ -53,13 +53,13 @@ const CheckoutList = () => {
           // 1. Gọi API chốt trả phòng
           const res = await axios.post(`https://localhost:5070/api/Invoices/checkout/${record.id}`);
           message.success("Trả phòng thành công!");
-          
+
           // 2. 🚨 ĐÃ FIX LUỒNG: Lấy ID hóa đơn mới tạo và nhảy thẳng sang trang In Hóa Đơn!
-          const newInvoiceId = res.data.invoiceId; 
-          navigate(`/admin/invoice/${newInvoiceId}`); 
-          
-        } catch (err) { 
-          message.error("Lỗi khi xử lý trả phòng!"); 
+          const newInvoiceId = res.data.invoiceId;
+          navigate(`/admin/invoice/${newInvoiceId}`);
+
+        } catch (err) {
+          message.error("Lỗi khi xử lý trả phòng!");
         }
       }
     });
@@ -68,9 +68,9 @@ const CheckoutList = () => {
   const columns = [
     { title: 'Mã Booking', dataIndex: 'bookingCode', render: text => <b>{text}</b> },
     { title: 'Khách hàng', dataIndex: 'guestName', render: text => <b>{text}</b> },
-    { 
-      title: 'Phòng trả', dataIndex: 'roomNumbers', 
-      render: rooms => <Space wrap>{rooms?.map(r => <Tag color="red" key={r}>P.{r}</Tag>)}</Space> 
+    {
+      title: 'Phòng trả', dataIndex: 'roomNumbers',
+      render: rooms => <Space wrap>{rooms?.map(r => <Tag color="red" key={r}>P.{r}</Tag>)}</Space>
     },
     { title: 'Ngày Check-in', dataIndex: 'checkInDate', render: date => dayjs(date).format('HH:mm - DD/MM') },
     {
@@ -93,10 +93,10 @@ const CheckoutList = () => {
       <Table style={{ marginTop: 20 }} columns={columns} dataSource={data} rowKey="id" loading={loading} />
 
       {/* MODAL XEM CHI TIẾT TRƯỚC KHI TRẢ PHÒNG */}
-      <Modal 
-        title={`Xem trước hóa đơn - ${selectedBooking?.guestName}`} 
-        open={isDetailModalOpen} 
-        onCancel={() => setIsDetailModalOpen(false)} 
+      <Modal
+        title={`Xem trước hóa đơn - ${selectedBooking?.guestName}`}
+        open={isDetailModalOpen}
+        onCancel={() => setIsDetailModalOpen(false)}
         footer={[<Button key="close" onClick={() => setIsDetailModalOpen(false)}>Đóng</Button>]}
       >
         {bookingDetails && (

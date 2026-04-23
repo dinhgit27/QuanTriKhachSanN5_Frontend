@@ -10,6 +10,7 @@ import {
 } from '@ant-design/icons';
 import axios from 'axios';
 import dayjs from 'dayjs';
+import { auditLogger } from '../../utils/auditLogger';
 
 const { Title, Text } = Typography;
 const { RangePicker } = DatePicker;
@@ -79,8 +80,16 @@ const BookingManagement = () => {
     try {
       const token = localStorage.getItem('token');
       const payload = { ...values, checkIn: dates[0].format('YYYY-MM-DDTHH:mm:ss'), checkOut: dates[1].format('YYYY-MM-DDTHH:mm:ss'), selectedRoomIds: selectedRooms.map(r => r.id) };
-      await axios.post('https://localhost:5070/api/Bookings/create', payload, { headers: { Authorization: `Bearer ${token}` } });
-      message.success("Đặt phòng thành công!");
+      const res = await axios.post('https://localhost:5070/api/Bookings/create', payload, { headers: { Authorization: `Bearer ${token}` } });
+      
+      auditLogger.success(`Đặt phòng thành công cho khách ${values.guestName}!`, {
+        action: 'Đặt phòng',
+        actionType: 'CREATE',
+        module: 'Quản lý Đặt phòng',
+        objectName: `Đơn ${res.data.bookingCode}`,
+        newValue: { ...values, rooms: selectedRooms.map(r => r.roomNumber) }
+      });
+
       setIsModalVisible(false); form.resetFields(); setCurrentStep(1); setSelectedRooms([]); fetchBookingsList(); 
     } catch (error) { message.error("Lỗi tạo đơn!"); } finally { setSubmitting(false); }
   };
@@ -105,8 +114,19 @@ const BookingManagement = () => {
   const handleChangeStatus = async (id, newStatus) => {
     try {
       const token = localStorage.getItem('token');
-      await axios.put(`https://localhost:5070/api/Bookings/${id}/status`, { status: newStatus }, { headers: { Authorization: `Bearer ${token}` } });
-      message.success(newStatus === 'Cancelled' ? "Đã hủy đơn đặt phòng!" : "Đã xác nhận đơn thành công!");
+      const res = await axios.put(`https://localhost:5070/api/Bookings/${id}/status`, { status: newStatus }, { headers: { Authorization: `Bearer ${token}` } });
+      
+      const record = bookingsList.find(b => b.id === id);
+      const actionLabel = newStatus === 'Confirmed' ? 'Xác nhận' : 'Hủy';
+      
+      auditLogger.success(newStatus === 'Cancelled' ? "Đã hủy đơn đặt phòng!" : "Đã xác nhận đơn thành công!", {
+        action: actionLabel,
+        actionType: 'UPDATE',
+        module: 'Quản lý Đặt phòng',
+        objectName: `Đơn ${record?.bookingCode}`,
+        newValue: { status: newStatus }
+      });
+
       fetchBookingsList(); // Load lại bảng
     } catch (error) {
       message.error("Lỗi cập nhật trạng thái!");

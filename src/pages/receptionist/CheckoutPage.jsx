@@ -1,6 +1,7 @@
 import React, { useState } from "react";
-import { Card, InputNumber, Button, message, Typography, Divider, QRCode } from "antd";
+import { Card, InputNumber, Button, Typography, Divider, QRCode } from "antd";
 import invoiceAPI from "../../api/invoiceAPI";
+import { auditLogger } from "../../utils/auditLogger";
 
 const { Title, Text } = Typography;
 
@@ -16,7 +17,7 @@ const CheckoutPage = () => {
             const res = await invoiceAPI.preview(bookingId);
             setPreview(res.data);
         } catch (err) {
-            message.error("Không xem được hóa đơn!");
+            auditLogger.error("Không xem được hóa đơn!", { module: "Thanh Toán", objectName: `Booking #${bookingId}` });
         } finally {
             setLoading(false);
         }
@@ -28,10 +29,15 @@ const CheckoutPage = () => {
             setLoading(true);
             await invoiceAPI.checkout(bookingId);
 
-            message.success("Checkout thành công!");
+            auditLogger.success("Checkout thành công!", { 
+                actionType: "CHECKOUT", 
+                module: "Thanh Toán", 
+                objectName: `Booking #${bookingId}`,
+                description: `Checkout thành công cho đơn đặt phòng ID: ${bookingId}`
+            });
             setPreview(null);
         } catch (err) {
-            message.error(err.response?.data?.message || "Lỗi checkout!");
+            auditLogger.error(err.response?.data?.message || "Lỗi checkout!", { module: "Thanh Toán", objectName: `Booking #${bookingId}` });
         } finally {
             setLoading(false);
         }

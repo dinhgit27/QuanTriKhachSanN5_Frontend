@@ -10,14 +10,13 @@ import {
 import { useLoadingStore } from '../../store/loadingStore';
 import { userManagementAPI } from '../../api/userManagement';
 import { roleAPI } from '../../api/roleApi';
-import { useAuditLog } from '../../hooks/useAuditLog';
+import { auditLogger } from '../../utils/auditLogger';
 
 const { Title, Text } = Typography;
 const { Option } = Select;
 
 const UserListPage = () => {
   const setLoading = useLoadingStore((state) => state.setLoading);
-  const { logAction } = useAuditLog();
 
   const [users, setUsers] = useState([]); 
   const [filteredUsers, setFilteredUsers] = useState([]); 
@@ -140,18 +139,15 @@ const UserListPage = () => {
           setLocalLoading(true);
           await userManagementAPI.toggleStatus(user.id);
           
-          // Log action
-          logAction({
-            action: 'Sửa',
+          auditLogger.success(`Đã ${user.isActive ? 'khóa' : 'mở khóa'} tài khoản thành công!`, {
             actionType: 'UPDATE',
             module: 'Nhân viên & Quyền',
             objectName: user.fullName,
-            description: `${user.isActive ? 'Khóa' : 'Mở khóa'} tài khoản: ${user.email}`,
+            description: `[${user.email}] Trạng thái: ${user.isActive ? 'Hoạt động → Đã khóa' : 'Đã khóa → Hoạt động'}`,
             oldValue: { status: user.isActive ? 'Active' : 'Locked' },
             newValue: { status: user.isActive ? 'Locked' : 'Active' },
           });
           
-          message.success('Cập nhật thành công!');
           fetchUsers();
         } catch (error) {
           message.error('Lỗi: ' + (error.response?.data?.message || error.message));
@@ -169,32 +165,24 @@ const UserListPage = () => {
         // Update
         await userManagementAPI.updateUser(editingId, values);
         
-        // Log action
-        logAction({
-          action: 'Sửa',
+        auditLogger.success("Cập nhật thông tin nhân viên thành công!", {
           actionType: 'UPDATE',
           module: 'Nhân viên & Quyền',
           objectName: values.fullName,
           description: `Cập nhật thông tin nhân viên: ${values.email}`,
           newValue: values,
         });
-        
-        message.success('Cập nhật thông tin thành công!');
       } else {
         // Create
         await userManagementAPI.createUser(values);
         
-        // Log action
-        logAction({
-          action: 'Thêm',
+        auditLogger.success("Thêm nhân viên mới thành công!", {
           actionType: 'CREATE',
           module: 'Nhân viên & Quyền',
           objectName: values.fullName,
           description: `Thêm nhân viên mới: ${values.email}`,
           newValue: values,
         });
-        
-        message.success('Thêm người dùng thành công!');
       }
       setModalVisible(false);
       fetchUsers(); 
@@ -225,14 +213,12 @@ const UserListPage = () => {
       setLocalLoading(true);
       await roleAPI.assignPermissions(selectedRole.id, rolePermissions);
       
-      logAction({
-          action: 'Sửa',
+      auditLogger.success(`Đã cập nhật phân quyền cho chức vụ ${selectedRole.name}!`, {
           actionType: 'UPDATE',
           module: 'Nhân viên & Quyền',
           objectName: selectedRole.name,
           description: `Cập nhật phân quyền cho chức vụ: ${selectedRole.name}`
       });
-      message.success("Lưu phân quyền thành công!");
       setRoleModalVisible(false);
     } catch (error) {
       message.error("Lỗi khi lưu quyền!");

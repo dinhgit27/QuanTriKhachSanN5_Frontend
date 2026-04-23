@@ -3,6 +3,7 @@ import { Card, Typography, Table, Tag, Button, Space, message, Tooltip, Modal, S
 import { LoginOutlined, EyeOutlined } from '@ant-design/icons';
 import axios from 'axios';
 import dayjs from 'dayjs';
+import { auditLogger } from '../../utils/auditLogger';
 
 const { Title, Text } = Typography;
 
@@ -60,7 +61,18 @@ const Arrivals = () => {
       await axios.post(`https://localhost:5070/api/Reception/checkin/${selectedBooking.id}`, selectedRoomId, {
         headers: { 'Content-Type': 'application/json' }
       });
-      message.success("Check-in thành công! Phòng đã được khóa.");
+
+      const room = availableRooms.find(r => r.id === selectedRoomId) || { roomNumber: selectedBooking.assignedRoomNumber };
+      
+      auditLogger.success(`Check-in thành công cho khách ${selectedBooking.guestName}!`, {
+        action: 'Check-in',
+        actionType: 'UPDATE',
+        module: 'Quản lý Khách đến',
+        objectName: `Phòng ${room.roomNumber}`,
+        description: `Khách ${selectedBooking.guestName} đã nhận phòng ${room.roomNumber}`,
+        newValue: { status: 'Checked_in', roomId: selectedRoomId }
+      });
+
       setIsCheckInModalOpen(false);
       fetchData(); // Load lại bảng
     } catch (err) { message.error("Lỗi khi check-in!"); }

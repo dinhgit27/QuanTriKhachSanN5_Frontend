@@ -8,7 +8,7 @@ import {
   UploadOutlined, LoadingOutlined
 } from '@ant-design/icons';
 import axios from 'axios';
-import { useAuditLog } from '../../hooks/useAuditLog';
+import { auditLogger } from '../../utils/auditLogger';
 import { useDamageEventStore } from '../../store/damageEventStore';
 import { useEquipmentEventStore } from '../../store/equipmentEventStore';
 
@@ -16,7 +16,6 @@ const { Title, Text } = Typography;
 const { Option } = Select;
 
 const WarehouseManagement = () => {
-  const { logAction } = useAuditLog();
   // Subscribe to global damage updates - real-time from store
   const lastDamageUpdate = useDamageEventStore((state) => state.lastDamageUpdate);
   
@@ -176,21 +175,19 @@ const WarehouseManagement = () => {
       if (editingItem) {
         await axios.put(`https://localhost:5070/api/Equipments/${editingItem.id}`, { ...editingItem, ...finalPayload }, { headers });
         
-        logAction({
+        auditLogger.success(`Đã cập nhật thông tin vật tư: ${values.name}`, {
           action: 'Sửa', actionType: 'UPDATE', module: 'Kho Vật Tư',
-          objectName: values.name, description: `Cập nhật thông tin vật tư: ${values.name}`,
+          objectName: values.name,
           oldValue: editingItem, newValue: values,
         });
-        message.success('Đã cập nhật thông tin vật tư!');
       } else {
         await axios.post('https://localhost:5070/api/Equipments', finalPayload, { headers });
         
-        logAction({
+        auditLogger.success(`Đã nhập vật tư mới vào kho: ${values.name}`, {
           action: 'Thêm', actionType: 'CREATE', module: 'Kho Vật Tư',
-          objectName: values.name, description: `Thêm vật tư mới: ${values.name}`,
+          objectName: values.name,
           newValue: values,
         });
-        message.success('Đã nhập vật tư mới vào kho!');
       }
 
       // Trigger global equipment update to sync with other pages
@@ -214,16 +211,11 @@ const WarehouseManagement = () => {
         headers: { Authorization: `Bearer ${token}` }
       });
       
-      logAction({
+      auditLogger.success(`Đã xóa vật tư: ${itemName}`, {
         action: 'Xóa', actionType: 'DELETE', module: 'Kho Vật Tư',
-        objectName: itemName, description: `Xóa vật tư: ${itemName}`,
+        objectName: itemName,
         oldValue: deletingItem,
       });
-      
-      // Trigger global equipment update to sync with other pages
-      useEquipmentEventStore.getState().triggerEquipmentUpdate();
-      
-      message.success("Đã xóa vật tư!");
       fetchData();
     } catch (err) {
       message.error("Lỗi khi xóa!");

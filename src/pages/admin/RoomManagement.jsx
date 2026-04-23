@@ -10,7 +10,7 @@ import {
   HomeOutlined, ExclamationCircleOutlined, BlockOutlined
 } from '@ant-design/icons';
 import { roomApi } from '../../api/roomApi';
-import { useAuditLog } from '../../hooks/useAuditLog'; 
+import { auditLogger } from '../../utils/auditLogger';
 import axios from 'axios';
 
 const { Title, Text } = Typography;
@@ -22,7 +22,6 @@ const RoomManagement = () => {
   const [roomTypes, setRoomTypes] = useState([]); 
   const [loading, setLoading] = useState(false);
   const [isModalVisible, setIsModalVisible] = useState(false);
-  const { logAction } = useAuditLog();
   
   const [searchText, setSearchText] = useState('');
   const [filterStatus, setFilterStatus] = useState('All');
@@ -126,11 +125,12 @@ const RoomManagement = () => {
         // Gọi API tạo liên tục cho mảng phòng vừa sinh ra
         await Promise.all(roomsToCreate.map(payload => roomApi.createRoom(payload)));
 
-        logAction({
-          action: 'Thêm', actionType: 'CREATE', module: 'Quản lý Phòng',
-          objectName: `Thêm hàng loạt ${roomsToCreate.length} phòng`, description: `Tạo từ ${startNum} đến ${endNum}`,
+        auditLogger.success(`Đã thêm hàng loạt ${roomsToCreate.length} phòng thành công!`, {
+          actionType: 'CREATE', 
+          module: 'Quản lý Phòng',
+          objectName: `Hàng loạt (${roomsToCreate.length} phòng)`, 
+          description: `Tạo từ ${startNum} đến ${endNum}, tiền tố: ${prefix || 'Không'}`
         });
-        message.success(`Đã thêm hàng loạt ${roomsToCreate.length} phòng thành công!`);
 
       } 
       // XỬ LÝ: CHẾ ĐỘ THÊM/SỬA 1 PHÒNG (Bình thường)
@@ -146,10 +146,20 @@ const RoomManagement = () => {
 
         if (editingRoom) {
           await roomApi.updateRoom(editingRoom.id, payload);
-          message.success("Cập nhật thành công!");
+          auditLogger.success("Cập nhật phòng thành công!", {
+            actionType: 'UPDATE',
+            module: 'Quản lý Phòng',
+            objectName: `Phòng ${values.roomNumber}`,
+            description: `Cập nhật thông tin phòng ${values.roomNumber}`
+          });
         } else {
           await roomApi.createRoom(payload);
-          message.success("Thêm mới thành công!");
+          auditLogger.success("Thêm mới phòng thành công!", {
+            actionType: 'CREATE',
+            module: 'Quản lý Phòng',
+            objectName: `Phòng ${values.roomNumber}`,
+            description: `Tạo mới phòng ${values.roomNumber}`
+          });
         }
       }
 
@@ -171,10 +181,15 @@ const RoomManagement = () => {
       onOk: async () => {
         try {
           await roomApi.deleteRoom(id);
-          message.success("Đã xóa thành công!");
+          auditLogger.success(`Đã xóa phòng ${roomNumber} thành công!`, {
+            actionType: 'DELETE',
+            module: 'Quản lý Phòng',
+            objectName: `Phòng ${roomNumber}`,
+            description: `Xóa phòng ${roomNumber} khỏi hệ thống.`
+          });
           fetchData();
         } catch (error) {
-          message.error("Lỗi khi xóa phòng!");
+          auditLogger.error("Lỗi khi xóa phòng!", { module: 'Quản lý Phòng', objectName: `Phòng ${roomNumber}` });
         }
       }
     });

@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { Card, Typography, Table, Tag, Button, Space, message, Tooltip, Modal, InputNumber, Select, Divider, List, Input } from 'antd';
+import { Card, Typography, Table, Tag, Button, Space, Tooltip, Modal, InputNumber, Select, Divider, List, Input } from 'antd';
 import { PlusCircleOutlined, EyeOutlined, WarningOutlined } from '@ant-design/icons';
 import axios from 'axios';
 import dayjs from 'dayjs';
+import { auditLogger } from '../../utils/auditLogger';
 
 const { Title, Text } = Typography;
 
@@ -41,7 +42,7 @@ const InHouse = () => {
       
       const resServices = await axios.get('https://localhost:5070/api/Reception/services-list');
       setServicesList(resServices.data);
-    } catch (error) { message.error("Lỗi khi tải dữ liệu!"); }
+    } catch (error) { auditLogger.error("Lỗi khi tải dữ liệu!", { module: "Lưu Trú (In-House)" }); }
     finally { setLoading(false); }
   };
 
@@ -58,15 +59,22 @@ const InHouse = () => {
   };
 
   const submitOrderService = async () => {
-    if (!serviceId) return message.warning("Vui lòng chọn một dịch vụ!");
+    if (!serviceId) return auditLogger.info("Vui lòng chọn một dịch vụ!");
     try {
       await axios.post(`https://localhost:5070/api/Reception/order-service/${selectedBooking.id}`, {
         serviceId: serviceId, quantity: quantity
       });
-      message.success("Đã ghi sổ dịch vụ thành công!");
+      
+      const service = servicesList.find(s => s.id === serviceId);
+      auditLogger.success("Đã ghi sổ dịch vụ thành công!", {
+        actionType: "PAYMENT",
+        module: "Lưu Trú (In-House)",
+        objectName: `Phòng của ${selectedBooking.guestName}`,
+        description: `Ghi sổ dịch vụ: ${service?.name} x ${quantity} cho khách ${selectedBooking.guestName}.`
+      });
       setIsServiceModalOpen(false);
     } catch (err) { 
-      message.error(err.response?.data?.message || "Lỗi khi thêm dịch vụ!"); 
+      auditLogger.error(err.response?.data?.message || "Lỗi khi thêm dịch vụ!", { module: "Lưu Trú (In-House)" }); 
     }
   };
 
@@ -81,18 +89,24 @@ const InHouse = () => {
   };
 
   const submitReportDamage = async () => {
-    if (!damageDescription) return message.warning("Vui lòng nhập lý do (VD: Vỡ ly, Hỏng TV)!");
-    if (!damagePrice || damagePrice <= 0) return message.warning("Vui lòng nhập số tiền phạt hợp lệ!");
+    if (!damageDescription) return auditLogger.info("Vui lòng nhập lý do (VD: Vỡ ly, Hỏng TV)!");
+    if (!damagePrice || damagePrice <= 0) return auditLogger.info("Vui lòng nhập số tiền phạt hợp lệ!");
 
     try {
       await axios.post(`https://localhost:5070/api/Reception/report-damage/${selectedBooking.id}`, {
         description: damageDescription, 
         fineAmount: damagePrice         
       });
-      message.success("Đã ghi nhận phạt đền bù thành công!");
+      
+      auditLogger.success("Đã ghi nhận phạt đền bù thành công!", {
+        actionType: "UPDATE",
+        module: "Lưu Trú (In-House)",
+        objectName: `Phòng của ${selectedBooking.guestName}`,
+        description: `Báo hỏng đồ đạc: ${damageDescription}. Số tiền phạt: ${damagePrice.toLocaleString()} VNĐ.`
+      });
       setIsDamageModalOpen(false); // Đóng Modal khi thành công
     } catch (err) {
-      message.error(err.response?.data?.message || "Lỗi khi báo hỏng đồ!");
+      auditLogger.error(err.response?.data?.message || "Lỗi khi báo hỏng đồ!", { module: "Lưu Trú (In-House)" });
     }
   };
 
@@ -105,7 +119,7 @@ const InHouse = () => {
       const res = await axios.get(`https://localhost:5070/api/Invoices/preview/${record.id}`);
       setBookingDetails(res.data);
       setIsDetailModalOpen(true);
-    } catch (err) { message.error("Không lấy được thông tin tiêu thụ của phòng!"); }
+    } catch (err) { auditLogger.error("Không lấy được thông tin tiêu thụ của phòng!", { module: "Lưu Trú (In-House)" }); }
   };
 
   // ==========================================

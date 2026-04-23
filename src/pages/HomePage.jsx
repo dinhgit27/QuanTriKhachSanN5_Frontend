@@ -10,7 +10,7 @@ import {
 } from '@ant-design/icons';
 import { Swiper, SwiperSlide } from 'swiper/react';
 import { Navigation } from 'swiper/modules';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 
 // Import CSS của Swiper
 import 'swiper/css';
@@ -39,7 +39,7 @@ const HomePage = () => {
     { key: '2', label: 'Phòng' },
     { key: '3', label: 'Dịch vụ' },
     { key: '4', label: 'Đặt phòng' },
-    { key: '5', label: 'Blog' }
+    { key: '5', label: <Link to="/blog">Blog</Link> }
   ];
 
   return (

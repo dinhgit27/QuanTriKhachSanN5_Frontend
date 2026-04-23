@@ -8,6 +8,7 @@ import HomePage from "./pages/HomePage";
 import AdminLayout from "./layouts/AdminLayout";
 import LoginPage from "./pages/LoginPage";
 import UserListPage from "./pages/admin/UserListPage";
+import PostListPage from "./pages/admin/PostListPage";
 import RoomManagement from "./pages/admin/RoomManagement";
 import InventoryManagement from "./pages/admin/InventoryManagement";
 import ReceptionistDashboard from "./pages/receptionist/ReceptionistDashboard";
@@ -19,7 +20,8 @@ import WarehouseManagement from "./pages/admin/WarehouseManagement";
 import LossAndDamageManagement from "./pages/admin/LossAndDamageManagement";
 import AuditLogsPage from "./pages/admin/AuditLogsPage"; 
 import HousekeepingManagement from './pages/admin/HousekeepingManagement';
-
+import BlogPage from "./pages/guest/BlogPage"; // Sửa đường dẫn nếu bạn lưu chỗ khác
+import BlogDetailPage from "./pages/guest/BlogDetailPage";
 
 const NotFoundPage = () => <h1>404 - Đường dẫn này không tồn tại 😢</h1>;
 const UnauthorizedPage = () => (
@@ -38,7 +40,8 @@ function App() {
         <Route path="/register" element={<RegisterPage />} />
         <Route path="/forgot-password" element={<ForgotPasswordPage />} />
         <Route path="/unauthorized" element={<UnauthorizedPage />} />
-        
+        <Route path="/blog" element={<BlogPage />} />
+        <Route path="/blog/:id" element={<BlogDetailPage />} />
         
         {/* ĐÃ BẾ TRANG LOSS-AND-DAMAGE KHỎI ĐÂY VÌ NÓ LÀ VÙNG CẤM */}
 
@@ -62,6 +65,7 @@ function App() {
               <Route path="/admin/inventory" element={<InventoryManagement />} />
               <Route path="/admin/audit" element={<AuditLogsPage />} />
               <Route path="/admin/housekeeping" element={<HousekeepingManagement />} />
+              <Route path="/admin/posts" element={<PostListPage />} />
             </Route>
           </Route>
           

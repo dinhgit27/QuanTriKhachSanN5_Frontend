@@ -8,6 +8,7 @@ import LoginPage from '../pages/auth/LoginPage';
 import UserListPage from '../pages/admin/UserListPage';
 import AuditLogsPage from '../pages/admin/AuditLogsPage';
 import UserProfilePage from '../pages/profile/UserProfilePage';
+import PostListPage from '../pages/admin/PostListPage';
 
 // 👉 Thêm RequirePermission
 import RequirePermission from '../components/RequirePermission';
@@ -41,6 +42,9 @@ const AdminRoutes = () => {
 
         {/* Audit Logs */}
         <Route path="audit" element={<AuditLogsPage />} />
+
+        {/* 👉 THÊM DÒNG NÀY: Route cho Quản lý Bài viết */}
+        <Route path="posts" element={<PostListPage />} />
 
         {/* Không cần permission */}
         <Route path="profile" element={<UserProfilePage />} />

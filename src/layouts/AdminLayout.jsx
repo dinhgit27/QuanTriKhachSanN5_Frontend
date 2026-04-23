@@ -12,7 +12,8 @@ import {
   InboxOutlined,      // Icon cho Kho vật tư
   ShopOutlined,       // Icon cho Vật tư phòng
   WarningOutlined,    // Icon cho Biên bản đền bù
-  ClearOutlined       // THÊM: Icon cho Dọn phòng
+  ClearOutlined,       // THÊM: Icon cho Dọn phòng
+  FileTextOutlined    // 👉 THÊM ICON BÀI VIẾT NÀY VÀO
 } from "@ant-design/icons";
 
 // Ní nhớ import đúng store/utils của ní nha
@@ -88,6 +89,12 @@ const AdminLayout = () => {
           key: "/admin/audit",
           icon: <SafetyCertificateOutlined />,
           label: <Link to="/admin/audit">Audit Logs</Link>,
+        },
+        // 👉 THÊM MENU BÀI VIẾT VÀO ĐÂY:
+        isAdmin && {
+          key: "/admin/posts",
+          icon: <FileTextOutlined />,
+          label: <Link to="/admin/posts">Quản lý Bài viết</Link>,
         },
         // THÊM: Menu Dọn phòng (Admin và Housekeeping đều thấy)
         (isAdmin || isHousekeeping) && {

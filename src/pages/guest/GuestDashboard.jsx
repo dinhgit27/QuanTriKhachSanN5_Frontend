@@ -9,7 +9,7 @@ import {
   CalendarOutlined, TrophyOutlined, CreditCardOutlined,
   FacebookFilled, InstagramFilled, TwitterOutlined, YoutubeFilled
 } from "@ant-design/icons";
-import { useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 
 const { Header, Content, Sider, Footer } = Layout;
 const { Title, Text } = Typography;
@@ -25,6 +25,21 @@ const COLORS = {
 
 const GuestDashboard = () => {
   const navigate = useNavigate();
+
+  const headerMenuItems = [
+    { key: '1', label: <Link to="/homepage">Trang chủ</Link> },
+    { key: '2', label: <Link to="/guest/bookings">Đặt phòng</Link> },
+    { key: '3', label: <Link to="/guest/profile">Tài khoản</Link> }
+  ];
+
+  const sidebarMenuItems = [
+    { key: '1', icon: <DashboardOutlined />, label: <Link to="/guest/dashboard">Tổng quan</Link> },
+    { key: '2', icon: <HistoryOutlined />, label: <Link to="/guest/dashboard">Lịch sử đặt phòng</Link> },
+    { key: '3', icon: <FileTextOutlined />, label: <Link to="/guest/dashboard">Hóa đơn</Link> },
+    { key: '4', icon: <TrophyOutlined />, label: <Link to="/guest/dashboard">Hạng thành viên</Link> },
+    { key: '5', icon: <StarOutlined />, label: <Link to="/guest/dashboard">Đánh giá của tôi</Link> },
+    { key: '6', icon: <SettingOutlined />, label: <Link to="/guest/profile">Cài đặt tài khoản</Link> }
+  ];
 
   const handleLogout = () => {
     localStorage.removeItem("token");
@@ -54,11 +69,7 @@ const GuestDashboard = () => {
           <Title level={4} style={{ margin: 0, color: COLORS.dark, letterSpacing: '1px' }}>GRAND HOTEL</Title>
         </div>
         
-        <Menu mode="horizontal" defaultSelectedKeys={['3']} style={{ border: 'none', flex: 1, justifyContent: 'center' }}>
-          <Menu.Item key="1">Trang chủ</Menu.Item>
-          <Menu.Item key="2">Đặt phòng</Menu.Item>
-          <Menu.Item key="3">Tài khoản</Menu.Item>
-        </Menu>
+        <Menu mode="horizontal" defaultSelectedKeys={['3']} items={headerMenuItems} style={{ border: 'none', flex: 1, justifyContent: 'center' }} />
 
         <Space size="middle">
           <div style={{ textAlign: 'right' }}>
@@ -88,14 +99,7 @@ const GuestDashboard = () => {
               mode="vertical"
               defaultSelectedKeys={['1']}
               style={{ border: 'none', textAlign: 'left' }}
-              items={[
-                { key: '1', icon: <DashboardOutlined />, label: 'Tổng quan' },
-                { key: '2', icon: <HistoryOutlined />, label: 'Lịch sử đặt phòng' },
-                { key: '3', icon: <FileTextOutlined />, label: 'Hóa đơn' },
-                { key: '4', icon: <TrophyOutlined />, label: 'Hạng thành viên' },
-                { key: '5', icon: <StarOutlined />, label: 'Đánh giá của tôi' },
-                { key: '6', icon: <SettingOutlined />, label: 'Cài đặt tài khoản' },
-              ]}
+              items={sidebarMenuItems}
             />
             
             <Button 
@@ -185,9 +189,9 @@ const GuestDashboard = () => {
           <Col span={6}>
             <Title level={5} style={{ color: '#fff' }}>Liên kết nhanh</Title>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-              <Text style={{ color: COLORS.gray }}>Trang chủ</Text>
-              <Text style={{ color: COLORS.gray }}>Đặt phòng</Text>
-              <Text style={{ color: COLORS.gray }}>Tài khoản</Text>
+              <Link to="/homepage" style={{ color: COLORS.gray }}>Trang chủ</Link>
+              <Link to="/guest/bookings" style={{ color: COLORS.gray }}>Đặt phòng</Link>
+              <Link to="/guest/profile" style={{ color: COLORS.gray }}>Tài khoản</Link>
             </div>
           </Col>
           <Col span={6}>
@@ -228,7 +232,7 @@ const BookingItem = ({ image, name, date, status, statusColor, price, isHighligh
     </Space>
     <div style={{ textAlign: 'right' }}>
       <Title level={4} style={{ color: COLORS.gold, margin: 0 }}>{price}</Title>
-      <Button type="link" style={{ color: COLORS.dark }}>Xem chi tiết →</Button>
+      <Link to="/guest/bookings" style={{ color: COLORS.dark, fontWeight: 600 }}>Xem chi tiết →</Link>
     </div>
   </div>
 );

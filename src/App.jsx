@@ -23,6 +23,8 @@ import BookingManagement from "./pages/admin/BookingManagement";
 import CheckoutList from "./pages/admin/CheckoutList";
 import InvoicePage from "./pages/receptionist/InvoicePage";
 import CheckoutPage from "./pages/receptionist/CheckoutPage";
+import UserProfilePage from "./pages/profile/UserProfilePage";
+import BookingPage from "./pages/guest/BookingPage";
 
 // IMPORT 2 TRANG LỄ TÂN
 import Arrivals from "./pages/admin/Arrivals";
@@ -99,6 +101,8 @@ function App() {
           {/* --- KHU VỰC DÀNH CHO GUEST --- */}
           <Route element={<RoleBasedRoute allowedRoles={["Guest"]} />}>
             <Route path="/guest/dashboard" element={<GuestDashboard />} />
+            <Route path="/guest/bookings" element={<BookingPage />} />
+            <Route path="/guest/profile" element={<UserProfilePage />} />
           </Route>
 
         </Route>

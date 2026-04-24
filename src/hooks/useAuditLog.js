@@ -17,9 +17,9 @@ export const useAuditLog = () => {
     description = '',
     oldValue = null,
     newValue = null,
-    userName = 'Admin',
-    email = 'admin@hotel.com',
-    userId = 'USR001',
+    userName = localStorage.getItem('userName') || 'User',
+    email = localStorage.getItem('userEmail') || '',
+    userId = localStorage.getItem('userId') || null,
     ipAddress = '127.0.0.1',
   }) => {
     console.log('📝 [Audit Log] Logging action:', { action, module, objectName, description });

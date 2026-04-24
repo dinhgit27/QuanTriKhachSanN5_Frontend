@@ -112,8 +112,15 @@ const AuditLogsPage = () => {
       const response = await auditLogApi.getAuditLogs();
       const mockData = response.data || [];
 
-      // Combine mock data + store logs
-      const combinedLogs = [...storeAuditLogs, ...mockData];
+      // Combine and remove duplicates by ID or composite key
+      const allLogs = [...storeAuditLogs, ...mockData];
+      const seen = new Set();
+      const combinedLogs = allLogs.filter(log => {
+        const key = log.eventId || `${log.timestamp}-${log.description}`;
+        if (seen.has(key)) return false;
+        seen.add(key);
+        return true;
+      });
       
       setAuditLogs(combinedLogs);
       setFilteredLogs(combinedLogs);

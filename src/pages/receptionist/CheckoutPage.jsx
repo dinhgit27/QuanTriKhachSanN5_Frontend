@@ -1,31 +1,34 @@
 import React, { useState } from "react";
-import { Card, InputNumber, Button, message, Typography, Divider, QRCode } from "antd";
+import { Card, InputNumber, Button, Typography, Divider, QRCode } from "antd";
 import invoiceAPI from "../../api/invoiceAPI";
+import { auditLogger } from "../../utils/auditLogger";
 
 const { Title, Text } = Typography;
 
-const getMomoQRCodeValue = (amount, bookingCode) => {
-    const momoPhone = import.meta.env.VITE_MOMO_PHONE || "0901234567";
-    const momoMerchantName = import.meta.env.VITE_MOMO_NAME || "IT CODE HOTEL";
-    const payloadNote = `Thanh toan hoa don ${bookingCode}`;
-    const finalAmount = Math.round(Number(amount) || 0);
 
-    return `2|0|${momoMerchantName}|${momoPhone}||0|0|${finalAmount}|${payloadNote}`;
-};
 
 const CheckoutPage = () => {
     const [bookingId, setBookingId] = useState(1);
     const [preview, setPreview] = useState(null);
+    const [momoData, setMomoData] = useState(null);
     const [loading, setLoading] = useState(false);
 
     // 🔍 Xem trước hóa đơn
     const handlePreview = async () => {
         try {
             setLoading(true);
+            setMomoData(null);
             const res = await invoiceAPI.preview(bookingId);
             setPreview(res.data);
+
+            try {
+                const momoRes = await invoiceAPI.createMomoPayment(bookingId);
+                setMomoData(momoRes.data);
+            } catch (err) {
+                console.error("Không tạo được link MoMo:", err);
+            }
         } catch (err) {
-            message.error("Không xem được hóa đơn!");
+            auditLogger.error("Không xem được hóa đơn!", { module: "Thanh Toán", objectName: `Booking #${bookingId}` });
         } finally {
             setLoading(false);
         }
@@ -37,10 +40,15 @@ const CheckoutPage = () => {
             setLoading(true);
             await invoiceAPI.checkout(bookingId);
 
-            message.success("Checkout thành công!");
+            auditLogger.success("Checkout thành công!", { 
+                actionType: "CHECKOUT", 
+                module: "Thanh Toán", 
+                objectName: `Booking #${bookingId}`,
+                description: `Checkout thành công cho đơn đặt phòng ID: ${bookingId}`
+            });
             setPreview(null);
         } catch (err) {
-            message.error(err.response?.data?.message || "Lỗi checkout!");
+            auditLogger.error(err.response?.data?.message || "Lỗi checkout!", { module: "Thanh Toán", objectName: `Booking #${bookingId}` });
         } finally {
             setLoading(false);
         }
@@ -86,9 +94,19 @@ const CheckoutPage = () => {
                     </Title>
 
                     <div style={{ textAlign: "center", margin: "20px 0" }}>
-                        <Title level={5}>Quét mã Momo để thanh toán</Title>
-                        <QRCode value={getMomoQRCodeValue(preview.finalTotal, preview.bookingCode)} size={160} style={{ margin: "auto" }} />
-                        <Text type="secondary" style={{ display: 'block', marginTop: 8 }}>Momo: {import.meta.env.VITE_MOMO_PHONE || '090 123 4567'} ({import.meta.env.VITE_MOMO_NAME || 'IT CODE HOTEL'})</Text>
+                        <Title level={5}>Thanh toán qua MoMo</Title>
+                        {momoData ? (
+                            <>
+                                <img src={momoData.qrCodeUrl} alt="MoMo QR Code" width={200} style={{ margin: "auto", display: "block", borderRadius: 8, border: "1px solid #ddd" }} />
+                                <div style={{ marginTop: 16 }}>
+                                    <Button type="primary" href={momoData.payUrl} target="_blank">
+                                        Mở trang thanh toán
+                                    </Button>
+                                </div>
+                            </>
+                        ) : (
+                            <Text type="secondary">Đang tải mã thanh toán MoMo...</Text>
+                        )}
                     </div>
 
                     <Text type="secondary">{preview.note}</Text>

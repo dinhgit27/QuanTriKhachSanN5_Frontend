@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import dayjs from 'dayjs';
+import { auditLogApi } from '../api/auditLogApi';
 
 /**
  * Zustand Store để quản lý Audit Logs toàn cộng
@@ -19,16 +20,20 @@ export const useAuditLogStore = create(
 
   // Thêm audit log mới
   addAuditLog: (logData) => {
+    const userName = logData.userName || localStorage.getItem('userName') || 'User';
+    const email = logData.email || localStorage.getItem('userEmail') || '';
+
     const newLog = {
       id: Date.now(),
       timestamp: dayjs().format('YYYY-MM-DDTHH:mm:ss'),
+      userName,
+      email,
       ...logData,
     };
 
     console.log('🔔 [Store] addAuditLog called:', newLog);
 
     set((state) => {
-      console.log('📦 [Store] Updating state. Old count:', state.auditLogs.length, 'New count:', state.auditLogs.length + 1);
       return {
         auditLogs: [newLog, ...state.auditLogs],
         notifications: [newLog, ...state.notifications],
@@ -36,7 +41,11 @@ export const useAuditLogStore = create(
       };
     });
 
-    console.log('✅ [Store] State updated successfully');
+    // Sync to backend database real-time
+    // We send it to backend, which will use the JWT token to identify the real User/Role
+    auditLogApi.createAuditLog(newLog).catch(err => {
+      console.warn('⚠️ Could not sync audit log to database. It is saved locally.', err);
+    });
 
     return newLog;
   },

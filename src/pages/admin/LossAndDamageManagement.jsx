@@ -8,7 +8,8 @@ import {
   ClockCircleOutlined, PictureOutlined, ReloadOutlined 
 } from '@ant-design/icons';
 import axios from 'axios';
-import { useAuditLog } from '../../hooks/useAuditLog';
+import { roleAPI } from '../../api/roleApi';
+import { auditLogger } from '../../utils/auditLogger';
 import { useDamageEventStore } from '../../store/damageEventStore';
 
 const { Title, Text } = Typography;
@@ -16,7 +17,6 @@ const { Title, Text } = Typography;
 const LossAndDamageManagement = () => {
   const [data, setData] = useState([]);
   const [loading, setLoading] = useState(false);
-  const { logAction } = useAuditLog();
 
   // 🚨 BÍ KÍP MỚI TẠI ĐÂY: Móc trực tiếp cái biến tín hiệu ra (Cách này 1000% không bao giờ xịt)
   const lastDamageUpdate = useDamageEventStore((state) => state.lastDamageUpdate);
@@ -70,7 +70,7 @@ const LossAndDamageManagement = () => {
         }
       );
       
-      logAction({
+      auditLogger.success(`Đã cập nhật trạng thái biên bản #DB${id} thành: ${newStatus}`, {
         action: 'Cập nhật',
         actionType: 'UPDATE',
         module: 'Biên Bản Thiệt Hại',

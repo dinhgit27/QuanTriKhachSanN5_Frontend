@@ -6,14 +6,6 @@ import invoiceAPI from "../../api/invoiceAPI";
 
 const { Title, Text } = Typography;
 
-const getMomoQRCodeValue = (amount, bookingCode) => {
-  const momoPhone = import.meta.env.VITE_MOMO_PHONE || "0901234567";
-  const momoMerchantName = import.meta.env.VITE_MOMO_NAME || "IT CODE HOTEL";
-  const payloadNote = `Thanh toan hoa don ${bookingCode}`;
-  const finalAmount = Math.round(Number(amount) || 0);
-
-  return `2|0|${momoMerchantName}|${momoPhone}||0|0|${finalAmount}|${payloadNote}`;
-};
 
 const InvoicePage = () => {
   const navigate = useNavigate();
@@ -195,17 +187,7 @@ const InvoicePage = () => {
 
         <Divider style={{ borderColor: '#d9d9d9' }} />
 
-        <Row justify="space-between">
-          <Col span={10} style={{ textAlign: 'center' }}>
-            <Title level={5}>Quét mã Momo để thanh toán</Title>
-            <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 8 }}>
-              <QRCode
-                value={getMomoQRCodeValue(invoiceData.finalTotal, invoiceData.bookingCode)}
-                size={160}
-              />
-            </div>
-            <Text type="secondary">Momo: {import.meta.env.VITE_MOMO_PHONE || '090 123 4567'} ({import.meta.env.VITE_MOMO_NAME || 'IT CODE HOTEL'})</Text>
-          </Col>
+        <Row justify="end">
           <Col span={10}>
             <Row justify="space-between" style={{ marginBottom: 8 }}>
               <Text>Cộng tiền phòng:</Text>

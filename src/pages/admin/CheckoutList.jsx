@@ -4,6 +4,7 @@ import { LogoutOutlined, ExclamationCircleOutlined, EyeOutlined } from '@ant-des
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import dayjs from 'dayjs';
+import invoiceAPI from '../../api/invoiceAPI';
 
 const { Title, Text } = Typography;
 const { confirm } = Modal;
@@ -17,6 +18,7 @@ const CheckoutList = () => {
   const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
   const [bookingDetails, setBookingDetails] = useState(null);
   const [selectedBooking, setSelectedBooking] = useState(null);
+  const [momoData, setMomoData] = useState(null);
 
   const fetchData = async () => {
     setLoading(true);
@@ -33,10 +35,19 @@ const CheckoutList = () => {
   // 🚨 HÀM XEM CHI TIẾT TIÊU THỤ TRƯỚC KHI TRẢ PHÒNG
   const handleViewDetails = async (record) => {
     setSelectedBooking(record);
+    setMomoData(null);
     try {
-      const res = await axios.get(`https://localhost:5070/api/Invoices/preview/${record.id}`);
+      const res = await invoiceAPI.preview(record.id);
       setBookingDetails(res.data);
       setIsDetailModalOpen(true);
+
+      // Gọi API MoMo để sinh mã QR thanh toán
+      try {
+        const momoRes = await invoiceAPI.createMomoPayment(record.id);
+        setMomoData(momoRes.data);
+      } catch (err) {
+        console.error("Lỗi tạo QR MoMo:", err);
+      }
     } catch (err) { message.error("Không lấy được thông tin tiêu thụ!"); }
   };
 
@@ -122,6 +133,22 @@ const CheckoutList = () => {
             <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 18 }}>
               <Text strong style={{ color: '#f5222d' }}>TỔNG THANH TOÁN:</Text>
               <Text strong style={{ color: '#f5222d' }}>{bookingDetails.finalTotal?.toLocaleString()} đ</Text>
+            </div>
+
+            <div style={{ textAlign: "center", marginTop: 24 }}>
+                <Title level={5}>Thanh toán qua MoMo</Title>
+                {momoData ? (
+                    <>
+                        <img src={momoData.qrCodeUrl} alt="MoMo QR Code" width={180} style={{ margin: "auto", display: "block", borderRadius: 8, border: "1px solid #ddd" }} />
+                        <div style={{ marginTop: 16 }}>
+                            <Button type="primary" href={momoData.payUrl} target="_blank">
+                                Mở trang thanh toán
+                            </Button>
+                        </div>
+                    </>
+                ) : (
+                    <Text type="secondary">Đang tải mã thanh toán MoMo...</Text>
+                )}
             </div>
           </div>
         )}

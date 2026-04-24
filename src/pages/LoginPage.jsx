@@ -7,6 +7,7 @@ import { useNavigate, Link } from "react-router-dom";
 import { useAdminAuthStore } from "../store/adminAuthStore";
 import { authAPI } from "../api/authApi";
 import { jwtDecode } from "jwt-decode";
+import { auditLogger } from "../utils/auditLogger";
 
 const { Title, Text } = Typography;
 const COLORS = {
@@ -49,10 +50,18 @@ const LoginPage = () => {
       // ✅ Lưu
       localStorage.setItem("token", token);
       localStorage.setItem("user", JSON.stringify(user));
+      localStorage.setItem("userId", user.id);
+      localStorage.setItem("userName", user.fullName);
+      localStorage.setItem("userEmail", user.email);
 
       setAuth(token, user, permissions);
 
-      message.success("Đăng nhập thành công!");
+      auditLogger.success("Đăng nhập thành công!", { 
+        actionType: "LOGIN", 
+        module: "Hệ thống", 
+        objectName: "Tài khoản",
+        description: `Người dùng ${user.fullName} (${user.email}) đã đăng nhập vào hệ thống.`
+      });
 
       // ✅ 🔥 DÙNG roles (KHÔNG dùng user.role nữa)
       if (roles.includes("Admin")) {
@@ -67,7 +76,7 @@ const LoginPage = () => {
     } catch (error) {
       const errorMsg =
         error.response?.data?.message || "Tài khoản hoặc mật khẩu không đúng!";
-      message.error(errorMsg);
+      auditLogger.error(errorMsg, { module: "Hệ thống", objectName: "Đăng nhập" });
     } finally {
       setLoading(false);
     }

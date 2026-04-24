@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { Row, Col, Card, Badge, Modal, Table, Button, Typography, message, Spin, Empty, Tag, Space, Popconfirm } from 'antd';
+import { Row, Col, Card, Badge, Modal, Table, Button, Typography, Spin, Empty, Tag, Space, Popconfirm } from 'antd';
 import { ClearOutlined, CheckCircleOutlined, ExclamationCircleOutlined, SyncOutlined, BuildOutlined } from '@ant-design/icons';
 import axios from 'axios';
-import { useAuditLogStore } from '../../store/auditLogStore';
+import { auditLogger } from '../../utils/auditLogger';
 
 const { Title, Text } = Typography;
 
@@ -15,9 +15,6 @@ const HousekeepingManagement = () => {
   const [roomInventory, setRoomInventory] = useState([]);
   const [isInventoryVisible, setIsInventoryVisible] = useState(false);
   const [loadingInventory, setLoadingInventory] = useState(false);
-
-  // Audit log store
-  const addAuditLog = useAuditLogStore((state) => state.addAuditLog);
 
 
   const fetchCleaningRooms = async () => {
@@ -42,7 +39,7 @@ const HousekeepingManagement = () => {
 
       setRooms(cleaningRooms);
     } catch (err) {
-      message.error("Lỗi khi tải danh sách phòng cần dọn!");
+      auditLogger.error("Lỗi khi tải danh sách phòng cần dọn!", { module: "Nhiệm vụ Dọn Phòng" });
     } finally {
       setLoadingRooms(false);
     }
@@ -68,11 +65,8 @@ const HousekeepingManagement = () => {
       // Lấy thông tin phòng
       const room = rooms.find(r => r.id === roomId);
       
-      // Thêm audit log
-      addAuditLog({
-        userId: 'USR_CURRENT',
-        userName: userName,
-        email: userEmail,
+      
+      auditLogger.success(`✅ Đã hoàn tất dọn sạch phòng ${room?.roomNumber}! Phòng sẵn sàng đón khách.`, {
         action: 'Hoàn tất',
         actionType: 'UPDATE',
         module: 'Nhiệm vụ Dọn Phòng',
@@ -81,12 +75,10 @@ const HousekeepingManagement = () => {
         oldValue: { status: 'Cleaning', cleaningStatus: 'Cleaning' },
         newValue: { status: 'Available', cleaningStatus: 'Clean' },
       });
-      
-      message.success(`✅ Đã hoàn tất dọn sạch phòng ${room?.roomNumber}! Phòng sẵn sàng đón khách.`);
       fetchCleaningRooms(); // Load lại là bay màu ngay lập tức!
     } catch (error) {
       console.error(error);
-      message.error("❌ Lỗi khi cập nhật trạng thái phòng!");
+      auditLogger.error("❌ Lỗi khi cập nhật trạng thái phòng!", { module: 'Nhiệm vụ Dọn Phòng' });
     }
   };
 
@@ -106,10 +98,7 @@ const HousekeepingManagement = () => {
       setRoomInventory(res.data);
       
       // Thêm audit log cho việc kiểm tra đồ đạc
-      addAuditLog({
-        userId: 'USR_CURRENT',
-        userName: userName,
-        email: userEmail,
+      auditLogger.success(`📋 Đang kiểm tra ${res.data.length} vật tư của phòng ${room.roomNumber}`, {
         action: 'Kiểm tra',
         actionType: 'OTHER',
         module: 'Nhiệm vụ Dọn Phòng',
@@ -117,10 +106,8 @@ const HousekeepingManagement = () => {
         description: `Bắt đầu kiểm tra tài sản và vật tư của phòng ${room.roomNumber}. Tổng ${res.data.length} vật tư cần kiểm tra.`,
         newValue: { totalItems: res.data.length, activeItems: res.data.filter(i => i.isActive).length },
       });
-      
-      message.info(`📋 Đang kiểm tra ${res.data.length} vật tư của phòng ${room.roomNumber}`);
     } catch (err) {
-      message.error("❌ Lỗi tải danh sách vật tư!");
+      auditLogger.error("❌ Lỗi tải danh sách vật tư!", { module: 'Nhiệm vụ Dọn Phòng' });
     } finally {
       setLoadingInventory(false);
     }
@@ -153,10 +140,7 @@ const HousekeepingManagement = () => {
           });
           
           // Thêm audit log cho báo hỏng
-          addAuditLog({
-            userId: 'USR_CURRENT',
-            userName: userName,
-            email: userEmail,
+          auditLogger.success(`✅ Đã lập biên bản báo hỏng ${record.amenity?.name}! Lễ tân đã nhận được thông báo.`, {
             action: 'Báo hỏng',
             actionType: 'CREATE',
             module: 'Nhiệm vụ Dọn Phòng',
@@ -171,13 +155,11 @@ const HousekeepingManagement = () => {
             },
           });
           
-          message.success(`✅ Đã lập biên bản báo hỏng ${record.amenity?.name}! Lễ tân đã nhận được thông báo.`);
-          
           setRoomInventory(prev => prev.map(item => 
               item.id === record.id ? { ...item, isActive: false } : item
           ));
         } catch (error) {
-          message.error("❌ Lỗi báo hỏng!");
+          auditLogger.error("❌ Lỗi báo hỏng!", { module: 'Nhiệm vụ Dọn Phòng' });
         }
       }
     });
@@ -291,11 +273,9 @@ const HousekeepingManagement = () => {
                 headers: { Authorization: `Bearer ${token}` }
               });
               
+              
               // Thêm audit log hoàn thành kiểm tra
-              addAuditLog({
-                userId: 'USR_CURRENT',
-                userName: userName,
-                email: userEmail,
+              auditLogger.success(`✅ Hoàn thành kiểm tra phòng ${selectedRoom?.roomNumber}! Trạng thái đã được cập nhật.`, {
                 action: 'Hoàn thành',
                 actionType: 'UPDATE',
                 module: 'Nhiệm vụ Dọn Phòng',
@@ -309,12 +289,11 @@ const HousekeepingManagement = () => {
                 },
               });
               
-              message.success(`✅ Hoàn thành kiểm tra phòng ${selectedRoom?.roomNumber}! Trạng thái đã được cập nhật.`);
               setIsInventoryVisible(false);
               fetchCleaningRooms(); // Tải lại danh sách phòng
             } catch (error) {
               console.error(error);
-              message.error("❌ Lỗi khi cập nhật trạng thái phòng!");
+              auditLogger.error("❌ Lỗi khi cập nhật trạng thái phòng!", { module: 'Nhiệm vụ Dọn Phòng' });
             }
           }}>Đã kiểm tra xong</Button>
         ]}

@@ -39,16 +39,54 @@ import api from './axios';
  * API Audit Logs
  */
 export const auditLogApi = {
-  // Lấy danh sách audit logs
-  getAuditLogs: (params = {}) => {
-    // Thực tế sẽ gọi: api.get('/audit-logs', { params })
-    // Bây giờ trả về mock data
-    return Promise.resolve({ data: MOCK_AUDIT_LOGS });
+  // Lấy danh sách audit logs từ backend
+  getAuditLogs: async (params = {}) => {
+    try {
+      const response = await api.get('/audit-logs', { params });
+      const rawLogs = response.data?.data || [];
+      
+      // Flatten batched events from logData
+      const flattenedLogs = [];
+      rawLogs.forEach(log => {
+        try {
+          const payload = JSON.parse(log.logData);
+          if (payload && payload.events) {
+            payload.events.forEach(event => {
+              flattenedLogs.push({
+                ...event,
+                id: event.eventId || `${log.id}-${event.timestamp}`, // Ensure unique ID
+                userName: log.userName || event.userName,
+                roleName: log.roleName,
+                timestamp: event.timestamp || log.timestamp
+              });
+            });
+          } else {
+            // Fallback for non-batched logs
+            flattenedLogs.push({
+              ...log,
+              id: log.id,
+              description: log.logData
+            });
+          }
+        } catch (e) {
+          flattenedLogs.push({
+            ...log,
+            id: log.id,
+            description: log.logData
+          });
+        }
+      });
+
+      return { data: flattenedLogs };
+    } catch (error) {
+      console.error('Failed to fetch audit logs from backend:', error);
+      return { data: MOCK_AUDIT_LOGS }; // Fallback to mock
+    }
   },
 
-  // Lọc audit logs
+  // Lọc audit logs (dùng chung getAuditLogs với params)
   filterAuditLogs: (filters = {}) => {
-    return Promise.resolve({ data: MOCK_AUDIT_LOGS });
+    return auditLogApi.getAuditLogs(filters);
   },
 
   // Lấy chi tiết một audit log
@@ -66,43 +104,29 @@ export const auditLogApi = {
 
   createAuditLog: async (eventsInput) => {
     try {
-      // Normalize input: single event obj -> array, or already array
       let events = Array.isArray(eventsInput) ? eventsInput : [eventsInput];
 
-      // Add common fields to each event
-      const timestamp = new Date().toISOString();
-      const userId = localStorage.getItem('userId') || 'USR_CURRENT';
-      const userName = localStorage.getItem('userName') || 'Housekeeper';
-      const email = localStorage.getItem('email') || 'housekeeper@hotel.com';
-      const ipAddress = '192.168.1.XXX'; // TODO: Get real IP
-
+      // Normalize events
       events = events.map(event => ({
-        timestamp,
-        userId,
-        userName,
-        email,
-        ipAddress,
+        eventId: event.eventId || `evt_${Date.now()}_${Math.floor(Math.random() * 1000)}`,
+        timestamp: event.timestamp || new Date().toISOString(),
+        actionType: event.actionType || 'OTHER',
+        module: event.module || 'Hệ thống',
+        objectName: event.objectName || 'Web App',
+        description: event.description || '',
         ...event
       }));
 
-      // Build batch payload {TotalEvents, Events: []}
       const payload = {
-        TotalEvents: events.length,
-        Events: events
+        totalEvents: events.length,
+        events: events
       };
 
-      // Axios serializes to minified JSON automatically
       const response = await api.post('/audit-logs', payload);
       return response;
     } catch (error) {
-      console.error('Backend batch audit log failed, using mock:', error);
-      // Fallback mock: add individual events to MOCK_AUDIT_LOGS
-      const newEvents = (Array.isArray(eventsInput) ? eventsInput : [eventsInput]).map((event, index) => ({
-        id: Date.now() + index,
-        ...event
-      }));
-      MOCK_AUDIT_LOGS.unshift(...newEvents);
-      return Promise.resolve({ data: { success: true, events: newEvents } });
+      console.error('❌ Backend audit log sync failed:', error);
+      throw error;
     }
   },
 };

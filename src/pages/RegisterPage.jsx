@@ -3,6 +3,7 @@ import { Form, Input, Button, Typography, message, Row, Col } from 'antd';
 import { UserOutlined, LockOutlined, MailOutlined, PhoneOutlined, BankFilled } from '@ant-design/icons';
 import { Link, useNavigate } from 'react-router-dom';
 import { authAPI } from '../api/authApi';
+import { auditLogger } from '../utils/auditLogger';
 
 const { Title, Text } = Typography;
 
@@ -35,12 +36,17 @@ const RegisterPage = () => {
       // 2. Gửi cục data mới này xuống Backend
       await authAPI.register(payloadToSend); 
       
-      message.success('Đăng ký thành công! Đang chuyển hướng...');
+      auditLogger.success('Đăng ký thành công! Đang chuyển hướng...', {
+        actionType: "CREATE",
+        module: "Hệ thống",
+        objectName: "Tài khoản",
+        description: `Người dùng mới đăng ký: ${values.fullName} (${values.email})`
+      });
       setTimeout(() => navigate('/login'), 1500); 
     } catch (error) {
       // 3. Nếu vẫn lỗi, in ra lỗi cụ thể
       const errorMsg = error.response?.data?.message || 'Lỗi đăng ký, vui lòng thử lại!';
-      message.error(errorMsg);
+      auditLogger.error(errorMsg, { module: "Hệ thống", objectName: "Đăng ký" });
     } finally {
       setLoading(false);
     }

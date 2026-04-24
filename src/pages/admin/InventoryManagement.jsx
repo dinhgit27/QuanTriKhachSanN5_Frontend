@@ -10,14 +10,13 @@ import {
   PictureOutlined, MinusCircleOutlined, FilterOutlined
 } from '@ant-design/icons';
 import axios from 'axios';
-import { useAuditLog } from '../../hooks/useAuditLog';
+import { auditLogger } from '../../utils/auditLogger';
 import { useDamageEventStore } from '../../store/damageEventStore';
 
 const { Title, Text } = Typography;
 const { Option } = Select;
 
 const InventoryManagement = () => {
-  const { logAction } = useAuditLog();
   
   const [rooms, setRooms] = useState([]); 
   const [loadingRooms, setLoadingRooms] = useState(false);
@@ -148,13 +147,15 @@ const InventoryManagement = () => {
         headers: { Authorization: `Bearer ${token}` }
       });
 
-      logAction({
-        action: 'Thêm', actionType: 'CREATE', module: 'Vật Tư Theo Phòng',
+      auditLogger.success(`Đã cấp phát ${payloadBulk.length} vật tư thành công cho phòng ${selectedRoom?.roomNumber}!`, {
+        action: 'Cấp phát',
+        actionType: 'CREATE',
+        module: 'Vật Tư Theo Phòng',
         objectName: `Phòng ${selectedRoom?.roomNumber}`,
-        description: `Cấp phát thêm ${payloadBulk.length} loại vật tư vào phòng`,
+        description: `Cấp phát ${payloadBulk.length} loại vật tư mới`,
+        newValue: payloadBulk
       });
 
-      message.success(`Đã cấp phát ${payloadBulk.length} vật tư thành công!`);
       setIsAddModalVisible(false);
       form.resetFields();
       fetchRoomInventoryDetails(selectedRoom.id);
@@ -200,7 +201,15 @@ const InventoryManagement = () => {
 
           await axios.post('https://localhost:5070/api/LossAndDamages', payload, { headers: { Authorization: `Bearer ${token}` } });
           
-          message.success(`Đã báo hỏng ${record.amenity?.name}!`);
+          auditLogger.success(`Đã báo hỏng ${record.amenity?.name} tại phòng ${selectedRoom?.roomNumber}!`, {
+            action: 'Báo hỏng',
+            actionType: 'CREATE',
+            module: 'Vật Tư Theo Phòng',
+            objectName: `${record.amenity?.name} - Phòng ${selectedRoom?.roomNumber}`,
+            description: `Báo hỏng vật tư ${record.amenity?.name}. Giá đền bù: ${record.amenity?.price}`,
+            newValue: payload
+          });
+
           useDamageEventStore.getState().triggerDamageUpdate();
           fetchRoomInventoryDetails(selectedRoom.id);
         } catch (error) { 
@@ -227,7 +236,17 @@ const InventoryManagement = () => {
     try {
       const token = localStorage.getItem('token');
       await axios.put(`https://localhost:5070/api/RoomInventory/restore/${inventoryId}`, {}, { headers: { Authorization: `Bearer ${token}` } });
-      message.success('Đã xác nhận thay mới thành công!');
+      
+      const item = roomInventory.find(i => i.id === inventoryId);
+      auditLogger.success('Đã xác nhận thay mới vật tư thành công!', {
+        action: 'Thay mới',
+        actionType: 'UPDATE',
+        module: 'Vật Tư Theo Phòng',
+        objectName: `${item?.amenity?.name || 'Vật tư'} - Phòng ${selectedRoom?.roomNumber}`,
+        description: `Thay mới vật tư đã hỏng: ${item?.amenity?.name || 'Vật tư'}`,
+        newValue: { isActive: true }
+      });
+
       useDamageEventStore.getState().triggerDamageUpdate();
       fetchRoomInventoryDetails(selectedRoom.id);
     } catch (error) { message.error("Lỗi cập nhật!"); }

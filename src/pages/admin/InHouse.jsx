@@ -1,14 +1,13 @@
 import React, { useState, useEffect } from 'react';
-import { Card, Typography, Table, Tag, Button, Space, message, Tooltip, Modal, InputNumber, Select, Divider, List, Input } from 'antd';
+import { Card, Typography, Table, Tag, Button, Space, Tooltip, Modal, InputNumber, Select, Divider, List, Input } from 'antd';
 import { PlusCircleOutlined, EyeOutlined, WarningOutlined } from '@ant-design/icons';
 import axios from 'axios';
 import dayjs from 'dayjs';
+import { auditLogger } from '../../utils/auditLogger';
 
 const { Title, Text } = Typography;
 
 const InHouse = () => {
-  const [isDepositModalOpen, setIsDepositModalOpen] = useState(false);
-  const [depositAmount, setDepositAmount] = useState(0);
   const [data, setData] = useState([]);
   const [loading, setLoading] = useState(false);
 
@@ -43,7 +42,7 @@ const InHouse = () => {
 
       const resServices = await axios.get('https://localhost:5070/api/Reception/services-list');
       setServicesList(resServices.data);
-    } catch (error) { message.error("Lỗi khi tải dữ liệu!"); }
+    } catch (error) { auditLogger.error("Lỗi khi tải dữ liệu!", { module: "Lưu Trú (In-House)" }); }
     finally { setLoading(false); }
   };
 
@@ -59,41 +58,25 @@ const InHouse = () => {
     setIsServiceModalOpen(true);
   };
 
-  const submitDeposit = async () => {
-    if (!depositAmount || depositAmount <= 0) {
-      return message.warning("Nhập số tiền hợp lệ!");
-    }
 
-    try {
-      await axios.post(
-        `https://localhost:5070/api/Reception/deposit/${selectedBooking.id}`,
-        { amount: depositAmount },
-        {
-          headers: {
-            Authorization: `Bearer ${localStorage.getItem("token")}`,
-            "Content-Type": "application/json",
-          },
-        }
-      );
-
-      message.success("Đã thêm tiền đặt cọc!");
-      setIsDepositModalOpen(false);
-      fetchData();
-    } catch (err) {
-      message.error("Lỗi thêm tiền cọc!");
-    }
-  };
 
   const submitOrderService = async () => {
-    if (!serviceId) return message.warning("Vui lòng chọn một dịch vụ!");
+    if (!serviceId) return auditLogger.info("Vui lòng chọn một dịch vụ!");
     try {
       await axios.post(`https://localhost:5070/api/Reception/order-service/${selectedBooking.id}`, {
         serviceId: serviceId, quantity: quantity
       });
-      message.success("Đã ghi sổ dịch vụ thành công!");
+
+      const service = servicesList.find(s => s.id === serviceId);
+      auditLogger.success("Đã ghi sổ dịch vụ thành công!", {
+        actionType: "PAYMENT",
+        module: "Lưu Trú (In-House)",
+        objectName: `Phòng của ${selectedBooking.guestName}`,
+        description: `Ghi sổ dịch vụ: ${service?.name} x ${quantity} cho khách ${selectedBooking.guestName}.`
+      });
       setIsServiceModalOpen(false);
     } catch (err) {
-      message.error(err.response?.data?.message || "Lỗi khi thêm dịch vụ!");
+      auditLogger.error(err.response?.data?.message || "Lỗi khi thêm dịch vụ!", { module: "Lưu Trú (In-House)" });
     }
   };
 
@@ -108,18 +91,24 @@ const InHouse = () => {
   };
 
   const submitReportDamage = async () => {
-    if (!damageDescription) return message.warning("Vui lòng nhập lý do (VD: Vỡ ly, Hỏng TV)!");
-    if (!damagePrice || damagePrice <= 0) return message.warning("Vui lòng nhập số tiền phạt hợp lệ!");
+    if (!damageDescription) return auditLogger.info("Vui lòng nhập lý do (VD: Vỡ ly, Hỏng TV)!");
+    if (!damagePrice || damagePrice <= 0) return auditLogger.info("Vui lòng nhập số tiền phạt hợp lệ!");
 
     try {
       await axios.post(`https://localhost:5070/api/Reception/report-damage/${selectedBooking.id}`, {
         description: damageDescription,
         fineAmount: damagePrice
       });
-      message.success("Đã ghi nhận phạt đền bù thành công!");
+
+      auditLogger.success("Đã ghi nhận phạt đền bù thành công!", {
+        actionType: "UPDATE",
+        module: "Lưu Trú (In-House)",
+        objectName: `Phòng của ${selectedBooking.guestName}`,
+        description: `Báo hỏng đồ đạc: ${damageDescription}. Số tiền phạt: ${damagePrice.toLocaleString()} VNĐ.`
+      });
       setIsDamageModalOpen(false); // Đóng Modal khi thành công
     } catch (err) {
-      message.error(err.response?.data?.message || "Lỗi khi báo hỏng đồ!");
+      auditLogger.error(err.response?.data?.message || "Lỗi khi báo hỏng đồ!", { module: "Lưu Trú (In-House)" });
     }
   };
 
@@ -132,7 +121,7 @@ const InHouse = () => {
       const res = await axios.get(`https://localhost:5070/api/Invoices/preview/${record.id}`);
       setBookingDetails(res.data);
       setIsDetailModalOpen(true);
-    } catch (err) { message.error("Không lấy được thông tin tiêu thụ của phòng!"); }
+    } catch (err) { auditLogger.error("Không lấy được thông tin tiêu thụ của phòng!", { module: "Lưu Trú (In-House)" }); }
   };
 
   // ==========================================
@@ -146,21 +135,11 @@ const InHouse = () => {
       render: rooms => <Space wrap>{rooms?.map(r => <Tag color="orange" key={r}>P.{r}</Tag>)}</Space>
     },
     { title: 'Ngày Check-in', dataIndex: 'checkInDate', render: date => dayjs(date).format('HH:mm - DD/MM') },
-    { title: 'Tiền đặt cọc', dataIndex: 'depositAmount', render: amount => amount ? amount.toLocaleString() + ' đ' : '0 đ' },
     {
       title: 'Thao tác', align: 'center', render: (_, record) => (
         <Space>
           <Tooltip title="Xem tiêu thụ">
             <Button icon={<EyeOutlined />} onClick={() => handleViewDetails(record)} />
-          </Tooltip>
-          <Tooltip title="Đặt cọc">
-            <Button onClick={() => {
-              setSelectedBooking(record);
-              setDepositAmount(0);
-              setIsDepositModalOpen(true);
-            }}>
-              Đặt cọc
-            </Button>
           </Tooltip>
           <Tooltip title="Ghi sổ dịch vụ">
             <Button type="dashed" icon={<PlusCircleOutlined />} onClick={() => handleOpenService(record)} style={{ color: '#1890ff', borderColor: '#1890ff' }}>Dịch vụ</Button>
@@ -180,26 +159,7 @@ const InHouse = () => {
       <Text type="secondary">Nơi theo dõi và ghi sổ dịch vụ phát sinh cho khách.</Text>
       <Table style={{ marginTop: 20 }} columns={columns} dataSource={data} rowKey="id" loading={loading} pagination={{ pageSize: 8 }} />
 
-      {/* MODAL ĐẶT CỌC */}
-      <Modal
-        title="Nhập tiền đặt cọc"
-        open={isDepositModalOpen}
-        onOk={submitDeposit}
-        onCancel={() => setIsDepositModalOpen(false)}
-      >
-        <p>Khách: <b>{selectedBooking?.guestName}</b></p>
 
-        <InputNumber
-          style={{ width: "100%" }}
-          min={0}
-          step={50000}
-          value={depositAmount}
-          onChange={setDepositAmount}
-          formatter={(value) =>
-            `${value}`.replace(/\B(?=(\d{3})+(?!\d))/g, ",")
-          }
-        />
-      </Modal>
 
       {/* MODAL GỌI DỊCH VỤ */}
       <Modal title="Ghi sổ Dịch vụ" open={isServiceModalOpen} onOk={submitOrderService} onCancel={() => setIsServiceModalOpen(false)} okText="Ghi sổ" cancelText="Hủy">

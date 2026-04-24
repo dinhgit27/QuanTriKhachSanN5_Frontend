@@ -7,6 +7,8 @@ import dayjs from 'dayjs';
 const { Title, Text } = Typography;
 
 const InHouse = () => {
+  const [isDepositModalOpen, setIsDepositModalOpen] = useState(false);
+  const [depositAmount, setDepositAmount] = useState(0);
   const [data, setData] = useState([]);
   const [loading, setLoading] = useState(false);
 
@@ -17,7 +19,7 @@ const InHouse = () => {
   // STATE CHO MODAL THÊM DỊCH VỤ
   // ==========================================
   const [isServiceModalOpen, setIsServiceModalOpen] = useState(false);
-  const [serviceId, setServiceId] = useState(null); 
+  const [serviceId, setServiceId] = useState(null);
   const [quantity, setQuantity] = useState(1);
   const [servicesList, setServicesList] = useState([]);
 
@@ -38,7 +40,7 @@ const InHouse = () => {
       const token = localStorage.getItem('token');
       const resInHouse = await axios.get('https://localhost:5070/api/Bookings/in-house', { headers: { Authorization: `Bearer ${token}` } });
       setData(resInHouse.data);
-      
+
       const resServices = await axios.get('https://localhost:5070/api/Reception/services-list');
       setServicesList(resServices.data);
     } catch (error) { message.error("Lỗi khi tải dữ liệu!"); }
@@ -57,6 +59,31 @@ const InHouse = () => {
     setIsServiceModalOpen(true);
   };
 
+  const submitDeposit = async () => {
+    if (!depositAmount || depositAmount <= 0) {
+      return message.warning("Nhập số tiền hợp lệ!");
+    }
+
+    try {
+      await axios.post(
+        `https://localhost:5070/api/Reception/deposit/${selectedBooking.id}`,
+        { amount: depositAmount },
+        {
+          headers: {
+            Authorization: `Bearer ${localStorage.getItem("token")}`,
+            "Content-Type": "application/json",
+          },
+        }
+      );
+
+      message.success("Đã thêm tiền đặt cọc!");
+      setIsDepositModalOpen(false);
+      fetchData();
+    } catch (err) {
+      message.error("Lỗi thêm tiền cọc!");
+    }
+  };
+
   const submitOrderService = async () => {
     if (!serviceId) return message.warning("Vui lòng chọn một dịch vụ!");
     try {
@@ -65,8 +92,8 @@ const InHouse = () => {
       });
       message.success("Đã ghi sổ dịch vụ thành công!");
       setIsServiceModalOpen(false);
-    } catch (err) { 
-      message.error(err.response?.data?.message || "Lỗi khi thêm dịch vụ!"); 
+    } catch (err) {
+      message.error(err.response?.data?.message || "Lỗi khi thêm dịch vụ!");
     }
   };
 
@@ -86,8 +113,8 @@ const InHouse = () => {
 
     try {
       await axios.post(`https://localhost:5070/api/Reception/report-damage/${selectedBooking.id}`, {
-        description: damageDescription, 
-        fineAmount: damagePrice         
+        description: damageDescription,
+        fineAmount: damagePrice
       });
       message.success("Đã ghi nhận phạt đền bù thành công!");
       setIsDamageModalOpen(false); // Đóng Modal khi thành công
@@ -114,16 +141,26 @@ const InHouse = () => {
   const columns = [
     { title: 'Mã Booking', dataIndex: 'bookingCode', render: text => <b>{text}</b> },
     { title: 'Khách hàng', dataIndex: 'guestName', render: text => <b>{text || 'Khách vãng lai'}</b> },
-    { 
-      title: 'Phòng đang ở', dataIndex: 'roomNumbers', 
-      render: rooms => <Space wrap>{rooms?.map(r => <Tag color="orange" key={r}>P.{r}</Tag>)}</Space> 
+    {
+      title: 'Phòng đang ở', dataIndex: 'roomNumbers',
+      render: rooms => <Space wrap>{rooms?.map(r => <Tag color="orange" key={r}>P.{r}</Tag>)}</Space>
     },
     { title: 'Ngày Check-in', dataIndex: 'checkInDate', render: date => dayjs(date).format('HH:mm - DD/MM') },
+    { title: 'Tiền đặt cọc', dataIndex: 'depositAmount', render: amount => amount ? amount.toLocaleString() + ' đ' : '0 đ' },
     {
       title: 'Thao tác', align: 'center', render: (_, record) => (
         <Space>
           <Tooltip title="Xem tiêu thụ">
             <Button icon={<EyeOutlined />} onClick={() => handleViewDetails(record)} />
+          </Tooltip>
+          <Tooltip title="Đặt cọc">
+            <Button onClick={() => {
+              setSelectedBooking(record);
+              setDepositAmount(0);
+              setIsDepositModalOpen(true);
+            }}>
+              Đặt cọc
+            </Button>
           </Tooltip>
           <Tooltip title="Ghi sổ dịch vụ">
             <Button type="dashed" icon={<PlusCircleOutlined />} onClick={() => handleOpenService(record)} style={{ color: '#1890ff', borderColor: '#1890ff' }}>Dịch vụ</Button>
@@ -142,6 +179,27 @@ const InHouse = () => {
       <Title level={4}>🛌 Khách đang lưu trú (In-House)</Title>
       <Text type="secondary">Nơi theo dõi và ghi sổ dịch vụ phát sinh cho khách.</Text>
       <Table style={{ marginTop: 20 }} columns={columns} dataSource={data} rowKey="id" loading={loading} pagination={{ pageSize: 8 }} />
+
+      {/* MODAL ĐẶT CỌC */}
+      <Modal
+        title="Nhập tiền đặt cọc"
+        open={isDepositModalOpen}
+        onOk={submitDeposit}
+        onCancel={() => setIsDepositModalOpen(false)}
+      >
+        <p>Khách: <b>{selectedBooking?.guestName}</b></p>
+
+        <InputNumber
+          style={{ width: "100%" }}
+          min={0}
+          step={50000}
+          value={depositAmount}
+          onChange={setDepositAmount}
+          formatter={(value) =>
+            `${value}`.replace(/\B(?=(\d{3})+(?!\d))/g, ",")
+          }
+        />
+      </Modal>
 
       {/* MODAL GỌI DỊCH VỤ */}
       <Modal title="Ghi sổ Dịch vụ" open={isServiceModalOpen} onOk={submitOrderService} onCancel={() => setIsServiceModalOpen(false)} okText="Ghi sổ" cancelText="Hủy">
@@ -170,14 +228,14 @@ const InHouse = () => {
           </div>
           <div>
             <div style={{ marginBottom: 4 }}><b>Số tiền phạt (VNĐ):</b></div>
-            <InputNumber 
-              min={0} 
-              step={10000} 
-              style={{ width: '100%' }} 
+            <InputNumber
+              min={0}
+              step={10000}
+              style={{ width: '100%' }}
               formatter={value => `${value}`.replace(/\B(?=(\d{3})+(?!\d))/g, ',')}
               parser={value => value.replace(/\$\s?|(,*)/g, '')}
-              value={damagePrice} 
-              onChange={setDamagePrice} 
+              value={damagePrice}
+              onChange={setDamagePrice}
             />
           </div>
         </div>

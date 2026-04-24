@@ -1,8 +1,17 @@
 import React, { useState } from "react";
-import { Card, InputNumber, Button, message, Typography, Divider } from "antd";
+import { Card, InputNumber, Button, message, Typography, Divider, QRCode } from "antd";
 import invoiceAPI from "../../api/invoiceAPI";
 
 const { Title, Text } = Typography;
+
+const getMomoQRCodeValue = (amount, bookingCode) => {
+    const momoPhone = import.meta.env.VITE_MOMO_PHONE || "0901234567";
+    const momoMerchantName = import.meta.env.VITE_MOMO_NAME || "IT CODE HOTEL";
+    const payloadNote = `Thanh toan hoa don ${bookingCode}`;
+    const finalAmount = Math.round(Number(amount) || 0);
+
+    return `2|0|${momoMerchantName}|${momoPhone}||0|0|${finalAmount}|${payloadNote}`;
+};
 
 const CheckoutPage = () => {
     const [bookingId, setBookingId] = useState(1);
@@ -75,6 +84,12 @@ const CheckoutPage = () => {
                     <Title level={4}>
                         Tổng: {preview.finalTotal.toLocaleString()} đ
                     </Title>
+
+                    <div style={{ textAlign: "center", margin: "20px 0" }}>
+                        <Title level={5}>Quét mã Momo để thanh toán</Title>
+                        <QRCode value={getMomoQRCodeValue(preview.finalTotal, preview.bookingCode)} size={160} style={{ margin: "auto" }} />
+                        <Text type="secondary" style={{ display: 'block', marginTop: 8 }}>Momo: {import.meta.env.VITE_MOMO_PHONE || '090 123 4567'} ({import.meta.env.VITE_MOMO_NAME || 'IT CODE HOTEL'})</Text>
+                    </div>
 
                     <Text type="secondary">{preview.note}</Text>
 

@@ -1,15 +1,24 @@
 import React, { useState, useEffect } from "react";
-import { Button, Card, Typography, Divider, Table, Row, Col, message, Modal, Spin, Tag } from "antd";
+import { Button, Card, Typography, Divider, Table, Row, Col, message, Modal, Spin, Tag, QRCode } from "antd";
 import { PrinterOutlined, ExclamationCircleOutlined, RollbackOutlined, HistoryOutlined, EyeOutlined } from "@ant-design/icons";
 import { useNavigate, useParams } from "react-router-dom";
-import invoiceAPI from "../../api/invoiceAPI"; 
+import invoiceAPI from "../../api/invoiceAPI";
 
 const { Title, Text } = Typography;
+
+const getMomoQRCodeValue = (amount, bookingCode) => {
+  const momoPhone = import.meta.env.VITE_MOMO_PHONE || "0901234567";
+  const momoMerchantName = import.meta.env.VITE_MOMO_NAME || "IT CODE HOTEL";
+  const payloadNote = `Thanh toan hoa don ${bookingCode}`;
+  const finalAmount = Math.round(Number(amount) || 0);
+
+  return `2|0|${momoMerchantName}|${momoPhone}||0|0|${finalAmount}|${payloadNote}`;
+};
 
 const InvoicePage = () => {
   const navigate = useNavigate();
   const { id } = useParams(); // Bắt ID trên thanh URL
-  
+
   const [loading, setLoading] = useState(true);
   const [invoiceData, setInvoiceData] = useState(null);
   const [historyList, setHistoryList] = useState([]); // Chứa danh sách lịch sử
@@ -61,10 +70,10 @@ const InvoicePage = () => {
       cancelText: 'Quay lại',
       onOk: async () => {
         try {
-          await invoiceAPI.cancel(id); 
+          await invoiceAPI.cancel(id);
           message.success("Hủy hóa đơn thành công! Phòng đã được khôi phục.");
-          navigate('/admin/checkout', { replace: true }); 
-          window.location.reload(); 
+          navigate('/admin/checkout', { replace: true });
+          window.location.reload();
         } catch (err) {
           message.error(err.response?.data?.message || "Lỗi khi hủy hóa đơn!");
         }
@@ -92,25 +101,25 @@ const InvoicePage = () => {
   const penaltyColumns = [
     { title: 'Sự cố / Vật dụng hỏng', dataIndex: 'itemName', render: text => <Text type="danger">{text}</Text> },
     { title: 'Số lượng', dataIndex: 'quantity', align: 'center' },
-    { title: 'Phí đền bù', dataIndex: 'penaltyAmount', align: 'right', render: val => <b style={{color: '#f5222d'}}>{val?.toLocaleString()} đ</b> },
+    { title: 'Phí đền bù', dataIndex: 'penaltyAmount', align: 'right', render: val => <b style={{ color: '#f5222d' }}>{val?.toLocaleString()} đ</b> },
   ];
 
   // Bảng Lịch sử Hóa Đơn
   const historyColumns = [
     { title: 'Mã HĐ', dataIndex: 'id', render: id => <b>INV-{id}</b> },
     { title: 'Mã Đặt Phòng', dataIndex: 'bookingId', render: bookingId => `Booking #${bookingId}` },
-    { title: 'Tổng tiền', dataIndex: 'finalTotal', align: 'right', render: val => <b style={{color: '#f5222d'}}>{val?.toLocaleString()} đ</b> },
-    { 
-      title: 'Trạng thái', dataIndex: 'status', align: 'center', 
+    { title: 'Tổng tiền', dataIndex: 'finalTotal', align: 'right', render: val => <b style={{ color: '#f5222d' }}>{val?.toLocaleString()} đ</b> },
+    {
+      title: 'Trạng thái', dataIndex: 'status', align: 'center',
       render: status => (status === 'Cancelled' || status === 'Đã hủy' ? <Tag color="red">Đã hủy</Tag> : <Tag color="green">Đã thanh toán</Tag>)
     },
-    { 
-      title: 'Thao tác', align: 'center', 
+    {
+      title: 'Thao tác', align: 'center',
       render: (_, record) => <Button type="primary" ghost icon={<EyeOutlined />} onClick={() => navigate(`/admin/invoice/${record.id}`)}>Xem</Button>
     }
   ];
 
-  if (loading) return <div style={{textAlign: 'center', marginTop: 100}}><Spin size="large" /></div>;
+  if (loading) return <div style={{ textAlign: 'center', marginTop: 100 }}><Spin size="large" /></div>;
 
   // =======================================================
   // 1. GIAO DIỆN LỊCH SỬ HÓA ĐƠN (KHI KHÔNG CÓ ID)
@@ -135,7 +144,7 @@ const InvoicePage = () => {
   // =======================================================
   // 2. GIAO DIỆN CHI TIẾT (TỜ HÓA ĐƠN A4) (KHI CÓ ID)
   // =======================================================
-  if (!invoiceData) return <div style={{textAlign: 'center', marginTop: 100}}><h2>Không tìm thấy dữ liệu hóa đơn!</h2></div>;
+  if (!invoiceData) return <div style={{ textAlign: 'center', marginTop: 100 }}><h2>Không tìm thấy dữ liệu hóa đơn!</h2></div>;
 
   return (
     <div style={{ padding: '24px', display: 'flex', justifyContent: 'center', background: '#f0f2f5', minHeight: '100vh' }}>
@@ -186,7 +195,17 @@ const InvoicePage = () => {
 
         <Divider style={{ borderColor: '#d9d9d9' }} />
 
-        <Row justify="end">
+        <Row justify="space-between">
+          <Col span={10} style={{ textAlign: 'center' }}>
+            <Title level={5}>Quét mã Momo để thanh toán</Title>
+            <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 8 }}>
+              <QRCode
+                value={getMomoQRCodeValue(invoiceData.finalTotal, invoiceData.bookingCode)}
+                size={160}
+              />
+            </div>
+            <Text type="secondary">Momo: {import.meta.env.VITE_MOMO_PHONE || '090 123 4567'} ({import.meta.env.VITE_MOMO_NAME || 'IT CODE HOTEL'})</Text>
+          </Col>
           <Col span={10}>
             <Row justify="space-between" style={{ marginBottom: 8 }}>
               <Text>Cộng tiền phòng:</Text>

@@ -22,7 +22,7 @@ const BookingManagement = () => {
   const [bookingsList, setBookingsList] = useState([]);
   const [loadingList, setLoadingList] = useState(false);
 
-  // 🚨 THÊM STATE CHO MODAL XEM CHI TIẾT
+  // STATE CHO MODAL XEM CHI TIẾT
   const [isDetailModalVisible, setIsDetailModalVisible] = useState(false);
   const [bookingDetail, setBookingDetail] = useState(null);
   const [loadingDetail, setLoadingDetail] = useState(false);
@@ -73,19 +73,25 @@ const BookingManagement = () => {
     return { nights: n, total: selectedRooms.reduce((sum, r) => sum + r.pricePerNight, 0) * n };
   })();
 
-  // 3. TẠO ĐƠN
+  // 3. TẠO ĐƠN (Đã bọc thêm tiền cọc)
   const handleConfirmBooking = async (values) => {
     setSubmitting(true);
     try {
       const token = localStorage.getItem('token');
-      const payload = { ...values, checkIn: dates[0].format('YYYY-MM-DDTHH:mm:ss'), checkOut: dates[1].format('YYYY-MM-DDTHH:mm:ss'), selectedRoomIds: selectedRooms.map(r => r.id) };
+      const payload = { 
+        ...values, 
+        depositAmount: values.depositAmount || 0, // Gửi tiền cọc xuống C#
+        checkIn: dates[0].format('YYYY-MM-DDTHH:mm:ss'), 
+        checkOut: dates[1].format('YYYY-MM-DDTHH:mm:ss'), 
+        selectedRoomIds: selectedRooms.map(r => r.id) 
+      };
       await axios.post('https://localhost:5070/api/Bookings/create', payload, { headers: { Authorization: `Bearer ${token}` } });
       message.success("Đặt phòng thành công!");
       setIsModalVisible(false); form.resetFields(); setCurrentStep(1); setSelectedRooms([]); fetchBookingsList(); 
     } catch (error) { message.error("Lỗi tạo đơn!"); } finally { setSubmitting(false); }
   };
 
-  // 🚨 4. HÀM XEM CHI TIẾT
+  // 4. HÀM XEM CHI TIẾT
   const handleViewDetail = async (id) => {
     setIsDetailModalVisible(true);
     setLoadingDetail(true);
@@ -101,13 +107,13 @@ const BookingManagement = () => {
     }
   };
 
-  // 🚨 5. HÀM ĐỔI TRẠNG THÁI (XÁC NHẬN / HỦY)
+  // 5. HÀM ĐỔI TRẠNG THÁI
   const handleChangeStatus = async (id, newStatus) => {
     try {
       const token = localStorage.getItem('token');
       await axios.put(`https://localhost:5070/api/Bookings/${id}/status`, { status: newStatus }, { headers: { Authorization: `Bearer ${token}` } });
       message.success(newStatus === 'Cancelled' ? "Đã hủy đơn đặt phòng!" : "Đã xác nhận đơn thành công!");
-      fetchBookingsList(); // Load lại bảng
+      fetchBookingsList(); 
     } catch (error) {
       message.error("Lỗi cập nhật trạng thái!");
     }
@@ -128,12 +134,9 @@ const BookingManagement = () => {
       title: 'Thao tác', key: 'action', align: 'center',
       render: (_, record) => (
         <Space size="middle">
-          {/* Nút Xem chi tiết */}
           <Tooltip title="Xem chi tiết">
             <Button type="text" style={{ color: '#1890ff' }} icon={<EyeOutlined />} onClick={() => handleViewDetail(record.id)} />
           </Tooltip>
-
-          {/* Nút Xác nhận (Chỉ hiện khi Pending) */}
           {record.status === 'Pending' && (
             <Popconfirm title="Xác nhận đơn phòng này?" onConfirm={() => handleChangeStatus(record.id, 'Confirmed')} okText="Xác nhận" cancelText="Hủy">
               <Tooltip title="Xác nhận đơn">
@@ -141,8 +144,6 @@ const BookingManagement = () => {
               </Tooltip>
             </Popconfirm>
           )}
-
-          {/* Nút Hủy (Chặn hủy nếu đã hoàn tất hoặc đã hủy) */}
           <Popconfirm title="Bạn có chắc chắn muốn hủy đơn này?" onConfirm={() => handleChangeStatus(record.id, 'Cancelled')} okText="Hủy đơn" okButtonProps={{ danger: true }} cancelText="Quay lại">
              <Tooltip title="Hủy đơn">
                <Button type="text" danger icon={<CloseCircleOutlined />} disabled={record.status === 'Completed' || record.status === 'Cancelled'} />
@@ -231,7 +232,22 @@ const BookingManagement = () => {
            <Text strong>Tổng tiền dự kiến ({nights} đêm): </Text>
            <Text strong style={{ color: '#ff4d4f', fontSize: 18 }}>{new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(total)}</Text>
         </div>
-        <Form form={form} layout="vertical" onFinish={handleConfirmBooking}>
+
+        {/* 🚨 ĐÃ THÊM: initialValues cho depositAmount = 0 */}
+        <Form form={form} layout="vertical" onFinish={handleConfirmBooking} initialValues={{ depositAmount: 0 }}>
+          
+          {/* 🚨 ĐÃ THÊM: Ô nhập Tiền Đặt Cọc */}
+          <Form.Item name="depositAmount" label={<Text strong style={{ color: '#52c41a' }}>Tiền đặt cọc trước (VNĐ)</Text>}>
+            <InputNumber
+              size="large"
+              style={{ width: '100%', borderColor: '#b7eb8f' }}
+              formatter={value => `${value}`.replace(/\B(?=(\d{3})+(?!\d))/g, ',')}
+              parser={value => value.replace(/\$\s?|(,*)/g, '')}
+              min={0}
+              placeholder="Ví dụ: 500,000"
+            />
+          </Form.Item>
+
           <Form.Item name="guestName" label="Họ tên người đại diện" rules={[{ required: true, message: 'Vui lòng nhập họ tên!' }]}><Input size="large" /></Form.Item>
           <Row gutter={16}>
             <Col span={12}><Form.Item name="guestPhone" label="Số điện thoại" rules={[{ required: true }]}><Input size="large" /></Form.Item></Col>
@@ -241,7 +257,7 @@ const BookingManagement = () => {
         </Form>
       </Modal>
 
-      {/* 🚨 MODAL XEM CHI TIẾT ĐƠN ĐẶT PHÒNG 🚨 */}
+      {/* MODAL XEM CHI TIẾT ĐƠN ĐẶT PHÒNG */}
       <Modal
         title={<Title level={4} style={{ margin: 0 }}>Chi Tiết Mã Đơn: <span style={{ color: '#1890ff' }}>{bookingDetail?.bookingCode}</span></Title>}
         open={isDetailModalVisible}

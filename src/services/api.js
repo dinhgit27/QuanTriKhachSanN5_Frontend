@@ -670,4 +670,5 @@ export const receptionistApi = {
   getMaintenanceCheckInCheckOutFinalReceivingRooms: () => api.get('/rooms?status=maintenance-checkin-checkout-final-receiving'),
   
   // Lấy danh sách phòng đã nhận cuối cùng sau bảo trì, check-in và check-out
-  getMaintenanceCheckInCheckOutFinalReceivedRooms: () => api.get('/rooms?status=maintenance-checkin-checkout-final-re
+  getMaintenanceCheckInCheckOutFinalReceivedRooms: () => api.get('/rooms?status=maintenance-checkin-checkout-final-re),ceived'),
+};

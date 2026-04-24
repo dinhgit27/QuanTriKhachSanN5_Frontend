@@ -146,11 +146,11 @@ const BookingPage = () => {
             dataSource={results}
             renderItem={(room) => (
               <List.Item
-                actions=[
+                actions={[
                   <Button key="book" type="primary" onClick={() => navigate("/guest/dashboard")}>
                     Đặt phòng
                   </Button>
-                ]
+                ]}
               >
                 <List.Item.Meta
                   title={room.name}

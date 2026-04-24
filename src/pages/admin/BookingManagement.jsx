@@ -133,6 +133,23 @@ const BookingManagement = () => {
     }
   };
 
+  const handleApprovePayment = async (id) => {
+    try {
+      const token = localStorage.getItem('token');
+      await axios.put(`https://localhost:5070/api/Bookings/${id}/status`, { status: 'Completed' }, { headers: { Authorization: `Bearer ${token}` } });
+      
+      // Xóa khỏi danh sách yêu cầu thanh toán local
+      const savedRequests = JSON.parse(localStorage.getItem('guestPaymentRequests') || '[]');
+      const newRequests = savedRequests.filter(reqId => reqId !== id);
+      localStorage.setItem('guestPaymentRequests', JSON.stringify(newRequests));
+
+      message.success("Đã duyệt thanh toán thành công!");
+      fetchBookingsList();
+    } catch (error) {
+      message.error("Lỗi duyệt thanh toán!");
+    }
+  };
+
   const getStatusTag = (status) => {
     const map = { 'Pending': { c: 'gold', t: 'Chờ xác nhận' }, 'Confirmed': { c: 'cyan', t: 'Đã xác nhận' }, 'Checked_in': { c: 'geekblue', t: 'Đang ở' }, 'Completed': { c: 'green', t: 'Hoàn tất' }, 'Cancelled': { c: 'red', t: 'Đã hủy' } };
     const { c, t } = map[status] || { c: 'default', t: 'Không rõ' };
@@ -143,21 +160,43 @@ const BookingManagement = () => {
     { title: 'Mã Booking', dataIndex: 'bookingCode', key: 'bookingCode', render: text => <b>{text}</b> },
     { title: 'Khách hàng', dataIndex: 'guestName', key: 'guestName', render: text => text || 'Khách vãng lai' },
     { title: 'Ngày Check-in', dataIndex: 'checkInDate', key: 'checkInDate', render: date => date ? dayjs(date).format('DD/MM/YYYY HH:mm') : 'N/A' },
-    { title: 'Trạng thái', dataIndex: 'status', key: 'status', render: status => getStatusTag(status) },
+    { title: 'Trạng thái', dataIndex: 'status', key: 'status', render: (status, record) => {
+        const savedRequests = JSON.parse(localStorage.getItem('guestPaymentRequests') || '[]');
+        if (savedRequests.includes(record.id) && status !== 'Completed') {
+            return <Tag color="orange">Yêu cầu thanh toán</Tag>;
+        }
+        return getStatusTag(status);
+    }},
     {
       title: 'Thao tác', key: 'action', align: 'center',
-      render: (_, record) => (
-        <Space size="middle">
-          {/* Nút Xem chi tiết */}
-          <Tooltip title="Xem chi tiết">
-            <Button type="text" style={{ color: '#1890ff' }} icon={<EyeOutlined />} onClick={() => handleViewDetail(record.id)} />
-          </Tooltip>
+      render: (_, record) => {
+        const savedRequests = JSON.parse(localStorage.getItem('guestPaymentRequests') || '[]');
+        const isPaymentRequested = savedRequests.includes(record.id) && record.status !== 'Completed';
 
-          {/* Nút Xác nhận (Chỉ hiện khi Pending) */}
-          {record.status === 'Pending' && (
-            <Popconfirm title="Xác nhận đơn phòng này?" onConfirm={() => handleChangeStatus(record.id, 'Confirmed')} okText="Xác nhận" cancelText="Hủy">
-              <Tooltip title="Xác nhận đơn">
-                <Button type="text" style={{ color: '#52c41a' }} icon={<CheckOutlined />} />
+        return (
+          <Space size="middle">
+            {/* Nút Xem chi tiết */}
+            <Tooltip title="Xem chi tiết">
+              <Button type="text" style={{ color: '#1890ff' }} icon={<EyeOutlined />} onClick={() => handleViewDetail(record.id)} />
+            </Tooltip>
+
+            {/* Nút Duyệt thanh toán từ Guest */}
+            {isPaymentRequested && (
+              <Popconfirm title="Xác nhận đã nhận tiền thanh toán?" onConfirm={() => handleApprovePayment(record.id)} okText="Xác nhận" cancelText="Hủy">
+                <Tooltip title="Duyệt thanh toán">
+                  <Button type="text" style={{ color: '#52c41a' }} icon={<CheckCircleFilled />} />
+                </Tooltip>
+              </Popconfirm>
+            )}
+
+            {/* Nút Xác nhận (Chỉ hiện khi Pending) */}
+            {record.status === 'Pending' && !isPaymentRequested && (
+              <Popconfirm title="Xác nhận đơn phòng này?" onConfirm={() => handleChangeStatus(record.id, 'Confirmed')} okText="Xác nhận" cancelText="Hủy">
+                <Tooltip title="Xác nhận đơn">
+                  <Button type="text" style={{ color: '#52c41a' }} icon={<CheckOutlined />} />
+                </Tooltip>
+              </Popconfirm>
+            )}
               </Tooltip>
             </Popconfirm>
           )}

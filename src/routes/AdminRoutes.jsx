@@ -7,7 +7,7 @@ import AdminLayout from '../layouts/AdminLayout';
 import LoginPage from '../pages/auth/LoginPage';
 import UserListPage from '../pages/admin/UserListPage';
 import AuditLogsPage from '../pages/admin/AuditLogsPage';
-import UserProfilePage from '../pages/profile/UserProfilePage';
+import UserProfilePage from '../pages/profile/UserProfilePage.jsx';
 
 // 👉 Thêm RequirePermission
 import RequirePermission from '../components/RequirePermission';

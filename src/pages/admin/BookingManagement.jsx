@@ -137,7 +137,7 @@ const BookingManagement = () => {
     try {
       const token = localStorage.getItem('token');
       await axios.put(`https://localhost:5070/api/Bookings/${id}/status`, { status: 'Completed' }, { headers: { Authorization: `Bearer ${token}` } });
-      
+
       // Xóa khỏi danh sách yêu cầu thanh toán local
       const savedRequests = JSON.parse(localStorage.getItem('guestPaymentRequests') || '[]');
       const newRequests = savedRequests.filter(reqId => reqId !== id);
@@ -160,13 +160,15 @@ const BookingManagement = () => {
     { title: 'Mã Booking', dataIndex: 'bookingCode', key: 'bookingCode', render: text => <b>{text}</b> },
     { title: 'Khách hàng', dataIndex: 'guestName', key: 'guestName', render: text => text || 'Khách vãng lai' },
     { title: 'Ngày Check-in', dataIndex: 'checkInDate', key: 'checkInDate', render: date => date ? dayjs(date).format('DD/MM/YYYY HH:mm') : 'N/A' },
-    { title: 'Trạng thái', dataIndex: 'status', key: 'status', render: (status, record) => {
+    {
+      title: 'Trạng thái', dataIndex: 'status', key: 'status', render: (status, record) => {
         const savedRequests = JSON.parse(localStorage.getItem('guestPaymentRequests') || '[]');
         if (savedRequests.includes(record.id) && status !== 'Completed') {
-            return <Tag color="orange">Yêu cầu thanh toán</Tag>;
+          return <Tag color="orange">Yêu cầu thanh toán</Tag>;
         }
         return getStatusTag(status);
-    }},
+      }
+    },
     {
       title: 'Thao tác', key: 'action', align: 'center',
       render: (_, record) => {
@@ -203,11 +205,10 @@ const BookingManagement = () => {
                 <Button type="text" danger icon={<CloseCircleOutlined />} disabled={record.status === 'Completed' || record.status === 'Cancelled'} />
               </Tooltip>
             </Popconfirm>
-          </Space>
-        );
+          </Space >
+        )
       }
-    }
-  ];
+    }];
 
   return (
     <div style={{ padding: '24px 32px', backgroundColor: '#f5f7fa', minHeight: '100vh' }}>

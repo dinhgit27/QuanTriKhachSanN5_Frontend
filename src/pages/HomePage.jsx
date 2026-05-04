@@ -129,7 +129,7 @@ const HomePage = () => {
   const heroRef = useRef(null);
 
   // --- STATE ĐĂNG NHẬP ---
-  const [isLoggedIn, setIsLoggedIn] = useState(true);
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
 
   // --- THEO DÕI TIẾN TRÌNH CUỘN ---
   const { scrollYProgress } = useScroll({

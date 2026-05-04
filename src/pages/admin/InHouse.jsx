@@ -18,7 +18,7 @@ const InHouse = () => {
   // STATE CHO MODAL THÊM DỊCH VỤ
   // ==========================================
   const [isServiceModalOpen, setIsServiceModalOpen] = useState(false);
-  const [serviceId, setServiceId] = useState(null); 
+  const [serviceId, setServiceId] = useState(null);
   const [quantity, setQuantity] = useState(1);
   const [servicesList, setServicesList] = useState([]);
 
@@ -39,7 +39,7 @@ const InHouse = () => {
       const token = localStorage.getItem('token');
       const resInHouse = await axios.get('https://localhost:5070/api/Bookings/in-house', { headers: { Authorization: `Bearer ${token}` } });
       setData(resInHouse.data);
-      
+
       const resServices = await axios.get('https://localhost:5070/api/Reception/services-list');
       setServicesList(resServices.data);
     } catch (error) { auditLogger.error("Lỗi khi tải dữ liệu!", { module: "Lưu Trú (In-House)" }); }
@@ -58,13 +58,15 @@ const InHouse = () => {
     setIsServiceModalOpen(true);
   };
 
+
+
   const submitOrderService = async () => {
     if (!serviceId) return auditLogger.info("Vui lòng chọn một dịch vụ!");
     try {
       await axios.post(`https://localhost:5070/api/Reception/order-service/${selectedBooking.id}`, {
         serviceId: serviceId, quantity: quantity
       });
-      
+
       const service = servicesList.find(s => s.id === serviceId);
       auditLogger.success("Đã ghi sổ dịch vụ thành công!", {
         actionType: "PAYMENT",
@@ -73,8 +75,8 @@ const InHouse = () => {
         description: `Ghi sổ dịch vụ: ${service?.name} x ${quantity} cho khách ${selectedBooking.guestName}.`
       });
       setIsServiceModalOpen(false);
-    } catch (err) { 
-      auditLogger.error(err.response?.data?.message || "Lỗi khi thêm dịch vụ!", { module: "Lưu Trú (In-House)" }); 
+    } catch (err) {
+      auditLogger.error(err.response?.data?.message || "Lỗi khi thêm dịch vụ!", { module: "Lưu Trú (In-House)" });
     }
   };
 
@@ -94,10 +96,10 @@ const InHouse = () => {
 
     try {
       await axios.post(`https://localhost:5070/api/Reception/report-damage/${selectedBooking.id}`, {
-        description: damageDescription, 
-        fineAmount: damagePrice         
+        description: damageDescription,
+        fineAmount: damagePrice
       });
-      
+
       auditLogger.success("Đã ghi nhận phạt đền bù thành công!", {
         actionType: "UPDATE",
         module: "Lưu Trú (In-House)",
@@ -128,9 +130,9 @@ const InHouse = () => {
   const columns = [
     { title: 'Mã Booking', dataIndex: 'bookingCode', render: text => <b>{text}</b> },
     { title: 'Khách hàng', dataIndex: 'guestName', render: text => <b>{text || 'Khách vãng lai'}</b> },
-    { 
-      title: 'Phòng đang ở', dataIndex: 'roomNumbers', 
-      render: rooms => <Space wrap>{rooms?.map(r => <Tag color="orange" key={r}>P.{r}</Tag>)}</Space> 
+    {
+      title: 'Phòng đang ở', dataIndex: 'roomNumbers',
+      render: rooms => <Space wrap>{rooms?.map(r => <Tag color="orange" key={r}>P.{r}</Tag>)}</Space>
     },
     { title: 'Ngày Check-in', dataIndex: 'checkInDate', render: date => dayjs(date).format('HH:mm - DD/MM') },
     {
@@ -156,6 +158,8 @@ const InHouse = () => {
       <Title level={4}>🛌 Khách đang lưu trú (In-House)</Title>
       <Text type="secondary">Nơi theo dõi và ghi sổ dịch vụ phát sinh cho khách.</Text>
       <Table style={{ marginTop: 20 }} columns={columns} dataSource={data} rowKey="id" loading={loading} pagination={{ pageSize: 8 }} />
+
+
 
       {/* MODAL GỌI DỊCH VỤ */}
       <Modal title="Ghi sổ Dịch vụ" open={isServiceModalOpen} onOk={submitOrderService} onCancel={() => setIsServiceModalOpen(false)} okText="Ghi sổ" cancelText="Hủy">
@@ -184,14 +188,14 @@ const InHouse = () => {
           </div>
           <div>
             <div style={{ marginBottom: 4 }}><b>Số tiền phạt (VNĐ):</b></div>
-            <InputNumber 
-              min={0} 
-              step={10000} 
-              style={{ width: '100%' }} 
+            <InputNumber
+              min={0}
+              step={10000}
+              style={{ width: '100%' }}
               formatter={value => `${value}`.replace(/\B(?=(\d{3})+(?!\d))/g, ',')}
               parser={value => value.replace(/\$\s?|(,*)/g, '')}
-              value={damagePrice} 
-              onChange={setDamagePrice} 
+              value={damagePrice}
+              onChange={setDamagePrice}
             />
           </div>
         </div>

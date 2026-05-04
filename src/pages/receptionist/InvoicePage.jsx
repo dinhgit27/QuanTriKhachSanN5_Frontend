@@ -10,7 +10,7 @@ const { Title, Text } = Typography;
 const InvoicePage = () => {
   const navigate = useNavigate();
   const { id } = useParams(); // Bắt ID trên thanh URL
-  
+
   const [loading, setLoading] = useState(true);
   const [invoiceData, setInvoiceData] = useState(null);
   const [historyList, setHistoryList] = useState([]); // Chứa danh sách lịch sử
@@ -26,17 +26,17 @@ const InvoicePage = () => {
     }
   }, [id]);
 
-  // 🚨 GỌI API LẤY MÃ QR VIETQR KHI CÓ INVOICE DATA
+  // 🚨 GỌI API LẤY MÃ QR VIETQR/MOMO KHI CÓ INVOICE DATA
   useEffect(() => {
     if (id && invoiceData) {
-      fetchVietQR();
+      fetchPaymentQR();
     }
   }, [id, invoiceData]);
 
-  const fetchVietQR = async () => {
+  const fetchPaymentQR = async () => {
     setQrLoading(true);
     try {
-      const res = await momoAPI.getVietQRByInvoiceId(id);
+      const res = await momoAPI.getPaymentQRByInvoiceId(id);
       setQrData(res.data);
     } catch (err) {
       message.error("Không thể tải mã QR thanh toán!");
@@ -83,10 +83,10 @@ const InvoicePage = () => {
       cancelText: 'Quay lại',
       onOk: async () => {
         try {
-          await invoiceAPI.cancel(id); 
+          await invoiceAPI.cancel(id);
           message.success("Hủy hóa đơn thành công! Phòng đã được khôi phục.");
-          navigate('/admin/checkout', { replace: true }); 
-          window.location.reload(); 
+          navigate('/admin/checkout', { replace: true });
+          window.location.reload();
         } catch (err) {
           message.error(err.response?.data?.message || "Lỗi khi hủy hóa đơn!");
         }
@@ -114,25 +114,25 @@ const InvoicePage = () => {
   const penaltyColumns = [
     { title: 'Sự cố / Vật dụng hỏng', dataIndex: 'itemName', render: text => <Text type="danger">{text}</Text> },
     { title: 'Số lượng', dataIndex: 'quantity', align: 'center' },
-    { title: 'Phí đền bù', dataIndex: 'penaltyAmount', align: 'right', render: val => <b style={{color: '#f5222d'}}>{val?.toLocaleString()} đ</b> },
+    { title: 'Phí đền bù', dataIndex: 'penaltyAmount', align: 'right', render: val => <b style={{ color: '#f5222d' }}>{val?.toLocaleString()} đ</b> },
   ];
 
   // Bảng Lịch sử Hóa Đơn
   const historyColumns = [
     { title: 'Mã HĐ', dataIndex: 'id', render: id => <b>INV-{id}</b> },
     { title: 'Mã Đặt Phòng', dataIndex: 'bookingId', render: bookingId => `Booking #${bookingId}` },
-    { title: 'Tổng tiền', dataIndex: 'finalTotal', align: 'right', render: val => <b style={{color: '#f5222d'}}>{val?.toLocaleString()} đ</b> },
-    { 
-      title: 'Trạng thái', dataIndex: 'status', align: 'center', 
+    { title: 'Tổng tiền', dataIndex: 'finalTotal', align: 'right', render: val => <b style={{ color: '#f5222d' }}>{val?.toLocaleString()} đ</b> },
+    {
+      title: 'Trạng thái', dataIndex: 'status', align: 'center',
       render: status => (status === 'Cancelled' || status === 'Đã hủy' ? <Tag color="red">Đã hủy</Tag> : <Tag color="green">Đã thanh toán</Tag>)
     },
-    { 
-      title: 'Thao tác', align: 'center', 
+    {
+      title: 'Thao tác', align: 'center',
       render: (_, record) => <Button type="primary" ghost icon={<EyeOutlined />} onClick={() => navigate(`/admin/invoice/${record.id}`)}>Xem</Button>
     }
   ];
 
-  if (loading) return <div style={{textAlign: 'center', marginTop: 100}}><Spin size="large" /></div>;
+  if (loading) return <div style={{ textAlign: 'center', marginTop: 100 }}><Spin size="large" /></div>;
 
   // =======================================================
   // 1. GIAO DIỆN LỊCH SỬ HÓA ĐƠN (KHI KHÔNG CÓ ID)
@@ -157,7 +157,7 @@ const InvoicePage = () => {
   // =======================================================
   // 2. GIAO DIỆN CHI TIẾT (TỜ HÓA ĐƠN A4) (KHI CÓ ID)
   // =======================================================
-  if (!invoiceData) return <div style={{textAlign: 'center', marginTop: 100}}><h2>Không tìm thấy dữ liệu hóa đơn!</h2></div>;
+  if (!invoiceData) return <div style={{ textAlign: 'center', marginTop: 100 }}><h2>Không tìm thấy dữ liệu hóa đơn!</h2></div>;
 
   return (
     <div style={{ padding: '24px', display: 'flex', justifyContent: 'center', background: '#f0f2f5', minHeight: '100vh' }}>
@@ -210,15 +210,15 @@ const InvoicePage = () => {
 
         <Row justify="space-between">
           <Col span={10} style={{ textAlign: 'center' }}>
-            <Title level={5}>Quét mã QR để thanh toán</Title>
+            <Title level={5}>Quét mã QR để thanh toán <QrcodeOutlined /></Title>
             {qrLoading ? (
               <div style={{ marginBottom: 8 }}><Spin size="small" /></div>
             ) : qrData ? (
               <>
                 <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 8 }}>
-                  <img src={qrData.qrImageUrl} alt="VietQR" style={{ width: 180, height: 180, objectFit: 'contain' }} />
+                  <img src={qrData.qrImageUrl || qrData.qrDataUrl} alt="Payment QR" style={{ width: 180, height: 180, objectFit: 'contain' }} />
                 </div>
-                <Text type="secondary">{qrData.bankName} - {qrData.accountName}</Text>
+                <Text type="secondary">{qrData.bankName || qrData.provider} - {qrData.accountName}</Text>
                 <br />
                 <Text strong style={{ color: '#f5222d' }}>{qrData.amount?.toLocaleString()} đ</Text>
               </>

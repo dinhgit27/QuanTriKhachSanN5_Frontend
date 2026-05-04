@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { 
-  Row, Col, Card, Button, Typography, message, Tag, Space, Spin, 
+import {
+  Row, Col, Card, Button, Typography, message, Tag, Space, Spin,
   DatePicker, InputNumber, Divider, Modal, Form, Input, Table, Tooltip, Popconfirm, Descriptions
 } from 'antd';
-import { 
+import {
   SearchOutlined, LeftOutlined, CheckCircleFilled, CheckOutlined,
   UserOutlined, PhoneOutlined, MailOutlined, HomeOutlined,
   EyeOutlined, CloseCircleOutlined
@@ -19,11 +19,11 @@ const BookingManagement = () => {
   const [currentStep, setCurrentStep] = useState(1);
   const [loading, setLoading] = useState(false);
   const [availableRoomTypes, setAvailableRoomTypes] = useState([]);
-  
+
   const [bookingsList, setBookingsList] = useState([]);
   const [loadingList, setLoadingList] = useState(false);
 
-  // 🚨 THÊM STATE CHO MODAL XEM CHI TIẾT
+  // STATE CHO MODAL XEM CHI TIẾT
   const [isDetailModalVisible, setIsDetailModalVisible] = useState(false);
   const [bookingDetail, setBookingDetail] = useState(null);
   const [loadingDetail, setLoadingDetail] = useState(false);
@@ -31,8 +31,8 @@ const BookingManagement = () => {
   const [dates, setDates] = useState(null);
   const [adults, setAdults] = useState(1);
   const [children, setChildren] = useState(0);
-  const [selectedRooms, setSelectedRooms] = useState([]); 
-  
+  const [selectedRooms, setSelectedRooms] = useState([]);
+
   const [isModalVisible, setIsModalVisible] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [form] = Form.useForm();
@@ -44,7 +44,7 @@ const BookingManagement = () => {
       const token = localStorage.getItem('token');
       const res = await axios.get('https://localhost:5070/api/Bookings', { headers: { Authorization: `Bearer ${token}` } });
       setBookingsList(res.data);
-    } catch (error) { message.error("Lỗi khi tải danh sách!"); } 
+    } catch (error) { message.error("Lỗi khi tải danh sách!"); }
     finally { setLoadingList(false); }
   };
 
@@ -53,7 +53,7 @@ const BookingManagement = () => {
   // 2. TÌM PHÒNG
   const handleSearch = async () => {
     if (!dates || dates.length !== 2) return message.warning("Chọn ngày nhận và trả phòng!");
-    setLoading(true); setSelectedRooms([]); 
+    setLoading(true); setSelectedRooms([]);
     try {
       const token = localStorage.getItem('token');
       const payload = { checkIn: dates[0].format('YYYY-MM-DDTHH:mm:ss'), checkOut: dates[1].format('YYYY-MM-DDTHH:mm:ss'), adults, children };
@@ -74,14 +74,14 @@ const BookingManagement = () => {
     return { nights: n, total: selectedRooms.reduce((sum, r) => sum + r.pricePerNight, 0) * n };
   })();
 
-  // 3. TẠO ĐƠN
+  // 3. TẠO ĐƠN (Đã bọc thêm tiền cọc)
   const handleConfirmBooking = async (values) => {
     setSubmitting(true);
     try {
       const token = localStorage.getItem('token');
-      const payload = { ...values, checkIn: dates[0].format('YYYY-MM-DDTHH:mm:ss'), checkOut: dates[1].format('YYYY-MM-DDTHH:mm:ss'), selectedRoomIds: selectedRooms.map(r => r.id) };
+      const payload = { ...values, depositAmount: values.depositAmount || 0, checkIn: dates[0].format('YYYY-MM-DDTHH:mm:ss'), checkOut: dates[1].format('YYYY-MM-DDTHH:mm:ss'), selectedRoomIds: selectedRooms.map(r => r.id) };
       const res = await axios.post('https://localhost:5070/api/Bookings/create', payload, { headers: { Authorization: `Bearer ${token}` } });
-      
+
       auditLogger.success(`Đặt phòng thành công cho khách ${values.guestName}!`, {
         action: 'Đặt phòng',
         actionType: 'CREATE',
@@ -90,11 +90,11 @@ const BookingManagement = () => {
         newValue: { ...values, rooms: selectedRooms.map(r => r.roomNumber) }
       });
 
-      setIsModalVisible(false); form.resetFields(); setCurrentStep(1); setSelectedRooms([]); fetchBookingsList(); 
+      setIsModalVisible(false); form.resetFields(); setCurrentStep(1); setSelectedRooms([]); fetchBookingsList();
     } catch (error) { message.error("Lỗi tạo đơn!"); } finally { setSubmitting(false); }
   };
 
-  // 🚨 4. HÀM XEM CHI TIẾT
+  // 4. HÀM XEM CHI TIẾT
   const handleViewDetail = async (id) => {
     setIsDetailModalVisible(true);
     setLoadingDetail(true);
@@ -110,15 +110,15 @@ const BookingManagement = () => {
     }
   };
 
-  // 🚨 5. HÀM ĐỔI TRẠNG THÁI (XÁC NHẬN / HỦY)
+  // 5. HÀM ĐỔI TRẠNG THÁI
   const handleChangeStatus = async (id, newStatus) => {
     try {
       const token = localStorage.getItem('token');
       const res = await axios.put(`https://localhost:5070/api/Bookings/${id}/status`, { status: newStatus }, { headers: { Authorization: `Bearer ${token}` } });
-      
+
       const record = bookingsList.find(b => b.id === id);
       const actionLabel = newStatus === 'Confirmed' ? 'Xác nhận' : 'Hủy';
-      
+
       auditLogger.success(newStatus === 'Cancelled' ? "Đã hủy đơn đặt phòng!" : "Đã xác nhận đơn thành công!", {
         action: actionLabel,
         actionType: 'UPDATE',
@@ -148,12 +148,9 @@ const BookingManagement = () => {
       title: 'Thao tác', key: 'action', align: 'center',
       render: (_, record) => (
         <Space size="middle">
-          {/* Nút Xem chi tiết */}
           <Tooltip title="Xem chi tiết">
             <Button type="text" style={{ color: '#1890ff' }} icon={<EyeOutlined />} onClick={() => handleViewDetail(record.id)} />
           </Tooltip>
-
-          {/* Nút Xác nhận (Chỉ hiện khi Pending) */}
           {record.status === 'Pending' && (
             <Popconfirm title="Xác nhận đơn phòng này?" onConfirm={() => handleChangeStatus(record.id, 'Confirmed')} okText="Xác nhận" cancelText="Hủy">
               <Tooltip title="Xác nhận đơn">
@@ -161,12 +158,10 @@ const BookingManagement = () => {
               </Tooltip>
             </Popconfirm>
           )}
-
-          {/* Nút Hủy (Chặn hủy nếu đã hoàn tất hoặc đã hủy) */}
           <Popconfirm title="Bạn có chắc chắn muốn hủy đơn này?" onConfirm={() => handleChangeStatus(record.id, 'Cancelled')} okText="Hủy đơn" okButtonProps={{ danger: true }} cancelText="Quay lại">
-             <Tooltip title="Hủy đơn">
-               <Button type="text" danger icon={<CloseCircleOutlined />} disabled={record.status === 'Completed' || record.status === 'Cancelled'} />
-             </Tooltip>
+            <Tooltip title="Hủy đơn">
+              <Button type="text" danger icon={<CloseCircleOutlined />} disabled={record.status === 'Completed' || record.status === 'Cancelled'} />
+            </Tooltip>
           </Popconfirm>
         </Space>
       )
@@ -175,7 +170,7 @@ const BookingManagement = () => {
 
   return (
     <div style={{ padding: '24px 32px', backgroundColor: '#f5f7fa', minHeight: '100vh' }}>
-      
+
       {/* MÀN HÌNH 1: TÌM KIẾM */}
       {currentStep === 1 && (
         <>
@@ -185,14 +180,14 @@ const BookingManagement = () => {
               <Row gutter={24} align="bottom">
                 <Col span={10}>
                   <Text strong style={{ display: 'block', marginBottom: 8, color: '#0050b3' }}>* Ngày nhận - trả phòng</Text>
-                  <RangePicker 
-                    size="large" 
-                    style={{ width: '100%', borderRadius: 8 }} 
-                    showTime={{ format: 'HH:mm' }} 
-                    format="DD/MM/YYYY HH:mm" 
-                    onChange={setDates} 
-                    disabledDate={(c) => c && c < dayjs().startOf('day')} 
-                    />
+                  <RangePicker
+                    size="large"
+                    style={{ width: '100%', borderRadius: 8 }}
+                    showTime={{ format: 'HH:mm' }}
+                    format="DD/MM/YYYY HH:mm"
+                    onChange={setDates}
+                    disabledDate={(c) => c && c < dayjs().startOf('day')}
+                  />
                 </Col>
                 <Col span={5}><Text strong style={{ display: 'block', marginBottom: 8, color: '#0050b3' }}>Người lớn</Text><InputNumber size="large" min={1} value={adults} onChange={setAdults} style={{ width: '100%', borderRadius: 8 }} /></Col>
                 <Col span={5}><Text strong style={{ display: 'block', marginBottom: 8, color: '#0050b3' }}>Trẻ em</Text><InputNumber size="large" min={0} value={children} onChange={setChildren} style={{ width: '100%', borderRadius: 8 }} /></Col>
@@ -248,10 +243,25 @@ const BookingManagement = () => {
       {/* MODAL TẠO ĐƠN (Gõ thông tin khách) */}
       <Modal title={<Title level={4} style={{ margin: 0 }}><HomeOutlined /> Xác nhận Đặt phòng</Title>} open={isModalVisible} onCancel={() => setIsModalVisible(false)} footer={null} centered width={600} destroyOnClose>
         <div style={{ backgroundColor: '#fffbe6', padding: 16, borderRadius: 8, border: '1px solid #ffe58f', marginBottom: 20 }}>
-           <Text strong>Tổng tiền dự kiến ({nights} đêm): </Text>
-           <Text strong style={{ color: '#ff4d4f', fontSize: 18 }}>{new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(total)}</Text>
+          <Text strong>Tổng tiền dự kiến ({nights} đêm): </Text>
+          <Text strong style={{ color: '#ff4d4f', fontSize: 18 }}>{new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(total)}</Text>
         </div>
-        <Form form={form} layout="vertical" onFinish={handleConfirmBooking}>
+
+        {/* 🚨 ĐÃ THÊM: initialValues cho depositAmount = 0 */}
+        <Form form={form} layout="vertical" onFinish={handleConfirmBooking} initialValues={{ depositAmount: 0 }}>
+
+          {/* 🚨 ĐÃ THÊM: Ô nhập Tiền Đặt Cọc */}
+          <Form.Item name="depositAmount" label={<Text strong style={{ color: '#52c41a' }}>Tiền đặt cọc trước (VNĐ)</Text>}>
+            <InputNumber
+              size="large"
+              style={{ width: '100%', borderColor: '#b7eb8f' }}
+              formatter={value => `${value}`.replace(/\B(?=(\d{3})+(?!\d))/g, ',')}
+              parser={value => value.replace(/\$\s?|(,*)/g, '')}
+              min={0}
+              placeholder="Ví dụ: 500,000"
+            />
+          </Form.Item>
+
           <Form.Item name="guestName" label="Họ tên người đại diện" rules={[{ required: true, message: 'Vui lòng nhập họ tên!' }]}><Input size="large" /></Form.Item>
           <Row gutter={16}>
             <Col span={12}><Form.Item name="guestPhone" label="Số điện thoại" rules={[{ required: true }]}><Input size="large" /></Form.Item></Col>
@@ -261,12 +271,12 @@ const BookingManagement = () => {
         </Form>
       </Modal>
 
-      {/* 🚨 MODAL XEM CHI TIẾT ĐƠN ĐẶT PHÒNG 🚨 */}
+      {/* MODAL XEM CHI TIẾT ĐƠN ĐẶT PHÒNG */}
       <Modal
         title={<Title level={4} style={{ margin: 0 }}>Chi Tiết Mã Đơn: <span style={{ color: '#1890ff' }}>{bookingDetail?.bookingCode}</span></Title>}
         open={isDetailModalVisible}
         onCancel={() => setIsDetailModalVisible(false)}
-        footer={[ <Button key="close" type="primary" onClick={() => setIsDetailModalVisible(false)}>Đóng</Button> ]}
+        footer={[<Button key="close" type="primary" onClick={() => setIsDetailModalVisible(false)}>Đóng</Button>]}
         centered
         width={700}
         destroyOnClose
@@ -286,10 +296,10 @@ const BookingManagement = () => {
               </Descriptions>
 
               <Title level={5} style={{ marginTop: 24, marginBottom: 12 }}>Danh sách phòng đã đặt</Title>
-              <Table 
-                dataSource={bookingDetail.details} 
-                rowKey="roomNumber" 
-                pagination={false} 
+              <Table
+                dataSource={bookingDetail.details}
+                rowKey="roomNumber"
+                pagination={false}
                 bordered
                 size="small"
                 columns={[
@@ -298,7 +308,7 @@ const BookingManagement = () => {
                   { title: 'Check-in', dataIndex: 'checkIn', render: d => dayjs(d).format('DD/MM/YYYY') },
                   { title: 'Check-out', dataIndex: 'checkOut', render: d => dayjs(d).format('DD/MM/YYYY') },
                   { title: 'Giá / Đêm', dataIndex: 'pricePerNight', render: p => new Intl.NumberFormat('vi-VN').format(p) }
-                ]} 
+                ]}
               />
             </div>
           )}

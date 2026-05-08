@@ -36,11 +36,7 @@ const InvoicePage = () => {
   const fetchPaymentQR = async () => {
     setQrLoading(true);
     try {
-<<<<<<< HEAD
       const res = await vietqrAPI.getVietQRByInvoiceId(id);
-=======
-      const res = await momoAPI.getPaymentQRByInvoiceId(id);
->>>>>>> 69b82d801ab8647166765518c09309ed217f5c28
       setQrData(res.data);
     } catch (err) {
       message.error("Không thể tải mã QR thanh toán!");

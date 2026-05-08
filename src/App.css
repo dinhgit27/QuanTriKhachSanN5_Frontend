@@ -201,4 +201,16 @@
     top: 0;
     left: 0;
   }
+  /* Custom cho thanh tìm kiếm ở HomePage hiển thị chữ trắng */
+  .ant-picker-input > input,
+  .ant-input-number-input {
+    color: white !important;
+    font-weight: bold !important;
+  }
+  .ant-picker-input > input::placeholder {
+    color: rgba(255, 255, 255, 0.6) !important;
+  }
+  .ant-picker-suffix {
+    color: rgba(255, 255, 255, 0.8) !important;
+  }
 }

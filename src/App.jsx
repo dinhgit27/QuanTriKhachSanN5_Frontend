@@ -30,6 +30,9 @@ import GuestInvoicePage from "./pages/guest/GuestInvoicePage";
 import GuestRankPage from "./pages/guest/GuestRankPage";
 import GuestReviewsPage from "./pages/guest/GuestReviewsPage";
 
+// 🚨 IMPORT TRANG DANH SÁCH PHÒNG
+import RoomsPage from './pages/RoomsPage';
+
 // IMPORT 2 TRANG LỄ TÂN
 import Arrivals from "./pages/admin/Arrivals";
 import InHouse from "./pages/admin/InHouse";
@@ -45,14 +48,15 @@ function App() {
       <Routes>
         <Route path="/" element={<Navigate to="/homepage" replace />} />
 
-        {/* 2. TUYẾN ĐƯỜNG TỰ DO */}
+        {/* 2. TUYẾN ĐƯỜNG TỰ DO (AI CŨNG VÀO ĐƯỢC) */}
         <Route path="/login" element={<LoginPage />} />
         <Route path="/homepage" element={<HomePage />} />
+        <Route path="/rooms" element={<RoomsPage />} /> {/* 👈 ĐÃ THÊM ROUTE VÀO ĐÂY */}
         <Route path="/register" element={<RegisterPage />} />
         <Route path="/forgot-password" element={<ForgotPasswordPage />} />
         <Route path="/unauthorized" element={<UnauthorizedPage />} />
 
-        {/* 3. VÙNG CẤM CHUNG */}
+        {/* 3. VÙNG CẤM CHUNG (PHẢI ĐĂNG NHẬP MỚI VÀO ĐƯỢC) */}
         <Route element={<ProtectedRoute />}>
 
           {/* --- KHU VỰC DÙNG CHUNG CHO ADMIN & LỄ TÂN --- */}
@@ -69,9 +73,7 @@ function App() {
               <Route path="/admin/in-house" element={<InHouse />} />
               <Route path="/admin/invoices" element={<InvoicePage />} />
 
-              {/* 🚨 ĐÃ CHUYỂN CÁC TRANG HÓA ĐƠN LÊN ĐÂY ĐỂ ADMIN TRUY CẬP ĐƯỢC */}
               <Route path="/receptionist/invoice-draft/:bookingId" element={<InvoicePage />} />
-              <Route path="/admin/invoice/:id" element={<InvoicePage />} />
             </Route>
           </Route>
 
@@ -90,8 +92,6 @@ function App() {
           <Route element={<RoleBasedRoute allowedRoles={["Receptionist"]} />}>
             <Route element={<AdminLayout />}>
               <Route path="/receptionist/dashboard" element={<ReceptionistDashboard />} />
-              
-              {/* Đã đổi tên path này để tránh trùng với CheckoutList của Admin */}
               <Route path="/receptionist/checkout" element={<CheckoutPage />} />
             </Route>
           </Route>

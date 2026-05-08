@@ -24,7 +24,6 @@ const invoiceAPI = {
     getAll: () => API.get('/Invoices'),
     cancel: (invoiceId) => API.post(`/Invoices/cancel/${invoiceId}`),
     getById: (invoiceId) => API.get(`/Invoices/${invoiceId}`),
-    createMomoPayment: (bookingId) => API.post(`/Invoices/create-momo-payment/${bookingId}`),
 };
 
 // 4. Export duy nhất một lần

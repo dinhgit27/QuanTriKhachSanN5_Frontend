@@ -3,7 +3,7 @@ import { Button, Card, Typography, Divider, Table, Row, Col, message, Modal, Spi
 import { PrinterOutlined, ExclamationCircleOutlined, RollbackOutlined, HistoryOutlined, EyeOutlined, QrcodeOutlined } from "@ant-design/icons";
 import { useNavigate, useParams } from "react-router-dom";
 import invoiceAPI from "../../api/invoiceAPI";
-import momoAPI from "../../api/momoAPI";
+import vietqrAPI from "../../api/vietqrAPI";
 
 const { Title, Text } = Typography;
 
@@ -36,7 +36,11 @@ const InvoicePage = () => {
   const fetchPaymentQR = async () => {
     setQrLoading(true);
     try {
+<<<<<<< HEAD
+      const res = await vietqrAPI.getVietQRByInvoiceId(id);
+=======
       const res = await momoAPI.getPaymentQRByInvoiceId(id);
+>>>>>>> 69b82d801ab8647166765518c09309ed217f5c28
       setQrData(res.data);
     } catch (err) {
       message.error("Không thể tải mã QR thanh toán!");

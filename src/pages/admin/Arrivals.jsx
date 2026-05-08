@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Card, Typography, Table, Tag, Button, Space, message, Tooltip, Modal, Select } from 'antd';
-import { LoginOutlined, EyeOutlined } from '@ant-design/icons';
+import { LoginOutlined, EyeOutlined, SyncOutlined } from '@ant-design/icons';
 import axios from 'axios';
 import dayjs from 'dayjs';
 import { auditLogger } from '../../utils/auditLogger';
@@ -22,7 +22,7 @@ const Arrivals = () => {
     setLoading(true);
     try {
       const token = localStorage.getItem('token');
-      const res = await axios.get('https://localhost:5070/api/Bookings/arrivals', { headers: { Authorization: `Bearer ${token}` } });
+      const res = await axios.get('http://localhost:5070/api/Bookings/arrivals', { headers: { Authorization: `Bearer ${token}` } });
       setData(res.data);
     } catch (error) { message.error("Lỗi tải danh sách khách đến!"); }
     finally { setLoading(false); }
@@ -35,20 +35,16 @@ const Arrivals = () => {
     setIsDetailModalOpen(true);
   };
 
-  // 🚨 LOGIC MỚI: KIỂM TRA XEM KHÁCH ĐÃ CÓ PHÒNG CHƯA
   const handleOpenCheckIn = async (record) => {
     setSelectedBooking(record);
-    
     if (record.assignedRoomId) {
-        // Trường hợp 1: Đã gán phòng lúc đặt
         setSelectedRoomId(record.assignedRoomId);
-        setAvailableRooms([]); // Không cần fetch phòng trống nữa
+        setAvailableRooms([]); 
         setIsCheckInModalOpen(true);
     } else {
-        // Trường hợp 2: Chưa gán phòng (Khách vãng lai book web) -> Load danh sách
         setSelectedRoomId(null);
         try {
-          const res = await axios.get('https://localhost:5070/api/Reception/available-rooms');
+          const res = await axios.get('http://localhost:5070/api/Reception/available-rooms');
           setAvailableRooms(res.data);
           setIsCheckInModalOpen(true);
         } catch (err) { message.error("Không tải được danh sách phòng trống!"); }
@@ -58,23 +54,12 @@ const Arrivals = () => {
   const submitCheckIn = async () => {
     if (!selectedRoomId) return message.warning("Vui lòng chọn 1 phòng trống để giao cho khách!");
     try {
-      await axios.post(`https://localhost:5070/api/Reception/checkin/${selectedBooking.id}`, selectedRoomId, {
+      await axios.post(`http://localhost:5070/api/Reception/checkin/${selectedBooking.id}`, selectedRoomId, {
         headers: { 'Content-Type': 'application/json' }
       });
-
-      const room = availableRooms.find(r => r.id === selectedRoomId) || { roomNumber: selectedBooking.assignedRoomNumber };
-      
-      auditLogger.success(`Check-in thành công cho khách ${selectedBooking.guestName}!`, {
-        action: 'Check-in',
-        actionType: 'UPDATE',
-        module: 'Quản lý Khách đến',
-        objectName: `Phòng ${room.roomNumber}`,
-        description: `Khách ${selectedBooking.guestName} đã nhận phòng ${room.roomNumber}`,
-        newValue: { status: 'Checked_in', roomId: selectedRoomId }
-      });
-
+      message.success(`Check-in thành công cho khách ${selectedBooking.guestName}!`);
       setIsCheckInModalOpen(false);
-      fetchData(); // Load lại bảng
+      fetchData(); 
     } catch (err) { message.error("Lỗi khi check-in!"); }
   };
 
@@ -83,12 +68,22 @@ const Arrivals = () => {
     { title: 'Khách hàng', dataIndex: 'guestName', render: text => <b>{text || 'Khách vãng lai'}</b> },
     { title: 'Số điện thoại', dataIndex: 'guestPhone' },
     { title: 'Loại phòng', dataIndex: 'roomTypeName', render: text => <Tag color="blue">{text}</Tag> },
+    { title: 'Số phòng', dataIndex: 'assignedRoomNumber', render: text => text ? <Tag color="green" style={{fontSize: 14, fontWeight: 'bold'}}>P.{text}</Tag> : <Tag color="red">Chưa gán</Tag> },
+    { title: 'Trạng thái', dataIndex: 'status', render: s => (
+        <Tag color={s === 'Confirmed' ? 'cyan' : 'gold'}>{s === 'Confirmed' ? 'Đã xác nhận' : 'Chờ xác nhận'}</Tag>
+    )},
     { title: 'Dự kiến đến', dataIndex: 'checkInDate', render: date => dayjs(date).format('HH:mm - DD/MM') },
     {
       title: 'Thao tác', align: 'center', render: (_, record) => (
         <Space>
           <Tooltip title="Xem chi tiết"><Button icon={<EyeOutlined />} onClick={() => handleViewDetails(record)} /></Tooltip>
-          <Button type="primary" icon={<LoginOutlined />} style={{ backgroundColor: '#52c41a' }} onClick={() => handleOpenCheckIn(record)}>
+          <Button 
+            type="primary" 
+            icon={<LoginOutlined />} 
+            disabled={record.status === 'Checked_in'}
+            style={{ backgroundColor: record.status === 'Confirmed' ? '#52c41a' : '#d9d9d9' }} 
+            onClick={() => handleOpenCheckIn(record)}
+          >
             Check-in
           </Button>
         </Space>
@@ -98,7 +93,10 @@ const Arrivals = () => {
 
   return (
     <Card style={{ borderRadius: 12, minHeight: '80vh' }} bodyStyle={{ padding: '24px' }}>
-      <Title level={4}>🧳 Khách dự kiến đến hôm nay</Title>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
+        <Title level={4} style={{ margin: 0 }}>🧳 Khách dự kiến đến hôm nay</Title>
+        <Button icon={<SyncOutlined />} onClick={fetchData} loading={loading}>Làm mới</Button>
+      </div>
       <Table columns={columns} dataSource={data} rowKey="id" loading={loading} pagination={{ pageSize: 8 }} />
 
       {/* MODAL XEM CHI TIẾT */}

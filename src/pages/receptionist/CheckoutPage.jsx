@@ -5,17 +5,28 @@ import { auditLogger } from "../../utils/auditLogger";
 
 const { Title, Text } = Typography;
 
+
+
 const CheckoutPage = () => {
     const [bookingId, setBookingId] = useState(1);
     const [preview, setPreview] = useState(null);
+    const [momoData, setMomoData] = useState(null);
     const [loading, setLoading] = useState(false);
 
     // 🔍 Xem trước hóa đơn
     const handlePreview = async () => {
         try {
             setLoading(true);
+            setMomoData(null);
             const res = await invoiceAPI.preview(bookingId);
             setPreview(res.data);
+
+            try {
+                const momoRes = await invoiceAPI.createMomoPayment(bookingId);
+                setMomoData(momoRes.data);
+            } catch (err) {
+                console.error("Không tạo được link MoMo:", err);
+            }
         } catch (err) {
             auditLogger.error("Không xem được hóa đơn!", { module: "Thanh Toán", objectName: `Booking #${bookingId}` });
         } finally {
@@ -83,9 +94,19 @@ const CheckoutPage = () => {
                     </Title>
 
                     <div style={{ textAlign: "center", margin: "20px 0" }}>
-                        <Title level={5}>Quét mã Momo để thanh toán</Title>
-                        <QRCode value={`2|99|0901234567|TEN_KHACH_SAN||0|0|${preview.finalTotal}|Thanh toan hoa don ${preview.bookingCode}`} size={160} style={{ margin: "auto" }} />
-                        <Text type="secondary" style={{ display: 'block', marginTop: 8 }}>Momo: 090 123 4567 (Tên Khách Sạn)</Text>
+                        <Title level={5}>Thanh toán qua MoMo</Title>
+                        {momoData ? (
+                            <>
+                                <img src={momoData.qrCodeUrl} alt="MoMo QR Code" width={200} style={{ margin: "auto", display: "block", borderRadius: 8, border: "1px solid #ddd" }} />
+                                <div style={{ marginTop: 16 }}>
+                                    <Button type="primary" href={momoData.payUrl} target="_blank">
+                                        Mở trang thanh toán
+                                    </Button>
+                                </div>
+                            </>
+                        ) : (
+                            <Text type="secondary">Đang tải mã thanh toán MoMo...</Text>
+                        )}
                     </div>
 
                     <Text type="secondary">{preview.note}</Text>

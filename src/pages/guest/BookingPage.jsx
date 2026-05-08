@@ -17,7 +17,11 @@ import {
   message,
   Spin,
   Descriptions,
-  Table
+  Table,
+  Popconfirm,
+  Row,
+  Col,
+  QRCode
 } from "antd";
 import { EyeOutlined } from "@ant-design/icons";
 import dayjs from "dayjs";
@@ -40,6 +44,11 @@ const BookingPage = () => {
   const [bookingDetail, setBookingDetail] = useState(null);
   const [loadingDetail, setLoadingDetail] = useState(false);
 
+  // 🚨 State cho Modal Thanh Toán (Invoice Preview)
+  const [isInvoiceModalVisible, setIsInvoiceModalVisible] = useState(false);
+  const [invoicePreview, setInvoicePreview] = useState(null);
+  const [loadingInvoice, setLoadingInvoice] = useState(false);
+
   useEffect(() => {
     fetchBookings();
   }, []);
@@ -51,7 +60,7 @@ const BookingPage = () => {
       const userEmail = storedUser?.email || localStorage.getItem('userEmail') || 'guest@hotel.com';
       const token = localStorage.getItem('token');
       
-      const response = await fetch('https://localhost:5070/api/Bookings', {
+      const response = await fetch('http://localhost:5070/api/Bookings', {
         headers: {
           'Authorization': `Bearer ${token}`
         }
@@ -92,7 +101,7 @@ const BookingPage = () => {
     setLoadingDetail(true);
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch(`https://localhost:5070/api/Bookings/${bookingId}`, {
+      const response = await fetch(`http://localhost:5070/api/Bookings/${bookingId}`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       if (!response.ok) throw new Error("API call failed");
@@ -106,12 +115,41 @@ const BookingPage = () => {
     }
   };
 
+  // 🚨 HÀM XEM HÓA ĐƠN VÀ THANH TOÁN
+  const handleShowInvoice = async (bookingId) => {
+    setIsInvoiceModalVisible(true);
+    setLoadingInvoice(true);
+    try {
+      const response = await fetch(`http://localhost:5070/api/Invoices/preview/${bookingId}`);
+      if (!response.ok) throw new Error("API call failed");
+      const data = await response.json();
+      setInvoicePreview(data);
+    } catch (err) {
+      message.error("Không thể lấy thông tin hóa đơn lúc này!");
+      setIsInvoiceModalVisible(false);
+    } finally {
+      setLoadingInvoice(false);
+    }
+  };
+
+  const handleConfirmPaymentRequest = (bookingId) => {
+    const savedRequests = JSON.parse(localStorage.getItem('guestPaymentRequests') || '[]');
+    if (!savedRequests.includes(bookingId)) {
+        localStorage.setItem('guestPaymentRequests', JSON.stringify([...savedRequests, bookingId]));
+        message.success("Đã gửi yêu cầu thanh toán. Vui lòng đợi lễ tân xác nhận!");
+        setIsInvoiceModalVisible(false);
+        fetchBookings();
+    } else {
+        message.info("Bạn đã gửi yêu cầu rồi, vui lòng đợi!");
+    }
+  };
+
   const getStatusTag = (status) => {
     const map = { 
       'Pending': { c: 'orange', t: 'Chờ xác nhận' }, 
       'Confirmed': { c: 'blue', t: 'Đã xác nhận' }, 
       'Checked_in': { c: 'geekblue', t: 'Đang ở' }, 
-      'Completed': { c: 'green', t: 'Đã thanh toán' }, // Map Completed to Đã thanh toán for guest
+      'Completed': { c: 'green', t: 'Đã thanh toán' }, 
       'Cancelled': { c: 'red', t: 'Đã hủy' } 
     };
     const { c, t } = map[status] || { c: 'default', t: status };
@@ -202,6 +240,12 @@ const BookingPage = () => {
                         Xem chi tiết
                       </Button>
 
+                      {booking.status === 'Checked_in' && (
+                        <Button type="primary" danger onClick={() => handleShowInvoice(booking.id)}>
+                          Thanh toán
+                        </Button>
+                      )}
+
                       {booking.status === 'Completed' && !booking.hasReviewed && (
                         <Button type="primary" size="small" onClick={() => showReviewModal(booking)}>
                           Đánh giá
@@ -257,6 +301,77 @@ const BookingPage = () => {
                     { title: 'Giá / Đêm', dataIndex: 'pricePerNight', render: p => new Intl.NumberFormat('vi-VN').format(p) }
                   ]} 
                 />
+              </div>
+            )}
+          </Spin>
+        </Modal>
+
+        {/* 🚨 MODAL HÓA ĐƠN & QUÉT MÃ THANH TOÁN (QR CODE) 🚨 */}
+        <Modal
+          title={<Title level={4} style={{margin:0}}>Hóa Đơn Thanh Toán & Quét Mã QR</Title>}
+          open={isInvoiceModalVisible}
+          onCancel={() => setIsInvoiceModalVisible(false)}
+          width={750}
+          centered
+          footer={[
+            <Button key="back" onClick={() => setIsInvoiceModalVisible(false)}>Quay lại</Button>,
+            <Button key="submit" type="primary" danger onClick={() => handleConfirmPaymentRequest(invoicePreview?.bookingId)}>
+              Tôi đã chuyển tiền thành công
+            </Button>
+          ]}
+        >
+          <Spin spinning={loadingInvoice}>
+            {invoicePreview && (
+              <div style={{ padding: '10px' }}>
+                <Row gutter={24}>
+                  <Col span={14}>
+                    <Descriptions title="Thông tin khách hàng" column={1} bordered size="small">
+                      <Descriptions.Item label="Khách hàng">{invoicePreview.guestName}</Descriptions.Item>
+                      <Descriptions.Item label="Mã Booking">{invoicePreview.bookingCode}</Descriptions.Item>
+                    </Descriptions>
+
+                    <Divider orientation="left" style={{fontSize: 14}}>Chi phí chi tiết</Divider>
+                    <Table 
+                        dataSource={[
+                            { key: 'room', label: 'Tiền phòng', amount: invoicePreview.totalRoomAmount },
+                            { key: 'service', label: 'Dịch vụ', amount: invoicePreview.totalServiceAmount },
+                            { key: 'penalty', label: 'Phí đền bù', amount: invoicePreview.totalPenaltyAmount },
+                            { key: 'tax', label: 'Thuế VAT (8%)', amount: invoicePreview.taxAmount },
+                        ]}
+                        pagination={false}
+                        size="small"
+                        showHeader={false}
+                        columns={[
+                            { dataIndex: 'label', key: 'label' },
+                            { dataIndex: 'amount', key: 'amount', align: 'right', render: v => <b>{v?.toLocaleString()} đ</b> }
+                        ]}
+                    />
+                    <div style={{ marginTop: 20, textAlign: 'right' }}>
+                        <Title level={3} type="danger" style={{margin:0}}>
+                            TỔNG: {invoicePreview.finalTotal?.toLocaleString()} đ
+                        </Title>
+                    </div>
+                  </Col>
+                  
+                  <Col span={10} style={{ textAlign: 'center', backgroundColor: '#fafafa', borderRadius: 8, padding: '20px' }}>
+                    <Text strong style={{ fontSize: 16, display: 'block', marginBottom: 12 }}>QUÉT MÃ MOMO</Text>
+                    <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 16 }}>
+                      <QRCode 
+                        value={`2|99|0901234567|TEN_KHACH_SAN||0|0|${invoicePreview.finalTotal}|Thanh toan hoa don ${invoicePreview.bookingCode}`} 
+                        size={180} 
+                        color="#a50064"
+                      />
+                    </div>
+                    <Text type="secondary">Chủ TK: HOTEL IT CODE</Text>
+                    <br />
+                    <Text type="secondary">STK: 090 123 4567</Text>
+                  </Col>
+                </Row>
+                
+                <Divider />
+                <div style={{ padding: '12px', background: '#fff7e6', border: '1px solid #ffd591', borderRadius: 4 }}>
+                   <Text italic>Lưu ý: Sau khi chuyển khoản thành công, bạn hãy nhấn nút <b>"Tôi đã chuyển tiền"</b> để lễ tân xác nhận và hoàn tất thủ tục trả phòng.</Text>
+                </div>
               </div>
             )}
           </Spin>

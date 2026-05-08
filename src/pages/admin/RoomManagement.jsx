@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+﻿import React, { useState, useEffect } from 'react';
 import { 
   Table, Button, Space, Tag, Modal, Form, Input, InputNumber,
   Select, message, Card, Typography, Popconfirm, Row, Col, Dropdown, Segmented, Statistic 
@@ -41,7 +41,7 @@ const RoomManagement = () => {
       setRooms(responseRooms.data);
 
       const token = localStorage.getItem('token');
-      const responseTypes = await axios.get('https://localhost:5070/api/RoomTypes', {
+      const responseTypes = await axios.get('http://localhost:5070/api/RoomTypes', {
         headers: { Authorization: `Bearer ${token}` }
       });
       setRoomTypes(responseTypes.data);

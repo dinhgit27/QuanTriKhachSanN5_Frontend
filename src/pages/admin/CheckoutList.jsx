@@ -24,7 +24,7 @@ const CheckoutList = () => {
     setLoading(true);
     try {
       const token = localStorage.getItem('token');
-      const res = await axios.get('https://localhost:5070/api/Bookings/in-house', { headers: { Authorization: `Bearer ${token}` } });
+      const res = await axios.get('http://localhost:5070/api/Bookings/in-house', { headers: { Authorization: `Bearer ${token}` } });
       setData(res.data);
     } catch (error) { message.error("Lỗi khi tải danh sách trả phòng!"); }
     finally { setLoading(false); }
@@ -62,15 +62,18 @@ const CheckoutList = () => {
       onOk: async () => {
         try {
           // 1. Gọi API chốt trả phòng
-          const res = await axios.post(`https://localhost:5070/api/Invoices/checkout/${record.id}`);
+          const res = await axios.post(`http://localhost:5070/api/Invoices/checkout/${record.id}`);
           message.success("Trả phòng thành công!");
-
-          // 2. 🚨 ĐÃ FIX LUỒNG: Lấy ID hóa đơn mới tạo và nhảy thẳng sang trang In Hóa Đơn!
-          const newInvoiceId = res.data.invoiceId;
-          navigate(`/admin/invoice/${newInvoiceId}`);
-
-        } catch (err) {
-          message.error("Lỗi khi xử lý trả phòng!");
+          
+          // 2. 🚨 ĐÃ FIX LUỒNG: Xóa cờ thanh toán tạm và nhảy sang trang In Hóa Đơn!
+          const paidBookings = JSON.parse(localStorage.getItem('adminPaidBookings') || '[]');
+          localStorage.setItem('adminPaidBookings', JSON.stringify(paidBookings.filter(id => id !== record.id)));
+          
+          const newInvoiceId = res.data.invoiceId; 
+          navigate(`/admin/invoice/${newInvoiceId}`); 
+          
+        } catch (err) { 
+          message.error("Lỗi khi xử lý trả phòng!"); 
         }
       }
     });
@@ -84,19 +87,71 @@ const CheckoutList = () => {
       render: rooms => <Space wrap>{rooms?.map(r => <Tag color="red" key={r}>P.{r}</Tag>)}</Space>
     },
     { title: 'Ngày Check-in', dataIndex: 'checkInDate', render: date => dayjs(date).format('HH:mm - DD/MM') },
+    { 
+      title: 'Thanh toán', align: 'center',
+      render: (_, record) => {
+        const paidBookings = JSON.parse(localStorage.getItem('adminPaidBookings') || '[]');
+        const isPaid = paidBookings.includes(record.id);
+        
+        const guestRequests = JSON.parse(localStorage.getItem('guestPaymentRequests') || '[]');
+        const isRequested = guestRequests.includes(record.id);
+
+        if (isPaid) return <Tag color="green">Đã nhận tiền</Tag>;
+        
+        return (
+            <Space direction="vertical" size="small">
+                {isRequested ? <Tag color="orange">Khách báo đã chuyển</Tag> : <Tag color="default">Chưa thanh toán</Tag>}
+                <Button 
+                    size="small" 
+                    type="primary" 
+                    ghost 
+                    onClick={() => handleApprovePayment(record.id)}
+                >
+                    Xác nhận đã nhận tiền
+                </Button>
+            </Space>
+        );
+      }
+    },
     {
-      title: 'Thao tác', align: 'center', render: (_, record) => (
-        <Space>
-          <Tooltip title="Xem chi tiết tiêu thụ">
-            <Button icon={<EyeOutlined />} onClick={() => handleViewDetails(record)} />
-          </Tooltip>
-          <Button type="primary" danger icon={<LogoutOutlined />} onClick={() => handleCheckout(record)}>
-            Trả phòng
-          </Button>
-        </Space>
-      )
+      title: 'Thao tác', align: 'center', render: (_, record) => {
+        const paidBookings = JSON.parse(localStorage.getItem('adminPaidBookings') || '[]');
+        const isPaid = paidBookings.includes(record.id);
+        return (
+          <Space>
+            <Tooltip title="Xem chi tiết tiêu thụ">
+              <Button icon={<EyeOutlined />} onClick={() => handleViewDetails(record)} />
+            </Tooltip>
+            <Button 
+                type="primary" 
+                danger 
+                icon={<LogoutOutlined />} 
+                disabled={!isPaid}
+                onClick={() => handleCheckout(record)}
+            >
+              Trả phòng
+            </Button>
+          </Space>
+        );
+      }
     }
   ];
+
+  const handleApprovePayment = (id) => {
+    // 1. Xóa khỏi danh sách yêu cầu
+    const currentRequests = JSON.parse(localStorage.getItem('guestPaymentRequests') || '[]');
+    const updatedRequests = currentRequests.filter(reqId => reqId !== id);
+    localStorage.setItem('guestPaymentRequests', JSON.stringify(updatedRequests));
+
+    // 2. Thêm vào danh sách đã thanh toán
+    const paidBookings = JSON.parse(localStorage.getItem('adminPaidBookings') || '[]');
+    if (!paidBookings.includes(id)) {
+      localStorage.setItem('adminPaidBookings', JSON.stringify([...paidBookings, id]));
+    }
+
+    message.success("Đã xác nhận khách thanh toán thành công!");
+    fetchData(); // Reload table
+  };
 
   return (
     <Card style={{ borderRadius: 12, minHeight: '80vh' }} bodyStyle={{ padding: '24px' }}>

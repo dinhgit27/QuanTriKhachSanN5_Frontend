@@ -1,9 +1,9 @@
-import axios from 'axios';
+﻿import axios from 'axios';
 import { useLoadingStore } from '../store/loadingStore'; 
 import { useAdminAuthStore } from '../store/adminAuthStore';
 
 const axiosClient = axios.create({
-    baseURL: import.meta.env.VITE_API_URL || 'https://localhost:5070/api', 
+    baseURL: import.meta.env.VITE_API_URL || 'http://localhost:5070/api', 
     headers: {
         'Content-Type': 'application/json',
     },

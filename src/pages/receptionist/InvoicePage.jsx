@@ -7,7 +7,6 @@ import momoAPI from "../../api/momoAPI";
 
 const { Title, Text } = Typography;
 
-
 const InvoicePage = () => {
   const navigate = useNavigate();
   const { id } = useParams(); // Bắt ID trên thanh URL
@@ -27,17 +26,17 @@ const InvoicePage = () => {
     }
   }, [id]);
 
-  // 🚨 GỌI API LẤY MÃ QR VIETQR KHI CÓ INVOICE DATA
+  // 🚨 GỌI API LẤY MÃ QR VIETQR/MOMO KHI CÓ INVOICE DATA
   useEffect(() => {
     if (id && invoiceData) {
-      fetchVietQR();
+      fetchPaymentQR();
     }
   }, [id, invoiceData]);
 
-  const fetchVietQR = async () => {
+  const fetchPaymentQR = async () => {
     setQrLoading(true);
     try {
-      const res = await momoAPI.getVietQRByInvoiceId(id);
+      const res = await momoAPI.getPaymentQRByInvoiceId(id);
       setQrData(res.data);
     } catch (err) {
       message.error("Không thể tải mã QR thanh toán!");
@@ -211,15 +210,15 @@ const InvoicePage = () => {
 
         <Row justify="space-between">
           <Col span={10} style={{ textAlign: 'center' }}>
-            <Title level={5}>Quét mã QR để thanh toán</Title>
+            <Title level={5}>Quét mã QR để thanh toán <QrcodeOutlined /></Title>
             {qrLoading ? (
               <div style={{ marginBottom: 8 }}><Spin size="small" /></div>
             ) : qrData ? (
               <>
                 <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 8 }}>
-                  <img src={qrData.qrImageUrl} alt="VietQR" style={{ width: 180, height: 180, objectFit: 'contain' }} />
+                  <img src={qrData.qrImageUrl || qrData.qrDataUrl} alt="Payment QR" style={{ width: 180, height: 180, objectFit: 'contain' }} />
                 </div>
-                <Text type="secondary">{qrData.bankName} - {qrData.accountName}</Text>
+                <Text type="secondary">{qrData.bankName || qrData.provider} - {qrData.accountName}</Text>
                 <br />
                 <Text strong style={{ color: '#f5222d' }}>{qrData.amount?.toLocaleString()} đ</Text>
               </>

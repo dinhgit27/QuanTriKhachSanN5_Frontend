@@ -1,8 +1,7 @@
 import axiosClient from "./axios";
 
-const momoAPI = {
+const vietqrAPI = {
     getVietQRByInvoiceId: (invoiceId) => axiosClient.get(`/VietQR/${invoiceId}`),
 };
 
-export default momoAPI;
-
+export default vietqrAPI;

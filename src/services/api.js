@@ -1,7 +1,7 @@
-import axios from 'axios';
+﻿import axios from 'axios';
 
 // Cấu hình base URL cho API backend
-const API_BASE_URL = 'https://localhost:5070/api';
+const API_BASE_URL = 'http://localhost:5070/api';
 
 // Lưu ý: Backend đang chạy trên cổng 5070
 // Nếu backend chạy trên cổng khác, hãy cập nhật URL này

@@ -6,7 +6,7 @@ import {
 import { 
   SearchOutlined, LeftOutlined, CheckCircleFilled, CheckOutlined,
   UserOutlined, PhoneOutlined, MailOutlined, HomeOutlined,
-  EyeOutlined, CloseCircleOutlined
+  EyeOutlined, CloseCircleOutlined, LoginOutlined
 } from '@ant-design/icons';
 import axios from 'axios';
 import dayjs from 'dayjs';
@@ -42,7 +42,7 @@ const BookingManagement = () => {
     setLoadingList(true);
     try {
       const token = localStorage.getItem('token');
-      const res = await axios.get('https://localhost:5070/api/Bookings', { headers: { Authorization: `Bearer ${token}` } });
+      const res = await axios.get('http://localhost:5070/api/Bookings', { headers: { Authorization: `Bearer ${token}` } });
       setBookingsList(res.data);
     } catch (error) { message.error("Lỗi khi tải danh sách!"); } 
     finally { setLoadingList(false); }
@@ -57,7 +57,7 @@ const BookingManagement = () => {
     try {
       const token = localStorage.getItem('token');
       const payload = { checkIn: dates[0].format('YYYY-MM-DDTHH:mm:ss'), checkOut: dates[1].format('YYYY-MM-DDTHH:mm:ss'), adults, children };
-      const res = await axios.post('https://localhost:5070/api/Bookings/available-rooms', payload, { headers: { Authorization: `Bearer ${token}` } });
+      const res = await axios.post('http://localhost:5070/api/Bookings/available-rooms', payload, { headers: { Authorization: `Bearer ${token}` } });
       setAvailableRoomTypes(res.data);
       if (res.data.length === 0) message.info("Không còn phòng trống!"); else setCurrentStep(2);
     } catch (error) { message.error("Lỗi khi tìm phòng!"); } finally { setLoading(false); }
@@ -80,7 +80,7 @@ const BookingManagement = () => {
     try {
       const token = localStorage.getItem('token');
       const payload = { ...values, checkIn: dates[0].format('YYYY-MM-DDTHH:mm:ss'), checkOut: dates[1].format('YYYY-MM-DDTHH:mm:ss'), selectedRoomIds: selectedRooms.map(r => r.id) };
-      const res = await axios.post('https://localhost:5070/api/Bookings/create', payload, { headers: { Authorization: `Bearer ${token}` } });
+      const res = await axios.post('http://localhost:5070/api/Bookings/create', payload, { headers: { Authorization: `Bearer ${token}` } });
       
       auditLogger.success(`Đặt phòng thành công cho khách ${values.guestName}!`, {
         action: 'Đặt phòng',
@@ -100,7 +100,7 @@ const BookingManagement = () => {
     setLoadingDetail(true);
     try {
       const token = localStorage.getItem('token');
-      const res = await axios.get(`https://localhost:5070/api/Bookings/${id}`, { headers: { Authorization: `Bearer ${token}` } });
+      const res = await axios.get(`http://localhost:5070/api/Bookings/${id}`, { headers: { Authorization: `Bearer ${token}` } });
       setBookingDetail(res.data);
     } catch (error) {
       message.error("Lỗi khi tải chi tiết!");
@@ -114,7 +114,7 @@ const BookingManagement = () => {
   const handleChangeStatus = async (id, newStatus) => {
     try {
       const token = localStorage.getItem('token');
-      const res = await axios.put(`https://localhost:5070/api/Bookings/${id}/status`, { status: newStatus }, { headers: { Authorization: `Bearer ${token}` } });
+      const res = await axios.put(`http://localhost:5070/api/Bookings/${id}/status`, { status: newStatus }, { headers: { Authorization: `Bearer ${token}` } });
       
       const record = bookingsList.find(b => b.id === id);
       const actionLabel = newStatus === 'Confirmed' ? 'Xác nhận' : 'Hủy';
@@ -133,21 +133,21 @@ const BookingManagement = () => {
     }
   };
 
-  const handleApprovePayment = async (id) => {
-    try {
-      const token = localStorage.getItem('token');
-      await axios.put(`https://localhost:5070/api/Bookings/${id}/status`, { status: 'Completed' }, { headers: { Authorization: `Bearer ${token}` } });
-      
-      // Xóa khỏi danh sách yêu cầu thanh toán local
-      const savedRequests = JSON.parse(localStorage.getItem('guestPaymentRequests') || '[]');
-      const newRequests = savedRequests.filter(reqId => reqId !== id);
-      localStorage.setItem('guestPaymentRequests', JSON.stringify(newRequests));
+  // 🚨 HÀM DUYỆT THANH TOÁN (Xác nhận đã nhận tiền)
+  const handleApprovePayment = (id) => {
+    // 1. Xóa khỏi danh sách yêu cầu chờ duyệt
+    const currentRequests = JSON.parse(localStorage.getItem('guestPaymentRequests') || '[]');
+    const updatedRequests = currentRequests.filter(reqId => reqId !== id);
+    localStorage.setItem('guestPaymentRequests', JSON.stringify(updatedRequests));
 
-      message.success("Đã duyệt thanh toán thành công!");
-      fetchBookingsList();
-    } catch (error) {
-      message.error("Lỗi duyệt thanh toán!");
+    // 2. Thêm vào danh sách đã thanh toán để CheckoutList biết
+    const paidBookings = JSON.parse(localStorage.getItem('adminPaidBookings') || '[]');
+    if (!paidBookings.includes(id)) {
+      localStorage.setItem('adminPaidBookings', JSON.stringify([...paidBookings, id]));
     }
+
+    message.success("Đã xác nhận khách thanh toán thành công! Có thể thực hiện trả phòng.");
+    fetchBookingsList();
   };
 
   const getStatusTag = (status) => {
@@ -197,20 +197,41 @@ const BookingManagement = () => {
                 </Tooltip>
               </Popconfirm>
             )}
-              </Tooltip>
-            </Popconfirm>
-          )}
 
-          {/* Nút Hủy (Chặn hủy nếu đã hoàn tất hoặc đã hủy) */}
-          <Popconfirm title="Bạn có chắc chắn muốn hủy đơn này?" onConfirm={() => handleChangeStatus(record.id, 'Cancelled')} okText="Hủy đơn" okButtonProps={{ danger: true }} cancelText="Quay lại">
-             <Tooltip title="Hủy đơn">
-               <Button type="text" danger icon={<CloseCircleOutlined />} disabled={record.status === 'Completed' || record.status === 'Cancelled'} />
-             </Tooltip>
-          </Popconfirm>
-        </Space>
-      )
+            {/* Nút Check-in (Chỉ hiện khi Confirmed) */}
+            {record.status === 'Confirmed' && (
+              <Popconfirm title="Làm thủ tục nhận phòng cho khách?" onConfirm={async () => {
+                try {
+                  const token = localStorage.getItem('token');
+                  const detailRes = await axios.get(`http://localhost:5070/api/Bookings/${record.id}`, { headers: { Authorization: `Bearer ${token}` } });
+                  const roomId = detailRes.data.details[0]?.roomId || detailRes.data.details[0]?.id; 
+                  
+                  await axios.post(`http://localhost:5070/api/Reception/checkin/${record.id}`, roomId, {
+                    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` }
+                  });
+                  message.success("Check-in thành công! Phòng đã chuyển sang trạng thái Đang ở.");
+                  fetchBookingsList();
+                } catch (err) { message.error("Lỗi khi check-in!"); }
+              }} okText="Check-in" cancelText="Hủy">
+                <Tooltip title="Nhận phòng (Check-in)">
+                  <Button type="text" style={{ color: '#fa8c16' }} icon={<LoginOutlined />} />
+                </Tooltip>
+              </Popconfirm>
+            )}
+
+            {/* Nút Hủy (Chặn hủy nếu đã hoàn tất hoặc đã hủy) */}
+            <Popconfirm title="Bạn có chắc chắn muốn hủy đơn này?" onConfirm={() => handleChangeStatus(record.id, 'Cancelled')} okText="Hủy đơn" okButtonProps={{ danger: true }} cancelText="Quay lại">
+               <Tooltip title="Hủy đơn">
+                 <Button type="text" danger icon={<CloseCircleOutlined />} disabled={record.status === 'Completed' || record.status === 'Cancelled'} />
+               </Tooltip>
+            </Popconfirm>
+          </Space>
+        )
+      }
     }
   ];
+
+
 
   return (
     <div style={{ padding: '24px 32px', backgroundColor: '#f5f7fa', minHeight: '100vh' }}>

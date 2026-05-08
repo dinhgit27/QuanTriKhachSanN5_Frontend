@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+﻿import React, { useEffect, useState } from 'react';
 import { Layout, Breadcrumb, Card, List, Typography, Tag, Space, Divider, Button, message, Spin } from 'antd';
 import { Link } from 'react-router-dom';
 import dayjs from 'dayjs';
@@ -22,7 +22,7 @@ const GuestInvoicePage = () => {
       const userEmail = storedUser?.email || localStorage.getItem('userEmail') || 'guest@hotel.com';
       const token = localStorage.getItem('token');
       
-      const response = await fetch('https://localhost:5070/api/Bookings', {
+      const response = await fetch('http://localhost:5070/api/Bookings', {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       

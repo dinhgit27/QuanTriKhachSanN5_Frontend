@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+﻿import React, { useState, useEffect } from 'react';
 import { 
   Table, Button, Tag, Space, message, Typography, 
   Popconfirm, Card, Image, Tooltip, Empty 
@@ -26,7 +26,7 @@ const LossAndDamageManagement = () => {
     setLoading(true);
     try {
       const token = localStorage.getItem('token');
-      const res = await axios.get('https://localhost:5070/api/LossAndDamages', {
+      const res = await axios.get('http://localhost:5070/api/LossAndDamages', {
         headers: { Authorization: `Bearer ${token}` }
       });
       // Đưa biên bản mới nhất lên đầu bảng
@@ -60,7 +60,7 @@ const LossAndDamageManagement = () => {
       const currentRecord = data.find(item => item.id === id);
       
       // Gửi raw string bọc trong ngoặc kép theo chuẩn ASP.NET [FromBody]
-      await axios.put(`https://localhost:5070/api/LossAndDamages/status/${id}`, 
+      await axios.put(`http://localhost:5070/api/LossAndDamages/status/${id}`, 
         `"${newStatus}"`, 
         {
           headers: { 

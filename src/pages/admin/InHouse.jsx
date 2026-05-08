@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+﻿import React, { useState, useEffect } from 'react';
 import { Card, Typography, Table, Tag, Button, Space, Tooltip, Modal, InputNumber, Select, Divider, List, Input } from 'antd';
 import { PlusCircleOutlined, EyeOutlined, WarningOutlined } from '@ant-design/icons';
 import axios from 'axios';
@@ -37,10 +37,10 @@ const InHouse = () => {
     setLoading(true);
     try {
       const token = localStorage.getItem('token');
-      const resInHouse = await axios.get('https://localhost:5070/api/Bookings/in-house', { headers: { Authorization: `Bearer ${token}` } });
+      const resInHouse = await axios.get('http://localhost:5070/api/Bookings/in-house', { headers: { Authorization: `Bearer ${token}` } });
       setData(resInHouse.data);
       
-      const resServices = await axios.get('https://localhost:5070/api/Reception/services-list');
+      const resServices = await axios.get('http://localhost:5070/api/Reception/services-list');
       setServicesList(resServices.data);
     } catch (error) { auditLogger.error("Lỗi khi tải dữ liệu!", { module: "Lưu Trú (In-House)" }); }
     finally { setLoading(false); }
@@ -61,7 +61,7 @@ const InHouse = () => {
   const submitOrderService = async () => {
     if (!serviceId) return auditLogger.info("Vui lòng chọn một dịch vụ!");
     try {
-      await axios.post(`https://localhost:5070/api/Reception/order-service/${selectedBooking.id}`, {
+      await axios.post(`http://localhost:5070/api/Reception/order-service/${selectedBooking.id}`, {
         serviceId: serviceId, quantity: quantity
       });
       
@@ -93,7 +93,7 @@ const InHouse = () => {
     if (!damagePrice || damagePrice <= 0) return auditLogger.info("Vui lòng nhập số tiền phạt hợp lệ!");
 
     try {
-      await axios.post(`https://localhost:5070/api/Reception/report-damage/${selectedBooking.id}`, {
+      await axios.post(`http://localhost:5070/api/Reception/report-damage/${selectedBooking.id}`, {
         description: damageDescription, 
         fineAmount: damagePrice         
       });
@@ -116,7 +116,7 @@ const InHouse = () => {
   const handleViewDetails = async (record) => {
     setSelectedBooking(record);
     try {
-      const res = await axios.get(`https://localhost:5070/api/Invoices/preview/${record.id}`);
+      const res = await axios.get(`http://localhost:5070/api/Invoices/preview/${record.id}`);
       setBookingDetails(res.data);
       setIsDetailModalOpen(true);
     } catch (err) { auditLogger.error("Không lấy được thông tin tiêu thụ của phòng!", { module: "Lưu Trú (In-House)" }); }

@@ -53,8 +53,6 @@ const LoginPage = () => {
       localStorage.setItem("userId", user.id);
       localStorage.setItem("userName", user.fullName);
       localStorage.setItem("userEmail", user.email);
-      localStorage.setItem("userPoints", String(user.points ?? 0));
-      localStorage.setItem("userRank", user.rank || 'Khách Mới');
 
       setAuth(token, user, permissions);
 

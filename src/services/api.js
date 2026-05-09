@@ -1,7 +1,7 @@
-﻿import axios from 'axios';
+import axios from 'axios';
 
 // Cấu hình base URL cho API backend
-const API_BASE_URL = 'http://localhost:5070/api';
+const API_BASE_URL = 'https://localhost:5070/api';
 
 // Lưu ý: Backend đang chạy trên cổng 5070
 // Nếu backend chạy trên cổng khác, hãy cập nhật URL này
@@ -670,5 +670,4 @@ export const receptionistApi = {
   getMaintenanceCheckInCheckOutFinalReceivingRooms: () => api.get('/rooms?status=maintenance-checkin-checkout-final-receiving'),
   
   // Lấy danh sách phòng đã nhận cuối cùng sau bảo trì, check-in và check-out
-  getMaintenanceCheckInCheckOutFinalReceivedRooms: () => api.get('/rooms?status=maintenance-checkin-checkout-final-re),ceived'),
-};
+  getMaintenanceCheckInCheckOutFinalReceivedRooms: () => api.get('/rooms?status=maintenance-checkin-checkout-final-re

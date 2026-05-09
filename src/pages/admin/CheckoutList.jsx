@@ -18,12 +18,13 @@ const CheckoutList = () => {
   const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
   const [bookingDetails, setBookingDetails] = useState(null);
   const [selectedBooking, setSelectedBooking] = useState(null);
+  const [momoData, setMomoData] = useState(null);
 
   const fetchData = async () => {
     setLoading(true);
     try {
       const token = localStorage.getItem('token');
-      const res = await axios.get('http://localhost:5070/api/Bookings/in-house', { headers: { Authorization: `Bearer ${token}` } });
+      const res = await axios.get('https://localhost:5070/api/Bookings/in-house', { headers: { Authorization: `Bearer ${token}` } });
       setData(res.data);
     } catch (error) { message.error("Lỗi khi tải danh sách trả phòng!"); }
     finally { setLoading(false); }
@@ -34,10 +35,19 @@ const CheckoutList = () => {
   // 🚨 HÀM XEM CHI TIẾT TIÊU THỤ TRƯỚC KHI TRẢ PHÒNG
   const handleViewDetails = async (record) => {
     setSelectedBooking(record);
+    setMomoData(null);
     try {
       const res = await invoiceAPI.preview(record.id);
       setBookingDetails(res.data);
       setIsDetailModalOpen(true);
+
+      // Gọi API MoMo để sinh mã QR thanh toán
+      try {
+        const momoRes = await invoiceAPI.createMomoPayment(record.id);
+        setMomoData(momoRes.data);
+      } catch (err) {
+        console.error("Lỗi tạo QR MoMo:", err);
+      }
     } catch (err) { message.error("Không lấy được thông tin tiêu thụ!"); }
   };
 
@@ -52,18 +62,15 @@ const CheckoutList = () => {
       onOk: async () => {
         try {
           // 1. Gọi API chốt trả phòng
-          const res = await axios.post(`http://localhost:5070/api/Invoices/checkout/${record.id}`);
+          const res = await axios.post(`https://localhost:5070/api/Invoices/checkout/${record.id}`);
           message.success("Trả phòng thành công!");
-          
-          // 2. 🚨 ĐÃ FIX LUỒNG: Xóa cờ thanh toán tạm và nhảy sang trang In Hóa Đơn!
-          const paidBookings = JSON.parse(localStorage.getItem('adminPaidBookings') || '[]');
-          localStorage.setItem('adminPaidBookings', JSON.stringify(paidBookings.filter(id => id !== record.id)));
-          
-          const newInvoiceId = res.data.invoiceId; 
-          navigate(`/admin/invoice/${newInvoiceId}`); 
-          
-        } catch (err) { 
-          message.error("Lỗi khi xử lý trả phòng!"); 
+
+          // 2. 🚨 ĐÃ FIX LUỒNG: Lấy ID hóa đơn mới tạo và nhảy thẳng sang trang In Hóa Đơn!
+          const newInvoiceId = res.data.invoiceId;
+          navigate(`/admin/invoice/${newInvoiceId}`);
+
+        } catch (err) {
+          message.error("Lỗi khi xử lý trả phòng!");
         }
       }
     });
@@ -77,71 +84,19 @@ const CheckoutList = () => {
       render: rooms => <Space wrap>{rooms?.map(r => <Tag color="red" key={r}>P.{r}</Tag>)}</Space>
     },
     { title: 'Ngày Check-in', dataIndex: 'checkInDate', render: date => dayjs(date).format('HH:mm - DD/MM') },
-    { 
-      title: 'Thanh toán', align: 'center',
-      render: (_, record) => {
-        const paidBookings = JSON.parse(localStorage.getItem('adminPaidBookings') || '[]');
-        const isPaid = paidBookings.includes(record.id);
-        
-        const guestRequests = JSON.parse(localStorage.getItem('guestPaymentRequests') || '[]');
-        const isRequested = guestRequests.includes(record.id);
-
-        if (isPaid) return <Tag color="green">Đã nhận tiền</Tag>;
-        
-        return (
-            <Space direction="vertical" size="small">
-                {isRequested ? <Tag color="orange">Khách báo đã chuyển</Tag> : <Tag color="default">Chưa thanh toán</Tag>}
-                <Button 
-                    size="small" 
-                    type="primary" 
-                    ghost 
-                    onClick={() => handleApprovePayment(record.id)}
-                >
-                    Xác nhận đã nhận tiền
-                </Button>
-            </Space>
-        );
-      }
-    },
     {
-      title: 'Thao tác', align: 'center', render: (_, record) => {
-        const paidBookings = JSON.parse(localStorage.getItem('adminPaidBookings') || '[]');
-        const isPaid = paidBookings.includes(record.id);
-        return (
-          <Space>
-            <Tooltip title="Xem chi tiết tiêu thụ">
-              <Button icon={<EyeOutlined />} onClick={() => handleViewDetails(record)} />
-            </Tooltip>
-            <Button 
-                type="primary" 
-                danger 
-                icon={<LogoutOutlined />} 
-                disabled={!isPaid}
-                onClick={() => handleCheckout(record)}
-            >
-              Trả phòng
-            </Button>
-          </Space>
-        );
-      }
+      title: 'Thao tác', align: 'center', render: (_, record) => (
+        <Space>
+          <Tooltip title="Xem chi tiết tiêu thụ">
+            <Button icon={<EyeOutlined />} onClick={() => handleViewDetails(record)} />
+          </Tooltip>
+          <Button type="primary" danger icon={<LogoutOutlined />} onClick={() => handleCheckout(record)}>
+            Trả phòng
+          </Button>
+        </Space>
+      )
     }
   ];
-
-  const handleApprovePayment = (id) => {
-    // 1. Xóa khỏi danh sách yêu cầu
-    const currentRequests = JSON.parse(localStorage.getItem('guestPaymentRequests') || '[]');
-    const updatedRequests = currentRequests.filter(reqId => reqId !== id);
-    localStorage.setItem('guestPaymentRequests', JSON.stringify(updatedRequests));
-
-    // 2. Thêm vào danh sách đã thanh toán
-    const paidBookings = JSON.parse(localStorage.getItem('adminPaidBookings') || '[]');
-    if (!paidBookings.includes(id)) {
-      localStorage.setItem('adminPaidBookings', JSON.stringify([...paidBookings, id]));
-    }
-
-    message.success("Đã xác nhận khách thanh toán thành công!");
-    fetchData(); // Reload table
-  };
 
   return (
     <Card style={{ borderRadius: 12, minHeight: '80vh' }} bodyStyle={{ padding: '24px' }}>
@@ -178,6 +133,22 @@ const CheckoutList = () => {
             <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 18 }}>
               <Text strong style={{ color: '#f5222d' }}>TỔNG THANH TOÁN:</Text>
               <Text strong style={{ color: '#f5222d' }}>{bookingDetails.finalTotal?.toLocaleString()} đ</Text>
+            </div>
+
+            <div style={{ textAlign: "center", marginTop: 24 }}>
+                <Title level={5}>Thanh toán qua MoMo</Title>
+                {momoData ? (
+                    <>
+                        <img src={momoData.qrCodeUrl} alt="MoMo QR Code" width={180} style={{ margin: "auto", display: "block", borderRadius: 8, border: "1px solid #ddd" }} />
+                        <div style={{ marginTop: 16 }}>
+                            <Button type="primary" href={momoData.payUrl} target="_blank">
+                                Mở trang thanh toán
+                            </Button>
+                        </div>
+                    </>
+                ) : (
+                    <Text type="secondary">Đang tải mã thanh toán MoMo...</Text>
+                )}
             </div>
           </div>
         )}

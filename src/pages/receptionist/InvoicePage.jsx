@@ -1,11 +1,11 @@
 import React, { useState, useEffect } from "react";
-import { Button, Card, Typography, Divider, Table, Row, Col, message, Modal, Spin, Tag } from "antd";
-import { PrinterOutlined, ExclamationCircleOutlined, RollbackOutlined, HistoryOutlined, EyeOutlined, QrcodeOutlined } from "@ant-design/icons";
+import { Button, Card, Typography, Divider, Table, Row, Col, message, Modal, Spin, Tag, QRCode } from "antd";
+import { PrinterOutlined, ExclamationCircleOutlined, RollbackOutlined, HistoryOutlined, EyeOutlined } from "@ant-design/icons";
 import { useNavigate, useParams } from "react-router-dom";
 import invoiceAPI from "../../api/invoiceAPI";
-import vietqrAPI from "../../api/vietqrAPI";
 
 const { Title, Text } = Typography;
+
 
 const InvoicePage = () => {
   const navigate = useNavigate();
@@ -14,8 +14,6 @@ const InvoicePage = () => {
   const [loading, setLoading] = useState(true);
   const [invoiceData, setInvoiceData] = useState(null);
   const [historyList, setHistoryList] = useState([]); // Chứa danh sách lịch sử
-  const [qrData, setQrData] = useState(null);
-  const [qrLoading, setQrLoading] = useState(false);
 
   // 🚨 TỰ ĐỘNG CHUYỂN ĐỔI: Có ID thì lấy 1 Hóa đơn, Không có ID thì lấy Lịch sử
   useEffect(() => {
@@ -25,25 +23,6 @@ const InvoicePage = () => {
       fetchHistoryList();
     }
   }, [id]);
-
-  // 🚨 GỌI API LẤY MÃ QR VIETQR/MOMO KHI CÓ INVOICE DATA
-  useEffect(() => {
-    if (id && invoiceData) {
-      fetchPaymentQR();
-    }
-  }, [id, invoiceData]);
-
-  const fetchPaymentQR = async () => {
-    setQrLoading(true);
-    try {
-      const res = await vietqrAPI.getVietQRByInvoiceId(id);
-      setQrData(res.data);
-    } catch (err) {
-      message.error("Không thể tải mã QR thanh toán!");
-    } finally {
-      setQrLoading(false);
-    }
-  };
 
   // HÀM LẤY 1 HÓA ĐƠN
   const fetchInvoiceDetail = async () => {
@@ -208,24 +187,7 @@ const InvoicePage = () => {
 
         <Divider style={{ borderColor: '#d9d9d9' }} />
 
-        <Row justify="space-between">
-          <Col span={10} style={{ textAlign: 'center' }}>
-            <Title level={5}>Quét mã QR để thanh toán <QrcodeOutlined /></Title>
-            {qrLoading ? (
-              <div style={{ marginBottom: 8 }}><Spin size="small" /></div>
-            ) : qrData ? (
-              <>
-                <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 8 }}>
-                  <img src={qrData.qrImageUrl || qrData.qrDataUrl} alt="Payment QR" style={{ width: 180, height: 180, objectFit: 'contain' }} />
-                </div>
-                <Text type="secondary">{qrData.bankName || qrData.provider} - {qrData.accountName}</Text>
-                <br />
-                <Text strong style={{ color: '#f5222d' }}>{qrData.amount?.toLocaleString()} đ</Text>
-              </>
-            ) : (
-              <Text type="danger">Không thể tải mã QR</Text>
-            )}
-          </Col>
+        <Row justify="end">
           <Col span={10}>
             <Row justify="space-between" style={{ marginBottom: 8 }}>
               <Text>Cộng tiền phòng:</Text>

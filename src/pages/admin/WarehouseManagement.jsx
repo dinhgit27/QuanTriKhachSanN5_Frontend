@@ -1,4 +1,4 @@
-﻿import React, { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { 
   Table, Button, Space, Tag, Modal, Form, Input, 
   Select, message, Card, Typography, InputNumber, Upload, Row, Col, Popconfirm 
@@ -35,7 +35,7 @@ const WarehouseManagement = () => {
   const fetchDamagedCount = useCallback(async () => {
     try {
       const token = localStorage.getItem('token');
-      const res = await axios.get('http://localhost:5070/api/LossAndDamages', {
+      const res = await axios.get('https://localhost:5070/api/LossAndDamages', {
         headers: { Authorization: `Bearer ${token}` }
       });
       
@@ -69,7 +69,7 @@ const WarehouseManagement = () => {
     try {
       const token = localStorage.getItem('token');
       // ĐỔI API TỪ Amenities SANG Equipments
-      const res = await axios.get('http://localhost:5070/api/Equipments', {
+      const res = await axios.get('https://localhost:5070/api/Equipments', {
         headers: { Authorization: `Bearer ${token}` }
       });
       setData(res.data);
@@ -173,7 +173,7 @@ const WarehouseManagement = () => {
       };
 
       if (editingItem) {
-        await axios.put(`http://localhost:5070/api/Equipments/${editingItem.id}`, { ...editingItem, ...finalPayload }, { headers });
+        await axios.put(`https://localhost:5070/api/Equipments/${editingItem.id}`, { ...editingItem, ...finalPayload }, { headers });
         
         auditLogger.success(`Đã cập nhật thông tin vật tư: ${values.name}`, {
           action: 'Sửa', actionType: 'UPDATE', module: 'Kho Vật Tư',
@@ -181,7 +181,7 @@ const WarehouseManagement = () => {
           oldValue: editingItem, newValue: values,
         });
       } else {
-        await axios.post('http://localhost:5070/api/Equipments', finalPayload, { headers });
+        await axios.post('https://localhost:5070/api/Equipments', finalPayload, { headers });
         
         auditLogger.success(`Đã nhập vật tư mới vào kho: ${values.name}`, {
           action: 'Thêm', actionType: 'CREATE', module: 'Kho Vật Tư',
@@ -207,7 +207,7 @@ const WarehouseManagement = () => {
       const deletingItem = data.find(item => item.id === id);
       const itemName = deletingItem?.name || 'Vật tư';
       
-      await axios.delete(`http://localhost:5070/api/Equipments/${id}`, {
+      await axios.delete(`https://localhost:5070/api/Equipments/${id}`, {
         headers: { Authorization: `Bearer ${token}` }
       });
       

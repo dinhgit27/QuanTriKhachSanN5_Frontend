@@ -1,4 +1,4 @@
-﻿import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   Row, Col, Card, Badge, Modal, Table, Button, Input, 
   Typography, message, Empty, Tag, Space, Spin, Form, Select, InputNumber, Popconfirm, Divider, Image, Tabs
@@ -73,10 +73,10 @@ const InventoryManagement = () => {
       const token = localStorage.getItem('token'); 
       const headers = { Authorization: `Bearer ${token}` };
 
-      const resRooms = await axios.get('http://localhost:5070/api/RoomInventory/rooms', { headers });
+      const resRooms = await axios.get('https://localhost:5070/api/RoomInventory/rooms', { headers });
       setRooms(resRooms.data);
 
-      const resAmenities = await axios.get('http://localhost:5070/api/RoomInventory/amenities', { headers });
+      const resAmenities = await axios.get('https://localhost:5070/api/RoomInventory/amenities', { headers });
       setAmenitiesList(resAmenities.data);
     } catch (err) {
       message.error("Lỗi kết nối máy chủ. Vui lòng thử lại!");
@@ -91,7 +91,7 @@ const InventoryManagement = () => {
     setLoadingDetails(true);
     try {
       const token = localStorage.getItem('token');
-      const res = await axios.get(`http://localhost:5070/api/RoomInventory/rooms/${roomId}/inventory`, {
+      const res = await axios.get(`https://localhost:5070/api/RoomInventory/rooms/${roomId}/inventory`, {
         headers: { Authorization: `Bearer ${token}` }
       });
       setRoomInventory(res.data);
@@ -143,7 +143,7 @@ const InventoryManagement = () => {
         return;
       }
 
-      await axios.post(`http://localhost:5070/api/RoomInventory/rooms/${selectedRoom.id}/inventory/bulk`, payloadBulk, {
+      await axios.post(`https://localhost:5070/api/RoomInventory/rooms/${selectedRoom.id}/inventory/bulk`, payloadBulk, {
         headers: { Authorization: `Bearer ${token}` }
       });
 
@@ -175,7 +175,7 @@ const InventoryManagement = () => {
   const handleDeleteInventory = async (inventoryId) => {
     try {
       const token = localStorage.getItem('token');
-      await axios.delete(`http://localhost:5070/api/RoomInventory/${inventoryId}`, { headers: { Authorization: `Bearer ${token}` } });
+      await axios.delete(`https://localhost:5070/api/RoomInventory/${inventoryId}`, { headers: { Authorization: `Bearer ${token}` } });
       message.success('Đã thu hồi vật tư thành công!');
       fetchRoomInventoryDetails(selectedRoom.id);
     } catch (error) { message.error("Lỗi khi xóa vật tư!"); }
@@ -199,7 +199,7 @@ const InventoryManagement = () => {
             imageUrl: "" // Bùa chú lấp chỗ trống để C# khỏi ăn vạ
           };
 
-          await axios.post('http://localhost:5070/api/LossAndDamages', payload, { headers: { Authorization: `Bearer ${token}` } });
+          await axios.post('https://localhost:5070/api/LossAndDamages', payload, { headers: { Authorization: `Bearer ${token}` } });
           
           auditLogger.success(`Đã báo hỏng ${record.amenity?.name} tại phòng ${selectedRoom?.roomNumber}!`, {
             action: 'Báo hỏng',
@@ -235,7 +235,7 @@ const InventoryManagement = () => {
   const handleRestoreInventory = async (inventoryId) => {
     try {
       const token = localStorage.getItem('token');
-      await axios.put(`http://localhost:5070/api/RoomInventory/restore/${inventoryId}`, {}, { headers: { Authorization: `Bearer ${token}` } });
+      await axios.put(`https://localhost:5070/api/RoomInventory/restore/${inventoryId}`, {}, { headers: { Authorization: `Bearer ${token}` } });
       
       const item = roomInventory.find(i => i.id === inventoryId);
       auditLogger.success('Đã xác nhận thay mới vật tư thành công!', {

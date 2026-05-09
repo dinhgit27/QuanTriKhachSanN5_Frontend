@@ -122,10 +122,8 @@ export const auditLogApi = {
         events: events
       };
 
-      // Backend route is POST /api/AuditLogs (CreateBatchAuditLog)
-      const response = await api.post('/AuditLogs', payload);
+      const response = await api.post('/audit-logs', payload);
       return response;
-
     } catch (error) {
       console.error('❌ Backend audit log sync failed:', error);
       throw error;

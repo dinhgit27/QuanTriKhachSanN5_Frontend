@@ -1,4 +1,4 @@
-﻿import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Row, Col, Card, Badge, Modal, Table, Button, Typography, Spin, Empty, Tag, Space, Popconfirm } from 'antd';
 import { ClearOutlined, CheckCircleOutlined, ExclamationCircleOutlined, SyncOutlined, BuildOutlined } from '@ant-design/icons';
 import axios from 'axios';
@@ -24,7 +24,7 @@ const HousekeepingManagement = () => {
       
       // SỬA ĐƯỜNG LINK Ở ĐÂY: Lấy đúng API của trang Quản Lý Phòng (Thường là /api/Rooms)
       // Ní nhớ đối chiếu lại xem file RoomManagement.jsx xài link gì thì thay link đó vào nha!
-      const res = await axios.get('http://localhost:5070/api/Rooms', { 
+      const res = await axios.get('https://localhost:5070/api/Rooms', { 
         headers: { Authorization: `Bearer ${token}` }
       });
 
@@ -58,7 +58,7 @@ const HousekeepingManagement = () => {
       const userEmail = localStorage.getItem('userEmail') || 'housekeeper@hotel.com';
       
       // Gọi đúng API "mark-clean" vừa tạo ở C#
-      await axios.put(`http://localhost:5070/api/RoomInventory/rooms/${roomId}/mark-clean`, {}, {
+      await axios.put(`https://localhost:5070/api/RoomInventory/rooms/${roomId}/mark-clean`, {}, {
         headers: { Authorization: `Bearer ${token}` }
       });
       
@@ -92,7 +92,7 @@ const HousekeepingManagement = () => {
     setLoadingInventory(true);
     try {
       const token = localStorage.getItem('token');
-      const res = await axios.get(`http://localhost:5070/api/RoomInventory/rooms/${room.id}/inventory`, {
+      const res = await axios.get(`https://localhost:5070/api/RoomInventory/rooms/${room.id}/inventory`, {
         headers: { Authorization: `Bearer ${token}` }
       });
       setRoomInventory(res.data);
@@ -135,7 +135,7 @@ const HousekeepingManagement = () => {
             status: 'Chưa đền bù'
           };
 
-          await axios.post('http://localhost:5070/api/LossAndDamages', damagePayload, {
+          await axios.post('https://localhost:5070/api/LossAndDamages', damagePayload, {
             headers: { Authorization: `Bearer ${token}` }
           });
           
@@ -266,7 +266,7 @@ const HousekeepingManagement = () => {
               const token = localStorage.getItem('token');
               
               // Cập nhật trạng thái phòng từ "Inspecting" sang "Clean"
-              await axios.put(`http://localhost:5070/api/Rooms/${selectedRoom.id}`, {
+              await axios.put(`https://localhost:5070/api/Rooms/${selectedRoom.id}`, {
                 ...selectedRoom,
                 cleaningStatus: 'Clean'
               }, {

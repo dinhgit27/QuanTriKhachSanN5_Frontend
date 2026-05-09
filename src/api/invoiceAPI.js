@@ -1,9 +1,9 @@
-﻿import axios from "axios";
+import axios from "axios";
 
 // 1. Tạo instance Axios với cấu hình chuẩn
 const API = axios.create({
-    // Ní kiểm tra xem Backend là http hay https nha, thường là http://localhost:5070/api
-    baseURL: "http://localhost:5070/api", 
+    // Ní kiểm tra xem Backend là http hay https nha, thường là https://localhost:5070/api
+    baseURL: "https://localhost:5070/api", 
 });
 
 // 2. Gắn interceptor để tự động chèn Token vào mỗi request
@@ -24,6 +24,7 @@ const invoiceAPI = {
     getAll: () => API.get('/Invoices'),
     cancel: (invoiceId) => API.post(`/Invoices/cancel/${invoiceId}`),
     getById: (invoiceId) => API.get(`/Invoices/${invoiceId}`),
+    createMomoPayment: (bookingId) => API.post(`/Invoices/create-momo-payment/${bookingId}`),
 };
 
 // 4. Export duy nhất một lần

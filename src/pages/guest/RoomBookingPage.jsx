@@ -49,7 +49,9 @@ const RoomBookingPage = () => {
 
   const fetchRoomTypes = async () => {
     try {
-      const response = await fetch('http://localhost:5070/api/RoomTypes');
+      const token = localStorage.getItem('token');
+      const headers = token ? { 'Authorization': `Bearer ${token}` } : {};
+      const response = await fetch('http://localhost:5070/api/RoomTypes', { headers });
       if (response.ok) {
         const data = await response.json();
         const types = data.map(t => ({ value: t.name, label: t.name }));

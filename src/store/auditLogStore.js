@@ -44,7 +44,12 @@ export const useAuditLogStore = create(
     // Sync to backend database real-time
     // We send it to backend, which will use the JWT token to identify the real User/Role
     auditLogApi.createAuditLog(newLog).catch(err => {
-      console.warn('⚠️ Could not sync audit log to database. It is saved locally.', err);
+      // Chỉ in cảnh báo 1 lần để tránh spam console khi backend down
+      if (!useAuditLogStore._backendSyncFailed) {
+        useAuditLogStore._backendSyncFailed = true;
+        console.warn('⚠️ Could not sync audit log to database. It is saved locally.', err.message || err);
+        setTimeout(() => { useAuditLogStore._backendSyncFailed = false; }, 30000); // Reset sau 30 giây
+      }
     });
 
     return newLog;

@@ -95,11 +95,9 @@ const AdminLayout = () => {
       label: <span style={{ fontWeight: 'bold' }}>MENU CHÍNH</span>,
       children: [
         isAdmin && { key: "/admin/dashboard", icon: <DashboardOutlined />, label: <Link to="/admin/dashboard">Tổng quan</Link> },
-        isAdmin && { key: "/admin/rooms", icon: <HomeOutlined />, label: <Link to="/admin/rooms">Quản lý Phòng</Link> },
         isAdmin && { key: "/admin/users", icon: <UserOutlined />, label: <Link to="/admin/users">Nhân viên & Quyền</Link> },
         isAdmin && { key: "/admin/accounting", icon: <LineChartOutlined />, label: <Link to="/admin/accounting">Kế toán</Link> },
-        isAdmin && { key: "/admin/audit", icon: <SafetyCertificateOutlined />, label: <Link to="/admin/audit">Audit Logs</Link> },
-        (isAdmin || isHousekeeping) && { key: "/admin/housekeeping", icon: <ClearOutlined />, label: <Link to="/admin/housekeeping">Dọn Phòng</Link> }
+        isAdmin && { key: "/admin/audit", icon: <SafetyCertificateOutlined />, label: <Link to="/admin/audit">Audit Logs</Link> }
       ].filter(Boolean)
     },
 
@@ -108,6 +106,8 @@ const AdminLayout = () => {
       icon: <SolutionOutlined />,
       label: <span style={{ fontWeight: 'bold' }}>QUẦY LỄ TÂN</span>,
       children: [
+        (isAdmin || isReceptionist) && { key: "/admin/rooms", icon: <HomeOutlined />, label: <Link to="/admin/rooms">Quản lý Phòng</Link> },
+        (isAdmin || isReceptionist || isHousekeeping) && { key: "/admin/housekeeping", icon: <ClearOutlined />, label: <Link to="/admin/housekeeping">Dọn Phòng</Link> },
         { key: "/admin/bookings", icon: <CalendarOutlined />, label: <Link to="/admin/bookings">Quản lý Đặt phòng</Link> },
         { key: "/admin/arrivals", icon: <UsergroupAddOutlined />, label: <Link to="/admin/arrivals">Khách đến hôm nay</Link> },
         { key: "/admin/in-house", icon: <TeamOutlined />, label: <Link to="/admin/in-house">Khách đang lưu trú</Link> },

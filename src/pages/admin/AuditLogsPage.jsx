@@ -113,10 +113,11 @@ const AuditLogsPage = () => {
       const mockData = response.data || [];
 
       // Combine and remove duplicates by ID or composite key
-      const allLogs = [...storeAuditLogs, ...mockData];
+      const allLogs = Array.isArray(storeAuditLogs) ? [...storeAuditLogs, ...mockData] : [...mockData];
       const seen = new Set();
       const combinedLogs = allLogs.filter(log => {
-        const key = log.eventId || `${log.timestamp}-${log.description}`;
+        if (!log) return false;
+        const key = log.id || log.eventId || `${log.createdAt || log.timestamp}-${log.description}`;
         if (seen.has(key)) return false;
         seen.add(key);
         return true;
@@ -148,9 +149,10 @@ const AuditLogsPage = () => {
     if (searchText) {
       const text = searchText.toLowerCase();
       result = result.filter((log) => {
+        if (!log) return false;
         const matchUserName = log.userName?.toLowerCase().includes(text);
         const matchAction = log.action?.toLowerCase().includes(text);
-        const matchTable = log.tableName?.toLowerCase().includes(text);
+        const matchTable = (log.tableName || log.module)?.toLowerCase().includes(text);
         return matchUserName || matchAction || matchTable;
       });
     }
@@ -165,13 +167,20 @@ const AuditLogsPage = () => {
       const startDate = dayjs(dateRange[0]).startOf('day');
       const endDate = dayjs(dateRange[1]).endOf('day');
       result = result.filter((log) => {
-        const logDate = dayjs(log.createdAt);
+        if (!log) return false;
+        const dateStr = log.createdAt || log.timestamp;
+        if (!dateStr) return false;
+        const logDate = dayjs(dateStr);
         return logDate.isAfter(startDate) && logDate.isBefore(endDate);
       });
     }
 
     // Sắp xếp theo thời gian giảm dần (mới nhất trước)
-    result.sort((a, b) => dayjs(b.createdAt).diff(dayjs(a.createdAt)));
+    result.sort((a, b) => {
+      const dateA = dayjs(a?.createdAt || a?.timestamp || 0);
+      const dateB = dayjs(b?.createdAt || b?.timestamp || 0);
+      return dateB.diff(dateA);
+    });
 
     setFilteredLogs(result);
     setPagination((prev) => ({ ...prev, current: 1 }));
@@ -286,20 +295,26 @@ const AuditLogsPage = () => {
       title: 'Chi tiết thay đổi',
       key: 'changeDetails',
       width: 250,
-      render: (_, record) => (
-        <Tooltip title={record.newValue}>
-          <div
-            style={{
-              whiteSpace: 'nowrap',
-              overflow: 'hidden',
-              textOverflow: 'ellipsis',
-              fontSize: 13,
-            }}
-          >
-            {record.newValue || 'Không có chi tiết'}
-          </div>
-        </Tooltip>
-      ),
+      render: (_, record) => {
+        const displayValue = typeof record.newValue === 'object' 
+          ? JSON.stringify(record.newValue) 
+          : (record.newValue || 'Không có chi tiết');
+          
+        return (
+          <Tooltip title={displayValue}>
+            <div
+              style={{
+                whiteSpace: 'nowrap',
+                overflow: 'hidden',
+                textOverflow: 'ellipsis',
+                fontSize: 13,
+              }}
+            >
+              {displayValue}
+            </div>
+          </Tooltip>
+        );
+      },
     },
     {
       title: 'Thao tác',

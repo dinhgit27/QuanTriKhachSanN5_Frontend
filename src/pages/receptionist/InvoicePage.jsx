@@ -207,7 +207,7 @@ const InvoicePage = () => {
         <Row justify="space-between" align="middle" style={{ marginBottom: 40 }}>
           <Col>
             <Title level={2} style={{ margin: 0, color: '#1890ff' }}>HOTEL IT CODE</Title>
-            <Text type="secondary">123 Đường Sinh Viên, Biên Hòa, Đồng Nai</Text>
+            <Text type="secondary">123 Đường Lê Hoàng Tuấn, phường Biên Hòa, Thành phố Đồng Nai</Text>
           </Col>
           <Col style={{ textAlign: 'right' }}>
             <Title level={3} style={{ margin: 0 }}>HÓA ĐƠN THANH TOÁN</Title>

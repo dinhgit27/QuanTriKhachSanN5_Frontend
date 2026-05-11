@@ -1,13 +1,13 @@
 import React, { useState } from 'react';
 import { Form, Input, Button, Typography, message, Row, Col } from 'antd';
-import { UserOutlined, LockOutlined, MailOutlined, PhoneOutlined, BankFilled } from '@ant-design/icons';
+import { UserOutlined, LockOutlined, MailOutlined, PhoneOutlined, BankFilled, SafetyCertificateOutlined } from '@ant-design/icons';
 import { Link, useNavigate } from 'react-router-dom';
 import { authAPI } from '../api/authApi';
 import { auditLogger } from '../utils/auditLogger';
 
 const { Title, Text } = Typography;
 
-// Bảng màu sang trọng của Grand Hotel
+// Bảng màu sang trọng của IT HOTEL
 const COLORS = {
   primary: "#e6b83b", // Vàng gold
   dark: "#1a1a1a",
@@ -16,36 +16,53 @@ const COLORS = {
 
 const RegisterPage = () => {
   const [loading, setLoading] = useState(false);
+  const [step, setStep] = useState(1);
+  const [tempData, setTempData] = useState(null); // Lưu thông tin người dùng ở Bước 1
   const navigate = useNavigate();
 
-  // GIỮ NGUYÊN LOGIC XỬ LÝ CỦA BẠN
- const onFinish = async (values) => {
+  // BƯỚC 1: Xử lý Gửi OTP
+  const onSendOtp = async (values) => {
     setLoading(true);
     try {
-      // 1. ÁO THUẬT TRÁO NHÃN: Chế lại dữ liệu đúng form C# nó đòi
+      // Gọi API gửi OTP
+      const res = await authAPI.sendOtp({ email: values.email });
+      message.success(res.data.message || 'Mã OTP đã được gửi đến email của bạn!');
+      
+      // Lưu thông tin lại để dùng ở bước 2
+      setTempData(values);
+      setStep(2); // Chuyển sang màn hình nhập OTP
+    } catch (error) {
+      const errorMsg = error.response?.data?.message || 'Lỗi gửi OTP, vui lòng thử lại!';
+      message.error(errorMsg);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // BƯỚC 2: Xử lý Xác nhận Đăng ký
+  const onVerifyAndRegister = async (values) => {
+    setLoading(true);
+    try {
       const payloadToSend = {
-        Username: values.fullName, // Tráo fullName thành Username
-        Email: values.email,
-        Password: values.password,
-        // (Tùy Backend: Nếu C# ní có bảng số điện thoại thì thêm dòng dưới)
-        // PhoneNumber: values.phoneNumber 
+        Username: tempData.fullName,
+        Email: tempData.email,
+        Password: tempData.password,
+        Otp: values.otp // Truyền thêm mã OTP
       };
 
-      console.log('Dữ liệu ĐÃ ĐÓNG GÓI LẠI để gửi đi:', payloadToSend);
-
-      // 2. Gửi cục data mới này xuống Backend
       await authAPI.register(payloadToSend); 
       
-      auditLogger.success('Đăng ký thành công! Đang chuyển hướng...', {
+      message.success('Đăng ký thành công! Đang chuyển hướng...');
+      auditLogger.success('Đăng ký thành công!', {
         actionType: "CREATE",
         module: "Hệ thống",
         objectName: "Tài khoản",
-        description: `Người dùng mới đăng ký: ${values.fullName} (${values.email})`
+        description: `Người dùng mới đăng ký: ${tempData.fullName} (${tempData.email})`
       });
       setTimeout(() => navigate('/login'), 1500); 
     } catch (error) {
-      // 3. Nếu vẫn lỗi, in ra lỗi cụ thể
       const errorMsg = error.response?.data?.message || 'Lỗi đăng ký, vui lòng thử lại!';
+      message.error(errorMsg);
       auditLogger.error(errorMsg, { module: "Hệ thống", objectName: "Đăng ký" });
     } finally {
       setLoading(false);
@@ -60,11 +77,10 @@ const RegisterPage = () => {
         display: 'flex', 
         flexDirection: 'column', 
         justifyContent: 'center', 
-        padding: '5% 8%' // Căn lề hai bên cho form thoáng hơn
+        padding: '5% 8%' 
       }}>
         <div style={{ maxWidth: 400, margin: '0 auto', width: '100%' }}>
           
-          {/* Logo & Tiêu đề */}
           <div style={{ textAlign: 'center', marginBottom: 30 }}>
             <div style={{ 
               width: 50, height: 50, background: COLORS.primary, 
@@ -74,64 +90,76 @@ const RegisterPage = () => {
               <BankFilled style={{ color: '#fff', fontSize: 24 }} />
             </div>
             <Title level={2} style={{ margin: 0, color: COLORS.dark }}>Đăng ký tài khoản</Title>
-            <Text type="secondary">Trở thành thành viên của Grand Hotel</Text>
+            <Text type="secondary">Trở thành thành viên của IT HOTEL</Text>
           </div>
 
-          {/* FORM GIỮ NGUYÊN CÁC TRƯỜNG VÀ VALIDATION CỦA BẠN */}
-          <Form layout="vertical" onFinish={onFinish} size="large">
-            <Form.Item name="fullName" rules={[{ required: true, message: 'Vui lòng nhập họ tên!' }]}>
-              <Input prefix={<UserOutlined style={{ color: COLORS.gray, marginRight: 8 }}/>} placeholder="Họ và tên" style={{ borderRadius: 8 }}/>
-            </Form.Item>
+          {step === 1 && (
+            <Form layout="vertical" onFinish={onSendOtp} size="large">
+              <Form.Item name="fullName" rules={[{ required: true, message: 'Vui lòng nhập họ tên!' }]}>
+                <Input prefix={<UserOutlined style={{ color: COLORS.gray, marginRight: 8 }}/>} placeholder="Họ và tên" style={{ borderRadius: 8 }}/>
+              </Form.Item>
 
-            <Form.Item name="email" rules={[{ required: true, message: 'Vui lòng nhập email!' }, { type: 'email', message: 'Email không hợp lệ!' }]}>
-              <Input prefix={<MailOutlined style={{ color: COLORS.gray, marginRight: 8 }}/>} placeholder="Email đăng nhập" style={{ borderRadius: 8 }}/>
-            </Form.Item>
+              <Form.Item name="email" rules={[{ required: true, message: 'Vui lòng nhập email!' }, { type: 'email', message: 'Email không hợp lệ!' }]}>
+                <Input prefix={<MailOutlined style={{ color: COLORS.gray, marginRight: 8 }}/>} placeholder="Email đăng nhập (Bắt buộc dùng Gmail thật)" style={{ borderRadius: 8 }}/>
+              </Form.Item>
 
-            <Form.Item name="phoneNumber">
-              <Input prefix={<PhoneOutlined style={{ color: COLORS.gray, marginRight: 8 }}/>} placeholder="Số điện thoại" style={{ borderRadius: 8 }}/>
-            </Form.Item>
+              <Form.Item name="password" rules={[{ required: true, message: 'Vui lòng nhập mật khẩu!' }, { min: 6, message: 'Mật khẩu ít nhất 6 ký tự!' }]}>
+                <Input.Password prefix={<LockOutlined style={{ color: COLORS.gray, marginRight: 8 }}/>} placeholder="Mật khẩu" style={{ borderRadius: 8 }}/>
+              </Form.Item>
 
-            <Form.Item name="password" rules={[{ required: true, message: 'Vui lòng nhập mật khẩu!' }, { min: 6, message: 'Mật khẩu ít nhất 6 ký tự!' }]}>
-              <Input.Password prefix={<LockOutlined style={{ color: COLORS.gray, marginRight: 8 }}/>} placeholder="Mật khẩu" style={{ borderRadius: 8 }}/>
-            </Form.Item>
+              <Form.Item name="confirmPassword" dependencies={['password']} rules={[
+                { required: true, message: 'Vui lòng xác nhận mật khẩu!' },
+                ({ getFieldValue }) => ({
+                  validator(_, value) {
+                    if (!value || getFieldValue('password') === value) return Promise.resolve();
+                    return Promise.reject(new Error('Mật khẩu xác nhận không khớp!'));
+                  },
+                }),
+              ]}>
+                <Input.Password prefix={<LockOutlined style={{ color: COLORS.gray, marginRight: 8 }}/>} placeholder="Xác nhận mật khẩu" style={{ borderRadius: 8 }}/>
+              </Form.Item>
 
-            <Form.Item name="confirmPassword" dependencies={['password']} rules={[
-              { required: true, message: 'Vui lòng xác nhận mật khẩu!' },
-              ({ getFieldValue }) => ({
-                validator(_, value) {
-                  if (!value || getFieldValue('password') === value) return Promise.resolve();
-                  return Promise.reject(new Error('Mật khẩu xác nhận không khớp!'));
-                },
-              }),
-            ]}>
-              <Input.Password prefix={<LockOutlined style={{ color: COLORS.gray, marginRight: 8 }}/>} placeholder="Xác nhận mật khẩu" style={{ borderRadius: 8 }}/>
-            </Form.Item>
+              <Form.Item style={{ marginTop: 10 }}>
+                <Button type="primary" htmlType="submit" block loading={loading} style={{ background: COLORS.primary, borderColor: COLORS.primary, height: 45, borderRadius: 8, fontWeight: 'bold', fontSize: 16 }}>
+                  Đăng Ký
+                </Button>
+              </Form.Item>
 
-            <Form.Item style={{ marginTop: 10 }}>
-              <Button 
-                type="primary" 
-                htmlType="submit" 
-                block 
-                loading={loading}
-                style={{ 
-                  background: COLORS.primary, 
-                  borderColor: COLORS.primary, 
-                  height: 45, 
-                  borderRadius: 8,
-                  fontWeight: 'bold',
-                  fontSize: 16
-                }}
-              >
-                Đăng Ký
-              </Button>
-            </Form.Item>
+              <div style={{ textAlign: 'center', marginTop: 15 }}>
+                <Text style={{ color: COLORS.gray }}>Đã có tài khoản? <Link to="/login" style={{ color: COLORS.primary, fontWeight: 'bold' }}>Đăng nhập</Link></Text>
+              </div>
+            </Form>
+          )}
 
-            <div style={{ textAlign: 'center', marginTop: 15 }}>
-              <Text style={{ color: COLORS.gray }}>
-                Đã có tài khoản? <Link to="/login" style={{ color: COLORS.primary, fontWeight: 'bold' }}>Đăng nhập</Link>
-              </Text>
-            </div>
-          </Form>
+          {step === 2 && (
+            <Form layout="vertical" onFinish={onVerifyAndRegister} size="large">
+              <div style={{ textAlign: 'center', marginBottom: 20 }}>
+                <Text>Mã xác thực đã được gửi tới email <b style={{color: COLORS.primary}}>{tempData?.email}</b>.</Text><br/>
+                <Text type="secondary" style={{ fontSize: 12 }}>Vui lòng kiểm tra Hộp thư đến hoặc Thư rác (Spam).</Text>
+              </div>
+
+              <Form.Item name="otp" rules={[{ required: true, message: 'Vui lòng nhập mã OTP!' }]}>
+                <Input 
+                  prefix={<SafetyCertificateOutlined style={{ color: COLORS.gray, marginRight: 8 }}/>} 
+                  placeholder="Nhập mã OTP 6 số" 
+                  style={{ borderRadius: 8, textAlign: 'center', fontSize: 20, letterSpacing: 5 }}
+                  maxLength={6}
+                />
+              </Form.Item>
+
+              <Form.Item style={{ marginTop: 10 }}>
+                <Button type="primary" htmlType="submit" block loading={loading} style={{ background: COLORS.primary, borderColor: COLORS.primary, height: 45, borderRadius: 8, fontWeight: 'bold', fontSize: 16 }}>
+                  Xác nhận & Đăng Ký
+                </Button>
+              </Form.Item>
+
+              <div style={{ textAlign: 'center', marginTop: 15 }}>
+                <Button type="link" onClick={() => setStep(1)} style={{ color: COLORS.gray }}>
+                  Quay lại sửa thông tin
+                </Button>
+              </div>
+            </Form>
+          )}
 
         </div>
       </Col>
@@ -143,21 +171,14 @@ const RegisterPage = () => {
         backgroundPosition: 'center',
         position: 'relative'
       }}>
-        {/* Lớp phủ gradient làm nổi bật chữ */}
         <div style={{
           position: 'absolute', bottom: 0, left: 0, right: 0, height: '40%',
           background: 'linear-gradient(to top, rgba(0,0,0,0.8), transparent)',
           display: 'flex', flexDirection: 'column', justifyContent: 'flex-end', padding: '60px'
         }}>
-          <Title level={1} style={{ color: '#fff', margin: 0, fontFamily: 'serif' }}>
-            Khởi đầu hành trình
-          </Title>
-          <Title level={1} style={{ color: '#fff', marginTop: 0, fontFamily: 'serif' }}>
-            Trải nghiệm đẳng cấp
-          </Title>
-          <Text style={{ color: '#e0e0e0', fontSize: 18, marginTop: 10 }}>
-            Đăng ký ngay để nhận những đặc quyền dành riêng cho hội viên
-          </Text>
+          <Title level={1} style={{ color: '#fff', margin: 0, fontFamily: 'serif' }}>Khởi đầu hành trình</Title>
+          <Title level={1} style={{ color: '#fff', marginTop: 0, fontFamily: 'serif' }}>Trải nghiệm đẳng cấp</Title>
+          <Text style={{ color: '#e0e0e0', fontSize: 18, marginTop: 10 }}>Đăng ký ngay để nhận những đặc quyền dành riêng cho hội viên</Text>
         </div>
       </Col>
       

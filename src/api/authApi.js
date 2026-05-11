@@ -9,7 +9,11 @@ export const authAPI = {
     
     // THÊM HÀM ĐĂNG KÝ VÀO ĐÂY NÈ ĐỈNH 🚀
     register: (data) => {
-        // data sẽ chứa { fullName, email, phoneNumber, password, confirmPassword }
+        // data sẽ chứa { fullName, email, phoneNumber, password, confirmPassword, otp }
         return axiosClient.post('/Auth/register', data);
+    },
+
+    sendOtp: (data) => {
+        return axiosClient.post('/Auth/send-otp', data);
     }
 };

@@ -695,7 +695,7 @@ const HomePage = () => {
                                         <Text style={{ color: COLORS.gold, fontSize: 12 }}>
                                           <EnvironmentOutlined /> {dest.distanceKm ? `${dest.distanceKm} KM` : 'Lân cận'}
                                         </Text>
-                                        <Title level={3} style={{ color: '#fff', margin: "5px 0", fontFamily: "'Noto Serif', serif" }}>{dest.name}</Title>
+                                        <Title level={2} style={{ textAlign: "center", marginBottom: "40px", fontWeight: "bold" }}>Vì Sao Chọn IT HOTEL?</Title>
                                         <Text style={{ color: '#e0e0e0', fontSize: 13 }}>{dest.description}</Text>
                                     </div>
                                 </div>
@@ -787,7 +787,7 @@ const HomePage = () => {
                           padding: '30px',
                           textAlign: 'left'
                         }}>
-                          <Title level={4} style={{ color: '#fff', fontFamily: "'Noto Serif', serif", margin: '0 0 10px 0', fontWeight: 300 }}>Cổng Thông Tin Grand Hotel</Title>
+                          <Title level={4} style={{ color: '#fff', fontFamily: "'Noto Serif', serif", margin: '0 0 10px 0', fontWeight: 300 }}>Cổng Thông Tin IT HOTEL</Title>
                           <Text style={{ color: COLORS.gray, fontSize: 14 }}>Tìm hiểu thêm nhiều chương trình ưu đãi nghỉ dưỡng hấp dẫn khác.</Text>
                           <Text 
                             onClick={() => navigate('/news')} 
@@ -812,7 +812,7 @@ const HomePage = () => {
               <Row gutter={[40, 40]}>
                 <Col xs={24} md={6}>
                   <motion.div variants={pushUpVariant}>
-                      <Title level={4} style={{ margin: "0 0 20px 0", color: '#fff', letterSpacing: '2px', fontFamily: "'Noto Serif', serif" }}>GRAND HOTEL</Title>
+                      <Title level={4} style={{ margin: "0 0 20px 0", color: '#fff', letterSpacing: '2px', fontFamily: "'Noto Serif', serif" }}>IT HOTEL</Title>
                       <Paragraph style={{ color: COLORS.gray, fontSize: 13 }}>Khách sạn 5 sao tại Đà Nẵng, mang đến trải nghiệm nghỉ dưỡng đẳng cấp thế giới.</Paragraph>
                   </motion.div>
                 </Col>
@@ -843,7 +843,7 @@ const HomePage = () => {
                       <div style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
                       <Text style={{ color: '#fff' }}><EnvironmentOutlined style={{ marginRight: 10, color: COLORS.gold }}/> Sơn Trà, Đà Nẵng</Text>
                       <Text style={{ color: '#fff' }}><PhoneOutlined style={{ marginRight: 10, color: COLORS.gold }}/> +84 236 123 4567</Text>
-                      <Text style={{ color: '#fff' }}><MailOutlined style={{ marginRight: 10, color: COLORS.gold }}/> info@grandhotel.com</Text>
+                      <Text style={{ color: '#fff' }}><MailOutlined style={{ marginRight: 10, color: COLORS.gold }}/> info@ithotel.com</Text>
                       </div>
                   </motion.div>
                 </Col>
@@ -852,7 +852,7 @@ const HomePage = () => {
               <motion.div variants={pushUpVariant}>
                   <Divider style={{ borderColor: 'rgba(255,255,255,0.1)', margin: '40px 0 20px 0' }} />
                   <Row justify="space-between" align="middle" style={{ color: COLORS.gray, fontSize: 13 }}>
-                      <Col>© 2026 Grand Hotel. All rights reserved.</Col>
+                      <Col>Khám phá vẻ đẹp bất tận cùng IT HOTEL. All rights reserved.</Col>
                       <Col>
                       <Space size="large">
                           <Text style={{ color: COLORS.gray, cursor: 'pointer' }}>Privacy</Text>

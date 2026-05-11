@@ -78,6 +78,10 @@ const LoginPage = () => {
     } catch (error) {
       const errorMsg =
         error.response?.data?.message || "Tài khoản hoặc mật khẩu không đúng!";
+      
+      // HIỂN THỊ THÔNG BÁO LỖI LÊN MÀN HÌNH CHO NGƯỜI DÙNG
+      message.error(errorMsg);
+
       auditLogger.error(errorMsg, { module: "Hệ thống", objectName: "Đăng nhập" });
     } finally {
       setLoading(false);

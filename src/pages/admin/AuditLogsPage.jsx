@@ -144,26 +144,20 @@ const AuditLogsPage = () => {
   useEffect(() => {
     let result = auditLogs;
 
-    // Filter by search text (tìm kiếm theo tên người dùng, email, hành động, đối tượng)
+    // Filter by search text (tìm kiếm theo tên người dùng, hành động, bảng)
     if (searchText) {
       const text = searchText.toLowerCase();
       result = result.filter((log) => {
         const matchUserName = log.userName?.toLowerCase().includes(text);
-        const matchEmail = log.email?.toLowerCase().includes(text);
-        const matchDescription = log.description?.toLowerCase().includes(text);
-        const matchObject = log.objectName?.toLowerCase().includes(text);
-        return matchUserName || matchEmail || matchDescription || matchObject;
+        const matchAction = log.action?.toLowerCase().includes(text);
+        const matchTable = log.tableName?.toLowerCase().includes(text);
+        return matchUserName || matchAction || matchTable;
       });
     }
 
     // Filter by action type
     if (filterAction) {
-      result = result.filter((log) => log.actionType === filterAction);
-    }
-
-    // Filter by module
-    if (filterModule) {
-      result = result.filter((log) => log.module === filterModule);
+      result = result.filter((log) => log.action === filterAction);
     }
 
     // Filter by date range
@@ -171,17 +165,17 @@ const AuditLogsPage = () => {
       const startDate = dayjs(dateRange[0]).startOf('day');
       const endDate = dayjs(dateRange[1]).endOf('day');
       result = result.filter((log) => {
-        const logDate = dayjs(log.timestamp);
+        const logDate = dayjs(log.createdAt);
         return logDate.isAfter(startDate) && logDate.isBefore(endDate);
       });
     }
 
     // Sắp xếp theo thời gian giảm dần (mới nhất trước)
-    result.sort((a, b) => dayjs(b.timestamp).diff(dayjs(a.timestamp)));
+    result.sort((a, b) => dayjs(b.createdAt).diff(dayjs(a.createdAt)));
 
     setFilteredLogs(result);
     setPagination((prev) => ({ ...prev, current: 1 }));
-  }, [searchText, filterAction, filterModule, dateRange, auditLogs]);
+  }, [searchText, filterAction, dateRange, auditLogs]);
 
   // --- HANDLERS ---
   const handleTableChange = (pag) => {
@@ -236,18 +230,18 @@ const AuditLogsPage = () => {
     },
     {
       title: 'Thời gian',
-      dataIndex: 'timestamp',
-      key: 'timestamp',
+      dataIndex: 'createdAt',
+      key: 'createdAt',
       width: 180,
-      sorter: (a, b) => dayjs(b.timestamp).diff(dayjs(a.timestamp)),
-      render: (timestamp) => (
-        <Tooltip title={dayjs(timestamp).format('DD/MM/YYYY HH:mm:ss')}>
+      sorter: (a, b) => dayjs(b.createdAt).diff(dayjs(a.createdAt)),
+      render: (createdAt) => (
+        <Tooltip title={dayjs(createdAt).format('DD/MM/YYYY HH:mm:ss')}>
           <div>
             <div style={{ fontSize: 13, fontWeight: 500 }}>
-              {dayjs(timestamp).format('DD/MM/YYYY HH:mm:ss')}
+              {dayjs(createdAt).format('DD/MM/YYYY HH:mm:ss')}
             </div>
             <div style={{ fontSize: 12, color: '#999' }}>
-              ({dayjs(timestamp).fromNow()})
+              ({dayjs(createdAt).fromNow()})
             </div>
           </div>
         </Tooltip>
@@ -259,43 +253,41 @@ const AuditLogsPage = () => {
       width: 200,
       render: (_, record) => (
         <div>
-          <div style={{ fontWeight: 500 }}>{record.userName}</div>
-          <div style={{ fontSize: 12, color: '#999' }}>{record.email}</div>
+          <div style={{ fontWeight: 500 }}>{record.userName || 'Hệ thống'}</div>
         </div>
       ),
     },
     {
       title: 'Hành động',
-      dataIndex: 'actionType',
-      key: 'actionType',
+      dataIndex: 'action',
+      key: 'action',
       width: 100,
-      render: (actionType) => {
-        const colorObj = ACTION_COLORS[actionType] || ACTION_COLORS.OTHER;
+      render: (action) => {
+        const colorObj = ACTION_COLORS[action] || ACTION_COLORS.OTHER;
         return (
           <Tag color={colorObj.color} style={{ borderRadius: 4 }}>
-            {colorObj.label}
+            {colorObj.label || action}
           </Tag>
         );
       },
     },
     {
-      title: 'Module / Đối tượng',
-      key: 'module',
+      title: 'Bảng / ID Bản ghi',
+      key: 'table',
       width: 180,
       render: (_, record) => (
         <div>
-          <div style={{ fontWeight: 500 }}>{record.module}</div>
-          <div style={{ fontSize: 12, color: '#999' }}>{record.objectName}</div>
+          <div style={{ fontWeight: 500 }}>{record.tableName}</div>
+          <div style={{ fontSize: 12, color: '#999' }}>ID: {record.recordId}</div>
         </div>
       ),
     },
     {
       title: 'Chi tiết thay đổi',
-      dataIndex: 'description',
-      key: 'description',
+      key: 'changeDetails',
       width: 250,
-      render: (description) => (
-        <Tooltip title={description}>
+      render: (_, record) => (
+        <Tooltip title={record.newValue}>
           <div
             style={{
               whiteSpace: 'nowrap',
@@ -304,14 +296,14 @@ const AuditLogsPage = () => {
               fontSize: 13,
             }}
           >
-            {description}
+            {record.newValue || 'Không có chi tiết'}
           </div>
         </Tooltip>
       ),
     },
     {
       title: 'Thao tác',
-      key: 'action',
+      key: 'actionButton',
       width: 100,
       fixed: 'right',
       render: (_, record) => (
@@ -499,7 +491,6 @@ const AuditLogsPage = () => {
       if (value === true) return 'true';
       if (value === false) return 'false';
       if (typeof value === 'object') {
-        // Use prettyJson for display (keep readability), minifyJson for storage/send
         return prettyJson(value);
       }
       return String(value);
@@ -515,44 +506,38 @@ const AuditLogsPage = () => {
       >
         <Descriptions bordered column={1} size="small" style={{ marginBottom: 24 }}>
           <Descriptions.Item label="Thời gian">
-            {dayjs(selectedLog.timestamp).format('DD/MM/YYYY HH:mm:ss')}
+            {dayjs(selectedLog.createdAt).format('DD/MM/YYYY HH:mm:ss')}
           </Descriptions.Item>
           <Descriptions.Item label="Người thực hiện">
             <div>
-              <div style={{ fontWeight: 500 }}>{selectedLog.userName}</div>
-              <div style={{ fontSize: 12, color: '#999' }}>{selectedLog.email}</div>
+              <div style={{ fontWeight: 500 }}>{selectedLog.userName || 'Hệ thống'}</div>
             </div>
           </Descriptions.Item>
           <Descriptions.Item label="Hành động">
             <Tag
               color={
-                ACTION_COLORS[selectedLog.actionType]?.color ||
+                ACTION_COLORS[selectedLog.action]?.color ||
                 ACTION_COLORS.OTHER.color
               }
               style={{ borderRadius: 4 }}
             >
-              {ACTION_COLORS[selectedLog.actionType]?.label ||
-                ACTION_COLORS.OTHER.label}
+              {ACTION_COLORS[selectedLog.action]?.label || selectedLog.action}
             </Tag>
           </Descriptions.Item>
-          <Descriptions.Item label="Module">
-            {selectedLog.module}
+          <Descriptions.Item label="Bảng tác động">
+            {selectedLog.tableName}
           </Descriptions.Item>
-          <Descriptions.Item label="Đối tượng">
-            {selectedLog.objectName}
+          <Descriptions.Item label="ID Bản ghi">
+            {selectedLog.recordId}
           </Descriptions.Item>
-          <Descriptions.Item label="Mô tả Chi Tiết">
-            <div style={{ 
-              backgroundColor: '#fafafa', 
-              padding: '12px', 
-              borderRadius: 6,
-              fontFamily: 'monospace',
-              fontSize: 12,
-              lineHeight: '1.6',
-              whiteSpace: 'pre-wrap',
-              wordBreak: 'break-word'
-            }}>
-              {formatChangeDetails(selectedLog)}
+          <Descriptions.Item label="Giá trị cũ (Old Value)">
+            <div style={{ fontFamily: 'monospace', fontSize: 12, whiteSpace: 'pre-wrap', backgroundColor: '#fff2f0', padding: 8, borderRadius: 4 }}>
+              {formatValue(selectedLog.oldValue)}
+            </div>
+          </Descriptions.Item>
+          <Descriptions.Item label="Giá trị mới (New Value)">
+            <div style={{ fontFamily: 'monospace', fontSize: 12, whiteSpace: 'pre-wrap', backgroundColor: '#f6ffed', padding: 8, borderRadius: 4 }}>
+              {formatValue(selectedLog.newValue)}
             </div>
           </Descriptions.Item>
         </Descriptions>

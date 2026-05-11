@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { Button, Card, Typography, Divider, Table, Row, Col, message, Modal, Spin, Tag } from "antd";
-import { PrinterOutlined, ExclamationCircleOutlined, RollbackOutlined, HistoryOutlined, EyeOutlined, QrcodeOutlined } from "@ant-design/icons";
+import { PrinterOutlined, ExclamationCircleOutlined, RollbackOutlined, HistoryOutlined, EyeOutlined, QrcodeOutlined, CheckCircleOutlined } from "@ant-design/icons";
 import { useNavigate, useParams } from "react-router-dom";
 import invoiceAPI from "../../api/invoiceAPI";
 import momoAPI from "../../api/momoAPI";
@@ -73,6 +73,32 @@ const InvoicePage = () => {
 
   const handlePrint = () => window.print();
 
+  // Xác nhận lễ tân đã nhận tiền → cập nhật status Pending → Paid
+  const handleConfirmPayment = () => {
+    Modal.confirm({
+      title: 'Xác nhận đã thanh toán?',
+      icon: <CheckCircleOutlined style={{ color: '#52c41a' }} />,
+      content: (
+        <div>
+          <p>Xác nhận rằng khách hàng đã <b>thanh toán đầy đủ</b> hóa đơn này.</p>
+          <p style={{ color: '#52c41a' }}>✅ Hóa đơn sẽ chuyển sang trạng thái <b>Đã thanh toán</b>.</p>
+        </div>
+      ),
+      okText: 'Xác nhận đã nhận tiền',
+      okType: 'primary',
+      cancelText: 'Hủy',
+      onOk: async () => {
+        try {
+          await invoiceAPI.confirmPayment(id);
+          message.success('Xác nhận thanh toán thành công!');
+          fetchInvoiceDetail(); // Reload lại hóa đơn để cập nhật trạng thái
+        } catch (err) {
+          message.error(err.response?.data?.message || 'Lỗi khi xác nhận thanh toán!');
+        }
+      }
+    });
+  };
+
   const handleCancelInvoice = () => {
     Modal.confirm({
       title: 'Bạn có chắc chắn muốn HỦY hóa đơn này?',
@@ -117,6 +143,13 @@ const InvoicePage = () => {
     { title: 'Phí đền bù', dataIndex: 'penaltyAmount', align: 'right', render: val => <b style={{ color: '#f5222d' }}>{val?.toLocaleString()} đ</b> },
   ];
 
+  // Helper hiển thị trạng thái hóa đơn
+  const renderInvoiceStatus = (status) => {
+    if (status === 'Cancelled' || status === 'Đã hủy') return <Tag color="red">Đã hủy</Tag>;
+    if (status === 'Paid' || status === 'Đã thanh toán') return <Tag color="green">✅ Đã thanh toán</Tag>;
+    return <Tag color="orange">⏳ Chờ thanh toán</Tag>;
+  };
+
   // Bảng Lịch sử Hóa Đơn
   const historyColumns = [
     { title: 'Mã HĐ', dataIndex: 'id', render: id => <b>INV-{id}</b> },
@@ -124,7 +157,7 @@ const InvoicePage = () => {
     { title: 'Tổng tiền', dataIndex: 'finalTotal', align: 'right', render: val => <b style={{ color: '#f5222d' }}>{val?.toLocaleString()} đ</b> },
     {
       title: 'Trạng thái', dataIndex: 'status', align: 'center',
-      render: status => (status === 'Cancelled' || status === 'Đã hủy' ? <Tag color="red">Đã hủy</Tag> : <Tag color="green">Đã thanh toán</Tag>)
+      render: status => renderInvoiceStatus(status)
     },
     {
       title: 'Thao tác', align: 'center',
@@ -170,7 +203,7 @@ const InvoicePage = () => {
         }
       `}</style>
 
-      <Card id="printable-invoice" style={{ width: '100%', maxWidth: 800, borderRadius: 8, boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }} bodyStyle={{ padding: '40px' }}>
+      <Card id="printable-invoice" style={{ width: '100%', maxWidth: 800, borderRadius: 8, boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }} styles={{ body: { padding: '40px' } }}>
         <Row justify="space-between" align="middle" style={{ marginBottom: 40 }}>
           <Col>
             <Title level={2} style={{ margin: 0, color: '#1890ff' }}>HOTEL IT CODE</Title>
@@ -179,6 +212,14 @@ const InvoicePage = () => {
           <Col style={{ textAlign: 'right' }}>
             <Title level={3} style={{ margin: 0 }}>HÓA ĐƠN THANH TOÁN</Title>
             <Text strong>Mã Đơn: {invoiceData.bookingCode}</Text>
+            <div style={{ marginTop: 8 }}>
+              {invoiceData.status === 'Paid' || invoiceData.status === 'Đã thanh toán'
+                ? <Tag color="green" style={{ fontSize: 14, padding: '4px 12px' }}>✅ ĐÃ THANH TOÁN</Tag>
+                : invoiceData.status === 'Cancelled' || invoiceData.status === 'Đã hủy'
+                  ? <Tag color="red" style={{ fontSize: 14, padding: '4px 12px' }}>❌ ĐÃ HỦY</Tag>
+                  : <Tag color="orange" style={{ fontSize: 14, padding: '4px 12px' }}>⏳ CHỜ THANH TOÁN</Tag>
+              }
+            </div>
           </Col>
         </Row>
 
@@ -254,10 +295,24 @@ const InvoicePage = () => {
         </Row>
 
         {/* CÁC NÚT BẤM */}
-        <div className="no-print" style={{ marginTop: 40, display: 'flex', justifyContent: 'center', gap: 16 }}>
+        <div className="no-print" style={{ marginTop: 40, display: 'flex', justifyContent: 'center', gap: 16, flexWrap: 'wrap' }}>
+          {/* Nút Xác nhận thanh toán - chỉ hiện khi đang Pending */}
+          {invoiceData.status !== 'Paid' && invoiceData.status !== 'Đã thanh toán' && invoiceData.status !== 'Cancelled' && invoiceData.status !== 'Đã hủy' && (
+            <Button
+              size="large"
+              type="primary"
+              icon={<CheckCircleOutlined />}
+              onClick={handleConfirmPayment}
+              style={{ background: '#52c41a', borderColor: '#52c41a' }}
+            >
+              Xác nhận đã thanh toán
+            </Button>
+          )}
           <Button size="large" type="primary" icon={<PrinterOutlined />} onClick={handlePrint}>In Hóa Đơn</Button>
-          <Button size="large" danger icon={<RollbackOutlined />} onClick={handleCancelInvoice}>Bỏ Hóa Đơn</Button>
-          {/* 🚨 NÚT QUAY LẠI LỊCH SỬ ĐƯỢC THÊM VÀO ĐÂY */}
+          {/* Chỉ cho hủy khi đang Pending */}
+          {invoiceData.status !== 'Paid' && invoiceData.status !== 'Đã thanh toán' && (
+            <Button size="large" danger icon={<RollbackOutlined />} onClick={handleCancelInvoice}>Bỏ Hóa Đơn</Button>
+          )}
           <Button size="large" icon={<HistoryOutlined />} onClick={() => navigate('/admin/invoice')}>Lịch sử Hóa Đơn</Button>
         </div>
       </Card>

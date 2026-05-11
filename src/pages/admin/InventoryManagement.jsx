@@ -1,4 +1,4 @@
-﻿import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   Row, Col, Card, Badge, Modal, Table, Button, Input, 
   Typography, message, Empty, Tag, Space, Spin, Form, Select, InputNumber, Popconfirm, Divider, Image, Tabs
@@ -384,7 +384,7 @@ const InventoryManagement = () => {
         </div>
       </Spin>
 
-      <Modal title={`Danh sách tài sản - P.${selectedRoom?.roomNumber}`} open={isDetailVisible} onCancel={() => { resetFilters(); setIsDetailVisible(false); }} footer={null} width={950} destroyOnHidden centered>
+      <Modal title={`Danh sách tài sản - P.${selectedRoom?.roomNumber}`} open={isDetailVisible} onCancel={() => { resetFilters(); setIsDetailVisible(false); }} footer={null} width={950} destroyOnClose centered>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16, flexWrap: 'wrap', gap: 12 }}>
           <div style={{ display: 'flex', gap: 12, flex: 1 }}>
             <Input.Search 

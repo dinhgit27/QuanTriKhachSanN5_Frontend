@@ -153,7 +153,7 @@ const InHouse = () => {
   ];
 
   return (
-    <Card style={{ borderRadius: 12, minHeight: '80vh' }} bodyStyle={{ padding: '24px' }}>
+    <Card style={{ borderRadius: 12, minHeight: '80vh' }} styles={{ body: { padding: '24px' } }}>
       <Title level={4}>🛌 Khách đang lưu trú (In-House)</Title>
       <Text type="secondary">Nơi theo dõi và ghi sổ dịch vụ phát sinh cho khách.</Text>
       <Table style={{ marginTop: 20 }} columns={columns} dataSource={data} rowKey="id" loading={loading} pagination={{ pageSize: 8 }} />

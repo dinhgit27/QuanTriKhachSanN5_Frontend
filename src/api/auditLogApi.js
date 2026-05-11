@@ -44,40 +44,7 @@ export const auditLogApi = {
     try {
       const response = await api.get('/audit-logs', { params });
       const rawLogs = response.data?.data || [];
-      
-      // Flatten batched events from logData
-      const flattenedLogs = [];
-      rawLogs.forEach(log => {
-        try {
-          const payload = JSON.parse(log.logData);
-          if (payload && payload.events) {
-            payload.events.forEach(event => {
-              flattenedLogs.push({
-                ...event,
-                id: event.eventId || `${log.id}-${event.timestamp}`, // Ensure unique ID
-                userName: log.userName || event.userName,
-                roleName: log.roleName,
-                timestamp: event.timestamp || log.timestamp
-              });
-            });
-          } else {
-            // Fallback for non-batched logs
-            flattenedLogs.push({
-              ...log,
-              id: log.id,
-              description: log.logData
-            });
-          }
-        } catch (e) {
-          flattenedLogs.push({
-            ...log,
-            id: log.id,
-            description: log.logData
-          });
-        }
-      });
-
-      return { data: flattenedLogs };
+      return { data: rawLogs };
     } catch (error) {
       console.error('Failed to fetch audit logs from backend:', error);
       return { data: MOCK_AUDIT_LOGS }; // Fallback to mock

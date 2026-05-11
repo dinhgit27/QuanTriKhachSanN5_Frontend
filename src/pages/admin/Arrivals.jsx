@@ -92,7 +92,7 @@ const Arrivals = () => {
   ];
 
   return (
-    <Card style={{ borderRadius: 12, minHeight: '80vh' }} bodyStyle={{ padding: '24px' }}>
+    <Card style={{ borderRadius: 12, minHeight: '80vh' }} styles={{ body: { padding: '24px' } }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
         <Title level={4} style={{ margin: 0 }}>🧳 Khách dự kiến đến hôm nay</Title>
         <Button icon={<SyncOutlined />} onClick={fetchData} loading={loading}>Làm mới</Button>

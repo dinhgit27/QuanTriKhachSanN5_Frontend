@@ -78,6 +78,12 @@ const AdminLayout = () => {
     navigate("/login");
   };
 
+  const handleGoToProfile = () => {
+    // UserProfilePage trong App.jsx đang đăng ký route: /guest/profile
+    // Tránh navigate nhầm sang /admin/profile (route không tồn tại hoặc bị chặn bởi guard).
+    navigate("/guest/profile");
+  };
+
   const isAdmin = userRoles.includes("Admin");
   const isReceptionist = userRoles.includes("Receptionist");
   const isHousekeeping = userRoles.includes("Housekeeping");

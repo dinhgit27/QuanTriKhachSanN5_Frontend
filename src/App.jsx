@@ -74,8 +74,16 @@ function App() {
               <Route path="/admin/arrivals" element={<Arrivals />} />
               <Route path="/admin/in-house" element={<InHouse />} />
               <Route path="/admin/invoices" element={<InvoicePage />} />
-
+              
+              <Route path="/admin/rooms" element={<RoomManagement />} />
               <Route path="/receptionist/invoice-draft/:bookingId" element={<InvoicePage />} />
+            </Route>
+          </Route>
+
+          {/* --- KHU VỰC DÙNG CHUNG CHO ADMIN, LỄ TÂN & BUỒNG PHÒNG --- */}
+          <Route element={<RoleBasedRoute allowedRoles={["Admin", "Receptionist", "Housekeeping"]} />}>
+            <Route element={<AdminLayout />}>
+              <Route path="/admin/housekeeping" element={<HousekeepingManagement />} />
             </Route>
           </Route>
 
@@ -83,10 +91,8 @@ function App() {
           <Route element={<RoleBasedRoute allowedRoles={["Admin"]} />}>
             <Route element={<AdminLayout />}>
               <Route path="/admin/users" element={<UserListPage />} />
-              <Route path="/admin/rooms" element={<RoomManagement />} />
               <Route path="/admin/inventory" element={<InventoryManagement />} />
               <Route path="/admin/audit" element={<AuditLogsPage />} />
-              <Route path="/admin/housekeeping" element={<HousekeepingManagement />} />
             </Route>
           </Route>
 
@@ -101,7 +107,6 @@ function App() {
           {/* --- KHU VỰC DÀNH CHO HOUSEKEEPER --- */}
           <Route element={<RoleBasedRoute allowedRoles={["Housekeeping"]} />}>
             <Route path="/housekeeper/dashboard" element={<HousekeeperDashboard />} />
-            <Route path="/admin/housekeeping" element={<HousekeepingManagement />} />
           </Route>
 
           {/* --- KHU VỰC DÀNH CHO GUEST --- */}

@@ -49,7 +49,7 @@ const RoomBookingPage = () => {
 
   const fetchRoomTypes = async () => {
     try {
-      const response = await fetch('http://localhost:5070/api/RoomTypes');
+      const response = await fetch('http://localhost:5070/api/RoomTypes/public');
       if (response.ok) {
         const data = await response.json();
         const types = data.map(t => ({ value: t.name, label: t.name }));
@@ -159,7 +159,8 @@ const RoomBookingPage = () => {
         guestEmail: storedUser.email || localStorage.getItem('userEmail') || "guest@hotel.com",
         checkIn: checkIn.format('YYYY-MM-DDTHH:mm:ss'),
         checkOut: checkOut.format('YYYY-MM-DDTHH:mm:ss'),
-        selectedRoomIds: [selectedRoomId]
+        selectedRoomIds: [selectedRoomId],
+        userId: storedUser.id
       };
 
       const response = await fetch('http://localhost:5070/api/Bookings/create', {

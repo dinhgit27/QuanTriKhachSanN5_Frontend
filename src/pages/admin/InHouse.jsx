@@ -21,6 +21,7 @@ const InHouse = () => {
   const [serviceId, setServiceId] = useState(null);
   const [quantity, setQuantity] = useState(1);
   const [servicesList, setServicesList] = useState([]);
+  const [equipmentsList, setEquipmentsList] = useState([]);
 
   // ==========================================
   // 🚨 STATE CHO MODAL BÁO HỎNG (ĐÃ BỔ SUNG ĐẦY ĐỦ)
@@ -41,6 +42,8 @@ const InHouse = () => {
       setData(resInHouse.data);
       const resServices = await axios.get('http://localhost:5070/api/Reception/services-list');
       setServicesList(resServices.data);
+      const resEquipments = await axios.get('http://localhost:5070/api/Reception/equipments-list');
+      setEquipmentsList(resEquipments.data);
     } catch (error) { auditLogger.error("Lỗi khi tải dữ liệu!", { module: "Lưu Trú (In-House)" }); }
     finally { setLoading(false); }
   };
@@ -182,8 +185,20 @@ const InHouse = () => {
         <p>Phòng của khách: <b style={{ color: '#f5222d' }}>{selectedBooking?.guestName}</b></p>
         <div style={{ marginTop: 20, display: 'flex', flexDirection: 'column', gap: 16 }}>
           <div>
-            <div style={{ marginBottom: 4 }}><b>Lý do / Tên vật dụng hỏng:</b></div>
-            <Input placeholder="Ví dụ: Vỡ ly thủy tinh, Làm rách khăn tắm..." value={damageDescription} onChange={(e) => setDamageDescription(e.target.value)} />
+            <div style={{ marginBottom: 4 }}><b>Chọn vật dụng hỏng:</b></div>
+            <Select 
+              showSearch 
+              style={{ width: '100%' }} 
+              placeholder="-- Chọn vật dụng --" 
+              value={damageDescription} 
+              onChange={(value) => {
+                setDamageDescription(value);
+                const eq = equipmentsList.find(e => e.name === value);
+                if (eq) setDamagePrice(eq.price);
+              }}
+              filterOption={(input, option) => (option?.label ?? '').toLowerCase().includes(input.toLowerCase())}
+              options={equipmentsList.map(e => ({ value: e.name, label: `${e.name} - Đền bù: ${e.price?.toLocaleString()}đ` }))}
+            />
           </div>
           <div>
             <div style={{ marginBottom: 4 }}><b>Số tiền phạt (VNĐ):</b></div>

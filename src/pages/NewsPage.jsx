@@ -218,7 +218,7 @@ const NewsPage = () => {
           </motion.div>
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 1, delay: 0.3 }}>
             <Paragraph style={{ color: '#ccc', fontSize: 16, maxWidth: 650, margin: "0 auto" }}>
-              Cập nhật các chương trình ưu đãi độc quyền, hoạt động sự kiện nổi bật và cẩm nang du lịch nghỉ dưỡng mới nhất tại Grand Hotel.
+              Cập nhật các chương trình ưu đãi độc quyền, hoạt động sự kiện nổi bật và cẩm nang du lịch nghỉ dưỡng mới nhất tại IT Hotel.
             </Paragraph>
           </motion.div>
         </div>

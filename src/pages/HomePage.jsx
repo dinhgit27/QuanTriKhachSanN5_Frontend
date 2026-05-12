@@ -272,7 +272,7 @@ const HomePage = () => {
         position: "absolute", top: 0, zIndex: 1000, width: "100%", backdropFilter: "blur(10px)", borderBottom: "1px solid rgba(255,255,255,0.05)"
       }}>
         <div style={{ cursor: 'pointer' }} onClick={() => scrollToScene(0)}>
-          <Title level={4} style={{ margin: 0, color: '#fff', letterSpacing: '2px', fontFamily: "'Noto Serif', serif" }}>GRAND</Title>
+          <Title level={4} style={{ margin: 0, color: '#fff', letterSpacing: '2px', fontFamily: "'Noto Serif', serif" }}>IT HOTEL</Title>
         </div>
         
         <div style={{ display: 'flex', flex: 1, justifyContent: 'center', gap: isMobile ? '15px' : '40px' }}>
@@ -347,7 +347,7 @@ const HomePage = () => {
                   <Title level={1} style={{ color: '#fff', fontSize: isMobile ? 40 : 80, fontWeight: 400, fontFamily: "'Noto Serif', serif", maxWidth: 900, lineHeight: 1.2 }}>Trải Nghiệm Nghỉ Dưỡng<br/>Đẳng Cấp Thế Giới</Title>
               </motion.div>
               <motion.div variants={pushUpVariant}>
-                  <Paragraph style={{ color: '#e0e0e0', fontSize: 18, maxWidth: 600, marginTop: 20 }}>Nơi kiến trúc tinh tế gặp gỡ dịch vụ hoàn hảo. Mỗi khoảnh khắc tại Grand Hotel đều mang đến sự bình yên.</Paragraph>
+                  <Paragraph style={{ color: '#e0e0e0', fontSize: 18, maxWidth: 600, marginTop: 20 }}>Nơi kiến trúc tinh tế gặp gỡ dịch vụ hoàn hảo. Mỗi khoảnh khắc tại IT Hotel đều mang đến sự bình yên.</Paragraph>
               </motion.div>
               
               <motion.div variants={pushUpVariant} style={{ width: "100%", maxWidth: 800 }}>

@@ -23,137 +23,140 @@ const CheckoutList = () => {
     setLoading(true);
     try {
       const token = localStorage.getItem('token');
-      const res = await axios.get('http://localhost:5070/api/Bookings/in-house', { headers: { Authorization: `Bearer ${token}` } });
+      const res = await axios.get('http://localhost:5070/api/Bookings/in-house', {
+        headers: { Authorization: `Bearer ${token}` }
+      });
       setData(res.data);
-    } catch (error) { message.error("Lỗi khi tải danh sách trả phòng!"); }
-    finally { setLoading(false); }
+    } catch (error) {
+      message.error("Lỗi khi tải danh sách trả phòng!");
+    } finally {
+      setLoading(false);
+    }
   };
 
   useEffect(() => { fetchData(); }, []);
 
-  // 🚨 HÀM XEM CHI TIẾT TIÊU THỤ TRƯỚC KHI TRẢ PHÒNG
+  // Xem trước chi phí trước khi trả phòng
   const handleViewDetails = async (record) => {
     setSelectedBooking(record);
     try {
       const res = await invoiceAPI.preview(record.id);
       setBookingDetails(res.data);
       setIsDetailModalOpen(true);
-    } catch (err) { message.error("Không lấy được thông tin tiêu thụ!"); }
+    } catch (err) {
+      message.error("Không lấy được thông tin tiêu thụ!");
+    }
   };
 
+  // Trả phòng → xuất hóa đơn → chuyển sang trang hóa đơn (trạng thái chờ thanh toán)
   const handleCheckout = (record) => {
     confirm({
       title: `Xác nhận Trả phòng cho khách ${record.guestName}?`,
       icon: <ExclamationCircleOutlined />,
-      content: 'Hệ thống sẽ chốt Hóa đơn và chuyển trạng thái phòng sang "Cần dọn dẹp".',
-      okText: 'Xác nhận',
+      content: (
+        <div>
+          <p>Hệ thống sẽ xuất Hóa đơn và chuyển trạng thái phòng sang <b>"Cần dọn dẹp"</b>.</p>
+          <p style={{ color: '#faad14' }}>⏳ Hóa đơn sẽ ở trạng thái <b>Chờ thanh toán</b> cho đến khi được xác nhận.</p>
+        </div>
+      ),
+      okText: 'Xác nhận Trả phòng',
       okType: 'danger',
       cancelText: 'Hủy',
       onOk: async () => {
         try {
-          // 1. Gọi API chốt trả phòng
-          const res = await axios.post(`http://localhost:5070/api/Invoices/checkout/${record.id}`);
-          message.success("Trả phòng thành công!");
-          
-          // 2. 🚨 ĐÃ FIX LUỒNG: Xóa cờ thanh toán tạm và nhảy sang trang In Hóa Đơn!
-          const paidBookings = JSON.parse(localStorage.getItem('adminPaidBookings') || '[]');
-          localStorage.setItem('adminPaidBookings', JSON.stringify(paidBookings.filter(id => id !== record.id)));
-          
-          const newInvoiceId = res.data.invoiceId; 
-          navigate(`/admin/invoice/${newInvoiceId}`); 
-          
-        } catch (err) { 
-          message.error("Lỗi khi xử lý trả phòng!"); 
+          const token = localStorage.getItem('token');
+          const res = await axios.post(
+            `http://localhost:5070/api/Invoices/checkout/${record.id}`,
+            {},
+            { headers: { Authorization: `Bearer ${token}` } }
+          );
+          message.success("Trả phòng thành công! Hóa đơn đang chờ thanh toán.");
+          const newInvoiceId = res.data.invoiceId;
+          navigate(`/admin/invoice/${newInvoiceId}`);
+        } catch (err) {
+          message.error(err.response?.data?.message || "Lỗi khi xử lý trả phòng!");
         }
       }
     });
   };
 
   const columns = [
-    { title: 'Mã Booking', dataIndex: 'bookingCode', render: text => <b>{text}</b> },
-    { title: 'Khách hàng', dataIndex: 'guestName', render: text => <b>{text}</b> },
     {
-      title: 'Phòng trả', dataIndex: 'roomNumbers',
-      render: rooms => <Space wrap>{rooms?.map(r => <Tag color="red" key={r}>P.{r}</Tag>)}</Space>
-    },
-    { title: 'Ngày Check-in', dataIndex: 'checkInDate', render: date => dayjs(date).format('HH:mm - DD/MM') },
-    { 
-      title: 'Thanh toán', align: 'center',
-      render: (_, record) => {
-        const paidBookings = JSON.parse(localStorage.getItem('adminPaidBookings') || '[]');
-        const isPaid = paidBookings.includes(record.id);
-        
-        const guestRequests = JSON.parse(localStorage.getItem('guestPaymentRequests') || '[]');
-        const isRequested = guestRequests.includes(record.id);
-
-        if (isPaid) return <Tag color="green">Đã nhận tiền</Tag>;
-        
-        return (
-            <Space direction="vertical" size="small">
-                {isRequested ? <Tag color="orange">Khách báo đã chuyển</Tag> : <Tag color="default">Chưa thanh toán</Tag>}
-                <Button 
-                    size="small" 
-                    type="primary" 
-                    ghost 
-                    onClick={() => handleApprovePayment(record.id)}
-                >
-                    Xác nhận đã nhận tiền
-                </Button>
-            </Space>
-        );
-      }
+      title: 'Mã Booking',
+      dataIndex: 'bookingCode',
+      render: text => <b>{text}</b>
     },
     {
-      title: 'Thao tác', align: 'center', render: (_, record) => {
-        const paidBookings = JSON.parse(localStorage.getItem('adminPaidBookings') || '[]');
-        const isPaid = paidBookings.includes(record.id);
-        return (
-          <Space>
-            <Tooltip title="Xem chi tiết tiêu thụ">
-              <Button icon={<EyeOutlined />} onClick={() => handleViewDetails(record)} />
-            </Tooltip>
-            <Button 
-                type="primary" 
-                danger 
-                icon={<LogoutOutlined />} 
-                disabled={!isPaid}
-                onClick={() => handleCheckout(record)}
-            >
-              Trả phòng
-            </Button>
-          </Space>
-        );
-      }
+      title: 'Khách hàng',
+      dataIndex: 'guestName',
+      render: text => <b>{text}</b>
+    },
+    {
+      title: 'Phòng trả',
+      dataIndex: 'roomNumbers',
+      render: rooms => (
+        <Space wrap>
+          {rooms?.map(r => <Tag color="red" key={r}>P.{r}</Tag>)}
+        </Space>
+      )
+    },
+    {
+      title: 'Ngày Check-in',
+      dataIndex: 'checkInDate',
+      render: date => dayjs(date).format('HH:mm - DD/MM')
+    },
+    {
+      title: 'Thao tác',
+      align: 'center',
+      render: (_, record) => (
+        <Space>
+          <Tooltip title="Xem trước chi phí">
+            <Button icon={<EyeOutlined />} onClick={() => handleViewDetails(record)} />
+          </Tooltip>
+          <Button
+            type="primary"
+            danger
+            icon={<LogoutOutlined />}
+            onClick={() => handleCheckout(record)}
+          >
+            Trả phòng
+          </Button>
+        </Space>
+      )
     }
   ];
 
-  const handleApprovePayment = (id) => {
-    // 1. Xóa khỏi danh sách yêu cầu
-    const currentRequests = JSON.parse(localStorage.getItem('guestPaymentRequests') || '[]');
-    const updatedRequests = currentRequests.filter(reqId => reqId !== id);
-    localStorage.setItem('guestPaymentRequests', JSON.stringify(updatedRequests));
-
-    // 2. Thêm vào danh sách đã thanh toán
-    const paidBookings = JSON.parse(localStorage.getItem('adminPaidBookings') || '[]');
-    if (!paidBookings.includes(id)) {
-      localStorage.setItem('adminPaidBookings', JSON.stringify([...paidBookings, id]));
-    }
-
-    message.success("Đã xác nhận khách thanh toán thành công!");
-    fetchData(); // Reload table
-  };
-
   return (
-    <Card style={{ borderRadius: 12, minHeight: '80vh' }} bodyStyle={{ padding: '24px' }}>
+    <Card style={{ borderRadius: 12, minHeight: '80vh' }} styles={{ body: { padding: '24px' } }}>
       <Title level={4}>🚪 Xử lý Trả phòng (Checkout)</Title>
-      <Table style={{ marginTop: 20 }} columns={columns} dataSource={data} rowKey="id" loading={loading} />
+      <Table
+        style={{ marginTop: 20 }}
+        columns={columns}
+        dataSource={data}
+        rowKey="id"
+        loading={loading}
+      />
 
       {/* MODAL XEM CHI TIẾT TRƯỚC KHI TRẢ PHÒNG */}
       <Modal
-        title={`Xem trước hóa đơn - ${selectedBooking?.guestName}`}
+        title={`📋 Xem trước hóa đơn - ${selectedBooking?.guestName}`}
         open={isDetailModalOpen}
         onCancel={() => setIsDetailModalOpen(false)}
-        footer={[<Button key="close" onClick={() => setIsDetailModalOpen(false)}>Đóng</Button>]}
+        footer={[
+          <Button key="close" onClick={() => setIsDetailModalOpen(false)}>Đóng</Button>,
+          <Button
+            key="checkout"
+            type="primary"
+            danger
+            icon={<LogoutOutlined />}
+            onClick={() => {
+              setIsDetailModalOpen(false);
+              handleCheckout(selectedBooking);
+            }}
+          >
+            Tiến hành Trả phòng
+          </Button>
+        ]}
       >
         {bookingDetails && (
           <div>

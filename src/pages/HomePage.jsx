@@ -10,6 +10,7 @@ import { Navigation, Autoplay, Mousewheel, Pagination } from 'swiper/modules';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import axios from 'axios'; // 🚨 NHỚ PHẢI CÓ AXIOS ĐỂ GỌI API
+import { getUserRoles } from '../utils/auth'; // 🔥 LẤY ROLES TỪ JWT TOKEN
 
 // Import CSS
 import 'swiper/css';
@@ -87,6 +88,19 @@ const HomePage = () => {
   const [roomsData, setRoomsData] = useState([]);
   const [loadingRooms, setLoadingRooms] = useState(true);
 
+  // --- STATE DỊCH VỤ TIỆN ÍCH ---
+  const [servicesData, setServicesData] = useState([]);
+  const [loadingServices, setLoadingServices] = useState(true);
+
+  // --- STATE KHÁM PHÁ (ATTRACTIONS) ---
+  const [attractionsData, setAttractionsData] = useState([]);
+  const [loadingAttractions, setLoadingAttractions] = useState(true);
+
+  // --- STATE TIN TỨC TRANG CHỦ ---
+  const [newsData, setNewsData] = useState([]);
+  const [loadingNews, setLoadingNews] = useState(true);
+
+
   // --- STATE NGƯỜI DÙNG (AUTH) ---
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [currentUser, setCurrentUser] = useState(null);
@@ -115,8 +129,13 @@ const HomePage = () => {
     const userStr = localStorage.getItem('user');
     
     if (token && userStr) {
+      const userObj = JSON.parse(userStr);
+      // 🔥 Lấy roles từ JWT token (không phải từ user object)
+      const rolesFromToken = getUserRoles();
+      // Gắn roles vào user object để dùng trong component
+      userObj.roles = rolesFromToken;
       setIsLoggedIn(true);
-      setCurrentUser(JSON.parse(userStr));
+      setCurrentUser(userObj);
     }
   }, []);
 
@@ -134,6 +153,53 @@ const HomePage = () => {
     };
     fetchRooms();
   }, []);
+
+  // 🚨 3. LẤY DỮ LIỆU DỊCH VỤ TIỆN ÍCH TỪ SQL SERVER
+  useEffect(() => {
+    const fetchServices = async () => {
+      try {
+        const res = await axios.get(`${import.meta.env.VITE_API_URL}/Services/categories/public`);
+        // Lọc ra các danh mục có ít nhất 1 dịch vụ
+        setServicesData(res.data.filter(cat => cat.services && cat.services.length > 0));
+      } catch (error) {
+        console.error("Lỗi khi tải dịch vụ tiện ích:", error);
+      } finally {
+        setLoadingServices(false);
+      }
+    };
+    fetchServices();
+  }, []);
+
+  // 🚨 4. LẤY DỮ LIỆU KHÁM PHÁ (ATTRACTIONS) TỪ SQL SERVER
+  useEffect(() => {
+    const fetchAttractions = async () => {
+      try {
+        const res = await axios.get(`${import.meta.env.VITE_API_URL}/Attractions`);
+        setAttractionsData(res.data || []);
+      } catch (error) {
+        console.error("Lỗi khi tải địa điểm du lịch:", error);
+      } finally {
+        setLoadingAttractions(false);
+      }
+    };
+    fetchAttractions();
+  }, []);
+
+  // 🚨 5. LẤY DỮ LIỆU TIN TỨC TRANG CHỦ TỪ SQL SERVER
+  useEffect(() => {
+    const fetchLatestNews = async () => {
+      try {
+        const res = await axios.get(`${import.meta.env.VITE_API_URL}/CMS/articles`);
+        setNewsData(res.data || []);
+      } catch (error) {
+        console.error("Lỗi khi tải tin tức trang chủ:", error);
+      } finally {
+        setLoadingNews(false);
+      }
+    };
+    fetchLatestNews();
+  }, []);
+
 
   // --- HÀM XỬ LÝ ĐĂNG XUẤT ---
   const handleLogout = () => {
@@ -155,21 +221,31 @@ const HomePage = () => {
   const roleInfo = getRoleDisplay();
 
   const menuItems = [
-    { key: 0, label: 'Trang chủ' },
-    { key: 1, label: 'Bộ sưu tập' },
-    { key: 2, label: 'Tiện ích' },
-    { key: 3, label: 'Khám phá' },
-    { key: 4, label: 'Liên hệ' },
+    { key: 0, label: 'Trang chủ', type: 'scroll' },
+    { key: 1, label: 'Bộ sưu tập', type: 'scroll' },
+    { key: 2, label: 'Tiện ích', type: 'scroll' },
+    { key: 3, label: 'Khám phá', type: 'scroll' },
+    { key: 4, label: 'Tin tức', type: 'scroll' },
+    { key: 5, label: 'Liên hệ', type: 'scroll' },
   ];
 
   const scrollToScene = (index) => {
     if (mainSwiper) mainSwiper.slideTo(index);
   };
 
+  // Hàm điều hướng đến trang phù hợp theo role
+  const handleProfileNavigation = () => {
+    if (currentUser?.roles?.includes('Admin')) {
+      navigate('/admin/users');
+    } else if (currentUser?.roles?.includes('Receptionist')) {
+      navigate('/receptionist/dashboard');
+    } else {
+      navigate('/guest/dashboard');
+    }
+  };
+
   const userMenuItems = [
-    { key: 'profile', label: 'Hồ sơ của tôi', icon: <UserOutlined />, onClick: () => navigate('/guest/dashboard')},
-    // Nếu là Admin thì hiện thêm nút Vào trang quản trị
-    ...(currentUser?.roles?.includes('Admin') ? [{ key: 'admin', label: 'Trang Quản Trị', onClick: () => navigate('/admin/dashboard') }] : []),
+    { key: 'profile', label: 'Hồ sơ của tôi', icon: <UserOutlined />, onClick: handleProfileNavigation },
     { type: 'divider' },
     { key: 'logout', label: 'Đăng xuất', icon: <LogoutOutlined />, danger: true, onClick: handleLogout }
   ];
@@ -200,15 +276,18 @@ const HomePage = () => {
         </div>
         
         <div style={{ display: 'flex', flex: 1, justifyContent: 'center', gap: isMobile ? '15px' : '40px' }}>
-          {menuItems.map((item) => (
-            <Text key={item.key} onClick={() => scrollToScene(item.key)}
-              style={{ color: activeScene === item.key ? COLORS.gold : '#fff', cursor: 'pointer', fontWeight: 500, fontSize: 15, transition: "color 0.3s" }} 
-              onMouseEnter={(e) => e.target.style.color = COLORS.gold}
-              onMouseLeave={(e) => e.target.style.color = activeScene === item.key ? COLORS.gold : '#fff'}
-            >
-              {item.label}
-            </Text>
-          ))}
+          {menuItems.map((item) => {
+            const isScrollActive = item.type === 'scroll' && activeScene === item.key;
+            return (
+              <Text key={item.key} onClick={() => item.type === 'scroll' ? scrollToScene(item.key) : navigate(item.path)}
+                style={{ color: isScrollActive ? COLORS.gold : '#fff', cursor: 'pointer', fontWeight: 500, fontSize: 15, transition: "color 0.3s" }} 
+                onMouseEnter={(e) => e.target.style.color = COLORS.gold}
+                onMouseLeave={(e) => e.target.style.color = isScrollActive ? COLORS.gold : '#fff'}
+              >
+                {item.label}
+              </Text>
+            );
+          })}
         </div>
 
         <div style={{ display: 'flex', alignItems: 'center' }}>
@@ -416,36 +495,155 @@ const HomePage = () => {
           </div>
         </SwiperSlide>
 
-        {/* === SCENE 3: DỊCH VỤ TIỆN ÍCH === */}
+        {/* === SCENE 3: DỊCH VỤ TIỆN ÍCH — HORIZONTAL CARD SLIDER === */}
         <SwiperSlide>
           <div style={{ position: "relative", width: "100%", height: "100%", overflow: "hidden", display: "flex", flexDirection: "column", justifyContent: "center" }}>
+            {/* Nền tối gradient */}
             <motion.div variants={bgScaleVariant} initial="hidden" animate={activeScene === 2 ? "visible" : "hidden"}
-              style={{ position: "absolute", inset: 0, backgroundImage: "url('https://images.unsplash.com/photo-1514933651103-005eec06c04b?q=80&w=2000&auto=format&fit=crop')", backgroundSize: 'cover', backgroundPosition: 'center' }}>
-              <div style={{ position: "absolute", inset: 0, background: "rgba(0,0,0,0.7)" }}></div>
+              style={{ position: "absolute", inset: 0, backgroundImage: "url('https://images.unsplash.com/photo-1615460549969-36fa19521a4f?q=80&w=2000&auto=format&fit=crop')", backgroundSize: 'cover', backgroundPosition: 'center' }}>
+              <div style={{ position: "absolute", inset: 0, background: "linear-gradient(135deg, rgba(5,5,20,0.92) 0%, rgba(10,10,30,0.85) 100%)" }}></div>
             </motion.div>
 
             <motion.div variants={staggerContainer} initial="hidden" animate={activeScene === 2 ? "visible" : "hidden"}
-              style={{ position: "relative", padding: isMobile ? "80px 20px 20px" : "80px 80px 20px" }}>
-              <motion.div variants={pushUpVariant} style={{ marginBottom: 40, textAlign: "center" }}>
-                <Text style={{ color: COLORS.gold, textTransform: "uppercase", letterSpacing: "2px" }}>TIỆN ÍCH</Text>
-                <Title level={2} style={{ margin: "10px 0", fontSize: isMobile ? 32 : 48, color: '#fff', fontFamily: "'Noto Serif', serif" }}>Dịch Vụ Đẳng Cấp</Title>
+              style={{ position: "relative", height: "100%", display: "flex", flexDirection: "column", justifyContent: "center", padding: isMobile ? "80px 0 20px" : "80px 0 20px" }}>
+
+              {/* HEADER */}
+              <motion.div variants={pushUpVariant} style={{ textAlign: "center", marginBottom: isMobile ? 24 : 36, padding: "0 80px" }}>
+                <Text style={{ color: COLORS.gold, textTransform: "uppercase", letterSpacing: "4px", fontSize: 13 }}>TIỆN ÍCH & DỊCH VỤ</Text>
+                <Title level={2} style={{ margin: "8px 0 0", fontSize: isMobile ? 28 : 44, color: '#fff', fontFamily: "'Noto Serif', serif", fontWeight: 300 }}>
+                  Trải Nghiệm <span style={{ color: COLORS.gold }}>Đẳng Cấp</span>
+                </Title>
               </motion.div>
-              <Row gutter={[20, 20]}>
-                {[
-                  { img: "https://images.unsplash.com/photo-1576013551627-0cc20b96c2a7?q=80&w=800&auto=format&fit=crop", name: "Hồ Bơi Vô Cực", desc: "Tầm nhìn ra biển tuyệt đẹp" },
-                  { img: "https://images.unsplash.com/photo-1540555700478-4be289fbecef?q=80&w=800&auto=format&fit=crop", name: "Spa & Wellness", desc: "Liệu trình chăm sóc toàn diện" },
-                  { img: "https://images.unsplash.com/photo-1514933651103-005eec06c04b?q=80&w=800&auto=format&fit=crop", name: "Nhà Hàng 5 Sao", desc: "Ẩm thực đa quốc gia" },
-                  { img: "https://images.unsplash.com/photo-1575037614876-c3852d4c5286?q=80&w=800&auto=format&fit=crop", name: "Bar & Lounge", desc: "Cocktail cao cấp" }
-                ].map((service, index) => (
-                  <Col key={index} xs={24} sm={12} md={6}>
-                    <motion.div variants={pushUpVariant} style={{ ...glassStyle, padding: "20px", textAlign: "center" }}>
-                        <img src={service.img} alt={service.name} loading="lazy" style={{ width: '100%', height: isMobile ? 150 : 250, objectFit: 'cover', borderRadius: 12, marginBottom: 15 }} />
-                        <Title level={4} style={{ color: '#fff', fontFamily: "'Noto Serif', serif", margin: "0 0 5px 0" }}>{service.name}</Title>
-                        <Text style={{ color: COLORS.gray }}>{service.desc}</Text>
-                    </motion.div>
-                  </Col>
-                ))}
-              </Row>
+
+              {/* CARD SLIDER */}
+              <motion.div variants={pushUpVariant} style={{ flex: 1, minHeight: 0, paddingBottom: isMobile ? 40 : 50 }}>
+                {loadingServices ? (
+                  <div style={{ textAlign: 'center', padding: '80px 0' }}>
+                    <Text style={{ color: COLORS.gold, fontSize: 16 }}>⏳ Đang tải dịch vụ...</Text>
+                  </div>
+                ) : (
+                  <Swiper
+                    modules={[Navigation, Autoplay]}
+                    spaceBetween={isMobile ? 16 : 24}
+                    slidesPerView={isMobile ? 1.2 : 3.3}
+                    centeredSlides={false}
+                    autoplay={{ delay: 3500, disableOnInteraction: false, pauseOnMouseEnter: true }}
+                    navigation={{
+                      prevEl: '.service-prev-btn',
+                      nextEl: '.service-next-btn',
+                    }}
+                    style={{ paddingLeft: isMobile ? 20 : 80, paddingRight: isMobile ? 20 : 80, height: isMobile ? '42vh' : '52vh' }}
+                  >
+                    {servicesData.map((category, index) => {
+                      // Map ảnh theo từng danh mục (index-based fallback)
+                      const categoryImages = [
+                        "https://images.unsplash.com/photo-1414235077428-338989a2e8c0?q=80&w=800&auto=format&fit=crop",   // Nhà Hàng
+                        "https://images.unsplash.com/photo-1544161515-4ab6ce6db874?q=80&w=800&auto=format&fit=crop",   // Spa
+                        "https://images.unsplash.com/photo-1449965408869-eaa3f722e40d?q=80&w=800&auto=format&fit=crop", // Di Chuyển
+                        "https://images.unsplash.com/photo-1582735689369-4fe89db7114c?q=80&w=800&auto=format&fit=crop", // Giặt Ủi
+                        "https://images.unsplash.com/photo-1469854523086-cc02fe5d8800?q=80&w=800&auto=format&fit=crop", // Tour
+                        "https://images.unsplash.com/photo-1576013551627-0cc20b96c2a7?q=80&w=800&auto=format&fit=crop", // Hồ Bơi
+                        "https://images.unsplash.com/photo-1571902943202-507ec2618e8f?q=80&w=800&auto=format&fit=crop", // Gym
+                        "https://images.unsplash.com/photo-1519167758481-83f550bb49b3?q=80&w=800&auto=format&fit=crop", // Sự Kiện
+                        "https://images.unsplash.com/photo-1560421683-6856ea585c78?q=80&w=800&auto=format&fit=crop",   // Trẻ Em
+                        "https://images.unsplash.com/photo-1558618666-fcd25c85cd64?q=80&w=800&auto=format&fit=crop",  // Cửa Hàng
+                      ];
+                      const categoryIcons = ['🍽️','💆','🚗','👔','🗺️','🏊','💪','🎉','👶','🛍️'];
+                      const img = categoryImages[index % categoryImages.length];
+                      const icon = categoryIcons[index % categoryIcons.length];
+
+                      return (
+                        <SwiperSlide key={category.id} style={{ height: '100%' }}>
+                          <div style={{
+                            position: 'relative', height: '100%', borderRadius: 20, overflow: 'hidden',
+                            cursor: 'pointer', transition: 'transform 0.3s ease',
+                          }}
+                            onMouseEnter={e => e.currentTarget.style.transform = 'translateY(-6px)'}
+                            onMouseLeave={e => e.currentTarget.style.transform = 'translateY(0)'}
+                          >
+                            {/* Ảnh nền */}
+                            <img src={img} alt={category.name} loading="lazy"
+                              style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
+
+                            {/* Gradient overlay */}
+                            <div style={{
+                              position: 'absolute', inset: 0,
+                              background: 'linear-gradient(to top, rgba(0,0,0,0.95) 0%, rgba(0,0,0,0.4) 50%, rgba(0,0,0,0.1) 100%)',
+                            }} />
+
+                            {/* Gold border top */}
+                            <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 3, background: `linear-gradient(90deg, transparent, ${COLORS.gold}, transparent)` }} />
+
+                            {/* Nội dung */}
+                            <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, padding: '24px 20px 20px' }}>
+                              {/* Icon + Số lượng dịch vụ */}
+                              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 10 }}>
+                                <span style={{ fontSize: 32, lineHeight: 1 }}>{icon}</span>
+                                {category.services.length > 0 && (
+                                  <span style={{
+                                    background: COLORS.gold, color: COLORS.dark, borderRadius: 20,
+                                    padding: '2px 10px', fontSize: 11, fontWeight: 700
+                                  }}>
+                                    {category.services.length} dịch vụ
+                                  </span>
+                                )}
+                              </div>
+
+                              {/* Tên danh mục */}
+                              <Title level={4} style={{
+                                color: '#fff', fontFamily: "'Noto Serif', serif",
+                                margin: '0 0 10px', fontSize: isMobile ? 16 : 18, lineHeight: 1.3
+                              }}>
+                                {category.name}
+                              </Title>
+
+                              {/* Divider vàng */}
+                              <div style={{ width: 40, height: 1, background: COLORS.gold, marginBottom: 12, opacity: 0.8 }} />
+
+                              {/* Danh sách dịch vụ */}
+                              <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                                {category.services.length === 0 ? (
+                                  <Text style={{ color: 'rgba(255,255,255,0.5)', fontSize: 12, fontStyle: 'italic' }}>Sắp ra mắt...</Text>
+                                ) : (
+                                  category.services.slice(0, 3).map(svc => (
+                                    <div key={svc.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                      <Text style={{ color: 'rgba(255,255,255,0.85)', fontSize: 12 }}>• {svc.name}</Text>
+                                      <Text style={{ color: COLORS.gold, fontSize: 11, fontWeight: 600, whiteSpace: 'nowrap', marginLeft: 8 }}>
+                                        {svc.price?.toLocaleString('vi-VN')}đ
+                                      </Text>
+                                    </div>
+                                  ))
+                                )}
+                                {category.services.length > 3 && (
+                                  <Text style={{ color: 'rgba(255,255,255,0.4)', fontSize: 11 }}>+{category.services.length - 3} dịch vụ khác</Text>
+                                )}
+                              </div>
+                            </div>
+                          </div>
+                        </SwiperSlide>
+                      );
+                    })}
+                  </Swiper>
+                )}
+              </motion.div>
+
+              {/* Navigation buttons + đếm */}
+              <motion.div variants={pushUpVariant} style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: 16, marginTop: 0, padding: '0 80px 16px' }}>
+                <button className="service-prev-btn" style={{
+                  width: 44, height: 44, borderRadius: '50%', border: `1px solid ${COLORS.gold}`,
+                  background: 'transparent', color: COLORS.gold, cursor: 'pointer', fontSize: 18,
+                  display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'all 0.2s'
+                }}>←</button>
+                <Text style={{ color: 'rgba(255,255,255,0.5)', fontSize: 12, letterSpacing: 2 }}>
+                  {servicesData.length} DANH MỤC
+                </Text>
+                <button className="service-next-btn" style={{
+                  width: 44, height: 44, borderRadius: '50%', border: `1px solid ${COLORS.gold}`,
+                  background: COLORS.gold, color: COLORS.dark, cursor: 'pointer', fontSize: 18,
+                  display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'all 0.2s'
+                }}>→</button>
+              </motion.div>
+
             </motion.div>
           </div>
         </SwiperSlide>
@@ -471,39 +669,150 @@ const HomePage = () => {
                   </div>
               </motion.div>
               
-              <motion.div variants={pushUpVariant}>
-                  <Swiper modules={[Navigation]} spaceBetween={30} slidesPerView={isMobile ? 1 : 3} navigation={{ prevEl: '.destination-nav .prev-btn', nextEl: '.destination-nav .next-btn' }}>
-                      {[
-                      { image: "https://images.unsplash.com/photo-1559592413-7cec4d0cae2b?q=80&w=1000&auto=format&fit=crop", distance: "25 KM", name: "Bà Nà Hills", desc: "Khu du lịch nổi tiếng với Cầu Vàng" },
-                      { image: "https://images.unsplash.com/photo-1583417267846-e58bf43e80b2?q=80&w=1000&auto=format&fit=crop", distance: "3 KM", name: "Cầu Rồng", desc: "Biểu tượng của thành phố Đà Nẵng" },
-                      { image: "https://images.unsplash.com/photo-1596395825390-e55500e57ba5?q=80&w=1000&auto=format&fit=crop", distance: "5 KM", name: "Bãi Biển Mỹ Khê", desc: "Một trong những bãi biển đẹp nhất thế giới" }
-                      ].map((dest, index) => (
-                      <SwiperSlide key={index}>
-                          <div style={{ position: 'relative', height: isMobile ? "40vh" : "55vh", borderRadius: 16, overflow: "hidden" }}>
-                              <img alt={dest.name} src={dest.image} loading="lazy" style={{ width: '100%', height: '100%', objectFit: "cover" }} />
-                              <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(to top, rgba(0,0,0,0.9) 0%, transparent 60%)' }}></div>
-                              <div style={{ position: 'absolute', bottom: 30, left: 30, right: 30, color: '#fff' }}>
-                                  <Text style={{ color: COLORS.gold, fontSize: 12 }}><EnvironmentOutlined /> {dest.distance}</Text>
-                                  <Title level={3} style={{ color: '#fff', margin: "5px 0", fontFamily: "'Noto Serif', serif" }}>{dest.name}</Title>
-                                  <Text style={{ color: '#e0e0e0', fontSize: 13 }}>{dest.desc}</Text>
-                              </div>
-                          </div>
-                      </SwiperSlide>
-                      ))}
-                  </Swiper>
-              </motion.div>
+              {loadingAttractions ? (
+                <div style={{ textAlign: 'center', padding: '60px 0' }}>
+                  <Text style={{ color: COLORS.gold }}>Đang tải địa điểm du lịch...</Text>
+                </div>
+              ) : (
+                <motion.div variants={pushUpVariant}>
+                    <Swiper modules={[Navigation]} spaceBetween={30} slidesPerView={isMobile ? 1 : 3} navigation={{ prevEl: '.destination-nav .prev-btn', nextEl: '.destination-nav .next-btn' }}>
+                        {attractionsData.map((dest, index) => {
+                          const fallbackImages = [
+                            "https://images.unsplash.com/photo-1559592413-7cec4d0cae2b?q=80&w=1000&auto=format&fit=crop",
+                            "https://images.unsplash.com/photo-1583417267846-e58bf43e80b2?q=80&w=1000&auto=format&fit=crop",
+                            "https://images.unsplash.com/photo-1596395825390-e55500e57ba5?q=80&w=1000&auto=format&fit=crop",
+                            "https://images.unsplash.com/photo-1507525428034-b723cf961d3e?q=80&w=1000&auto=format&fit=crop",
+                            "https://images.unsplash.com/photo-1519046904884-53103b34b206?q=80&w=1000&auto=format&fit=crop",
+                            "https://images.unsplash.com/photo-1540555700478-4be289fbecef?q=80&w=1000&auto=format&fit=crop",
+                          ];
+                          const imgUrl = fallbackImages[index % fallbackImages.length];
+                          return (
+                            <SwiperSlide key={dest.id}>
+                                <div style={{ position: 'relative', height: isMobile ? "40vh" : "55vh", borderRadius: 16, overflow: "hidden" }}>
+                                    <img alt={dest.name} src={imgUrl} loading="lazy" style={{ width: '100%', height: '100%', objectFit: "cover" }} />
+                                    <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(to top, rgba(0,0,0,0.9) 0%, transparent 60%)' }}></div>
+                                    <div style={{ position: 'absolute', bottom: 30, left: 30, right: 30, color: '#fff' }}>
+                                        <Text style={{ color: COLORS.gold, fontSize: 12 }}>
+                                          <EnvironmentOutlined /> {dest.distanceKm ? `${dest.distanceKm} KM` : 'Lân cận'}
+                                        </Text>
+                                        <Title level={2} style={{ textAlign: "center", marginBottom: "40px", fontWeight: "bold" }}>Vì Sao Chọn IT HOTEL?</Title>
+                                        <Text style={{ color: '#e0e0e0', fontSize: 13 }}>{dest.description}</Text>
+                                    </div>
+                                </div>
+                            </SwiperSlide>
+                          );
+                        })}
+                    </Swiper>
+                </motion.div>
+              )}
             </motion.div>
           </div>
         </SwiperSlide>
 
-        {/* === SCENE 5: FOOTER === */}
+        {/* === SCENE 5: TIN TỨC PREVIEW BANNER === */}
+        <SwiperSlide>
+          <div style={{ position: "relative", width: "100%", height: "100%", overflow: "hidden", display: "flex", flexDirection: "column", justifyContent: "center" }}>
+            <motion.div variants={bgScaleVariant} initial="hidden" animate={activeScene === 4 ? "visible" : "hidden"}
+              style={{ position: "absolute", inset: 0, backgroundImage: "url('https://images.unsplash.com/photo-1540555700478-4be289fbecef?q=80&w=2000&auto=format&fit=crop')", backgroundSize: 'cover', backgroundPosition: 'center' }}>
+              <div style={{ position: "absolute", inset: 0, background: "rgba(0,0,0,0.85)" }}></div>
+            </motion.div>
+
+            <motion.div variants={staggerContainer} initial="hidden" animate={activeScene === 4 ? "visible" : "hidden"}
+              style={{ position: "relative", padding: isMobile ? "80px 20px 20px" : "80px 80px 20px" }}>
+              <motion.div variants={pushUpVariant} style={{ marginBottom: 40 }}>
+                <Text style={{ color: COLORS.gold, textTransform: "uppercase", letterSpacing: "2px" }}>TIN TỨC & SỰ KIỆN</Text>
+                <Title level={2} style={{ margin: "10px 0 0 0", fontSize: isMobile ? 32 : 48, color: '#fff', fontFamily: "'Noto Serif', serif" }}>Truyền Thông & Ưu Đãi</Title>
+              </motion.div>
+
+              {loadingNews ? (
+                <div style={{ textAlign: 'center', padding: '60px 0' }}>
+                  <Text style={{ color: COLORS.gold }}>Đang tải tin tức mới nhất...</Text>
+                </div>
+              ) : (
+                <motion.div variants={pushUpVariant}>
+                  <Row gutter={[40, 40]} align="middle">
+                    <Col xs={24} lg={12}>
+                      {newsData.length > 0 ? (
+                        <div style={{
+                          background: 'rgba(255, 255, 255, 0.03)',
+                          border: '1px solid rgba(255, 255, 255, 0.08)',
+                          borderRadius: 24,
+                          padding: isMobile ? '24px' : '40px',
+                          backdropFilter: 'blur(10px)',
+                          textAlign: 'left'
+                        }}>
+                          <Tag style={{ background: COLORS.gold, color: COLORS.dark, border: 'none', fontWeight: 'bold', padding: '4px 12px', marginBottom: 20 }}>
+                            TIN MỚI NHẤT
+                          </Tag>
+                          <Title level={3} style={{ color: '#fff', fontFamily: "'Noto Serif', serif", fontSize: isMobile ? 20 : 28, lineHeight: 1.4, margin: '0 0 15px 0', fontWeight: 400 }}>
+                            {newsData[0].title}
+                          </Title>
+                          <Paragraph ellipsis={{ rows: 3 }} style={{ color: COLORS.gray, fontSize: 15, lineHeight: 1.6, marginBottom: 30 }}>
+                            {newsData[0].content}
+                          </Paragraph>
+                          <Button 
+                            type="primary" 
+                            size="large"
+                            onClick={() => navigate('/news')}
+                            style={{ background: COLORS.gold, borderColor: COLORS.gold, color: COLORS.dark, fontWeight: 'bold', borderRadius: 24, padding: '0 35px' }}
+                          >
+                            XEM CHI TIẾT →
+                          </Button>
+                        </div>
+                      ) : (
+                        <div style={{ color: COLORS.gray }}>Chưa có bài đăng nào được cập nhật.</div>
+                      )}
+                    </Col>
+
+                    <Col xs={24} lg={12}>
+                      <div style={{
+                        position: 'relative',
+                        height: isMobile ? '220px' : '320px',
+                        borderRadius: 24,
+                        overflow: 'hidden',
+                        boxShadow: '0 10px 30px rgba(0,0,0,0.5)'
+                      }}>
+                        <img 
+                          src="https://images.unsplash.com/photo-1540555700478-4be289fbecef?q=80&w=1000&auto=format&fit=crop" 
+                          alt="Grand Media" 
+                          style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                        />
+                        <div style={{
+                          position: 'absolute',
+                          inset: 0,
+                          background: 'linear-gradient(to top, rgba(0,0,0,0.85) 0%, transparent 100%)',
+                          display: 'flex',
+                          flexDirection: 'column',
+                          justifyContent: 'flex-end',
+                          padding: '30px',
+                          textAlign: 'left'
+                        }}>
+                          <Title level={4} style={{ color: '#fff', fontFamily: "'Noto Serif', serif", margin: '0 0 10px 0', fontWeight: 300 }}>Cổng Thông Tin IT HOTEL</Title>
+                          <Text style={{ color: COLORS.gray, fontSize: 14 }}>Tìm hiểu thêm nhiều chương trình ưu đãi nghỉ dưỡng hấp dẫn khác.</Text>
+                          <Text 
+                            onClick={() => navigate('/news')} 
+                            style={{ color: COLORS.gold, marginTop: 15, fontWeight: 'bold', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6 }}
+                          >
+                            XEM TOÀN BỘ TIN TỨC →
+                          </Text>
+                        </div>
+                      </div>
+                    </Col>
+                  </Row>
+                </motion.div>
+              )}
+            </motion.div>
+          </div>
+        </SwiperSlide>
+
+        {/* === SCENE 6: FOOTER === */}
         <SwiperSlide style={{ background: "#050505" }}>
           <div style={{ position: "relative", width: "100%", height: "100%", display: "flex", flexDirection: "column", justifyContent: "center" }}>
-            <motion.div variants={staggerContainer} initial="hidden" animate={activeScene === 4 ? "visible" : "hidden"} style={{ padding: isMobile ? "0 20px" : "0 80px" }}>
+            <motion.div variants={staggerContainer} initial="hidden" animate={activeScene === 5 ? "visible" : "hidden"} style={{ padding: isMobile ? "0 20px" : "0 80px" }}>
               <Row gutter={[40, 40]}>
                 <Col xs={24} md={6}>
                   <motion.div variants={pushUpVariant}>
-                      <Title level={4} style={{ margin: "0 0 20px 0", color: '#fff', letterSpacing: '2px', fontFamily: "'Noto Serif', serif" }}>GRAND HOTEL</Title>
+                      <Title level={4} style={{ margin: "0 0 20px 0", color: '#fff', letterSpacing: '2px', fontFamily: "'Noto Serif', serif" }}>IT HOTEL</Title>
                       <Paragraph style={{ color: COLORS.gray, fontSize: 13 }}>Khách sạn 5 sao tại Đà Nẵng, mang đến trải nghiệm nghỉ dưỡng đẳng cấp thế giới.</Paragraph>
                   </motion.div>
                 </Col>
@@ -514,6 +823,7 @@ const HomePage = () => {
                       <Text style={{ color: '#fff', cursor: 'pointer' }} onClick={() => scrollToScene(0)}>Trang chủ</Text>
                       <Text style={{ color: '#fff', cursor: 'pointer' }} onClick={() => scrollToScene(1)}>Bộ sưu tập</Text>
                       <Text style={{ color: '#fff', cursor: 'pointer' }} onClick={() => scrollToScene(3)}>Khám phá</Text>
+                      <Text style={{ color: '#fff', cursor: 'pointer' }} onClick={() => scrollToScene(4)}>Tin tức</Text>
                       </div>
                   </motion.div>
                 </Col>
@@ -533,7 +843,7 @@ const HomePage = () => {
                       <div style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
                       <Text style={{ color: '#fff' }}><EnvironmentOutlined style={{ marginRight: 10, color: COLORS.gold }}/> Sơn Trà, Đà Nẵng</Text>
                       <Text style={{ color: '#fff' }}><PhoneOutlined style={{ marginRight: 10, color: COLORS.gold }}/> +84 236 123 4567</Text>
-                      <Text style={{ color: '#fff' }}><MailOutlined style={{ marginRight: 10, color: COLORS.gold }}/> info@grandhotel.com</Text>
+                      <Text style={{ color: '#fff' }}><MailOutlined style={{ marginRight: 10, color: COLORS.gold }}/> info@ithotel.com</Text>
                       </div>
                   </motion.div>
                 </Col>
@@ -542,7 +852,7 @@ const HomePage = () => {
               <motion.div variants={pushUpVariant}>
                   <Divider style={{ borderColor: 'rgba(255,255,255,0.1)', margin: '40px 0 20px 0' }} />
                   <Row justify="space-between" align="middle" style={{ color: COLORS.gray, fontSize: 13 }}>
-                      <Col>© 2026 Grand Hotel. All rights reserved.</Col>
+                      <Col>Khám phá vẻ đẹp bất tận cùng IT HOTEL. All rights reserved.</Col>
                       <Col>
                       <Space size="large">
                           <Text style={{ color: COLORS.gray, cursor: 'pointer' }}>Privacy</Text>

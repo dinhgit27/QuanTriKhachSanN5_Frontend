@@ -165,6 +165,7 @@ const UserListPage = () => {
         // Update
         await userManagementAPI.updateUser(editingId, values);
         
+        message.success('Cập nhật nhân viên thành công!');
         auditLogger.success("Cập nhật thông tin nhân viên thành công!", {
           actionType: 'UPDATE',
           module: 'Nhân viên & Quyền',
@@ -176,6 +177,7 @@ const UserListPage = () => {
         // Create
         await userManagementAPI.createUser(values);
         
+        message.success('Thêm nhân viên mới thành công!');
         auditLogger.success("Thêm nhân viên mới thành công!", {
           actionType: 'CREATE',
           module: 'Nhân viên & Quyền',
@@ -213,6 +215,7 @@ const UserListPage = () => {
       setLocalLoading(true);
       await roleAPI.assignPermissions(selectedRole.id, rolePermissions);
       
+      message.success(`Đã cập nhật phân quyền cho chức vụ ${selectedRole.name} thành công!`);
       auditLogger.success(`Đã cập nhật phân quyền cho chức vụ ${selectedRole.name}!`, {
           actionType: 'UPDATE',
           module: 'Nhân viên & Quyền',
@@ -221,7 +224,7 @@ const UserListPage = () => {
       });
       setRoleModalVisible(false);
     } catch (error) {
-      message.error("Lỗi khi lưu quyền!");
+      message.error('Lỗi khi lưu quyền: ' + (error.response?.data?.message || error.message));
     } finally {
       setLocalLoading(false);
     }
@@ -367,7 +370,7 @@ const UserListPage = () => {
         centered
         destroyOnClose
       >
-        <Form form={form} layout="vertical" onFinish={handleSubmitForm} style={{ marginTop: 15 }}>
+        <Form form={form} name="user-form" layout="vertical" onFinish={handleSubmitForm} style={{ marginTop: 15 }}>
           <Form.Item name="fullName" label="Họ và tên" rules={[{ required: true, message: 'Nhập họ tên đi ní!' }]}>
             <Input prefix={<UserOutlined />} placeholder="Nguyễn Văn A" />
           </Form.Item>

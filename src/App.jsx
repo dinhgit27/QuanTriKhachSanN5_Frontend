@@ -32,6 +32,7 @@ import GuestReviewsPage from "./pages/guest/GuestReviewsPage";
 
 // 🚨 IMPORT TRANG DANH SÁCH PHÒNG
 import RoomsPage from './pages/RoomsPage';
+import NewsPage from './pages/NewsPage'; // 👈 THÊM IMPORT TRANG TIN TỨC
 
 // IMPORT 2 TRANG LỄ TÂN
 import Arrivals from "./pages/admin/Arrivals";
@@ -52,6 +53,7 @@ function App() {
         <Route path="/login" element={<LoginPage />} />
         <Route path="/homepage" element={<HomePage />} />
         <Route path="/rooms" element={<RoomsPage />} /> {/* 👈 ĐÃ THÊM ROUTE VÀO ĐÂY */}
+        <Route path="/news" element={<NewsPage />} /> {/* 👈 ĐÃ THÊM ROUTE TIN TỨC Ở ĐÂY */}
         <Route path="/register" element={<RegisterPage />} />
         <Route path="/forgot-password" element={<ForgotPasswordPage />} />
         <Route path="/unauthorized" element={<UnauthorizedPage />} />

@@ -1,4 +1,4 @@
-﻿import axios from "axios";
+import axios from "axios";
 
 // 1. Tạo instance Axios với cấu hình chuẩn
 const API = axios.create({
@@ -24,6 +24,7 @@ const invoiceAPI = {
     getAll: () => API.get('/Invoices'),
     cancel: (invoiceId) => API.post(`/Invoices/cancel/${invoiceId}`),
     getById: (invoiceId) => API.get(`/Invoices/${invoiceId}`),
+    confirmPayment: (invoiceId) => API.post(`/Invoices/confirm-payment/${invoiceId}`),
     createMomoPayment: (bookingId) => API.post(`/Invoices/create-momo-payment/${bookingId}`),
 };
 

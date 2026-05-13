@@ -90,8 +90,8 @@ const HomePage = () => {
   const [isNightMode, setIsNightMode] = useState(false);
 
   const heroImages = {
-    day: "/images/day_villa.jpg", 
-    night: "/images/night_villa.jpg" 
+    day: "https://images.unsplash.com/photo-1613490493576-7fde63acd811?q=80&w=2000&auto=format&fit=crop", 
+    night: "https://images.unsplash.com/photo-1613977257363-707ba9348227?q=80&w=2000&auto=format&fit=crop" 
   };
 
   const handleMouseMove = (e) => {

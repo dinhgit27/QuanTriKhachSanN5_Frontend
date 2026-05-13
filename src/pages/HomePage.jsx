@@ -21,10 +21,10 @@ const { Header } = Layout;
 const { Title, Text, Paragraph } = Typography;
 
 const COLORS = {
-  gold: "#c19b4a",
-  dark: "#0a0a0a",
-  gray: "#b3b3b3",
-  bg: "#fff"
+  gold: "#D4AF37",
+  dark: "#0f172a",
+  gray: "#94a3b8",
+  bg: "#f8fafc"
 };
 
 // ==========================================
@@ -84,11 +84,31 @@ const HomePage = () => {
   const navigate = useNavigate();
   const [isMobile, setIsMobile] = useState(window.innerWidth <= 768);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [introComplete, setIntroComplete] = useState(false);
+  const [mousePos, setMousePos] = useState({ x: 0, y: 0 });
+  const [hoverReceptionist, setHoverReceptionist] = useState(false);
+  const [isNightMode, setIsNightMode] = useState(false);
+
+  const heroImages = {
+    day: "/images/day_villa.jpg", 
+    night: "/images/night_villa.jpg" 
+  };
+
+  const handleMouseMove = (e) => {
+    const { innerWidth, innerHeight } = window;
+    const x = (e.clientX / innerWidth - 0.5) * 20; 
+    const y = (e.clientY / innerHeight - 0.5) * 20; 
+    setMousePos({ x, y });
+  };
 
   useEffect(() => {
     const handleResize = () => setIsMobile(window.innerWidth <= 768);
     window.addEventListener('resize', handleResize);
-    return () => window.removeEventListener('resize', handleResize);
+    const timer = setTimeout(() => setIntroComplete(true), 2200);
+    return () => {
+      window.removeEventListener('resize', handleResize);
+      clearTimeout(timer);
+    };
   }, []);
 
   // --- STATE DỮ LIỆU ---
@@ -309,8 +329,39 @@ const HomePage = () => {
   };
 
   return (
-    <div style={{ height: "100vh", width: "100vw", background: COLORS.dark, fontFamily: "'Open Sans', sans-serif", overflow: "hidden" }}>
+    <div style={{ height: "100vh", width: "100vw", background: COLORS.dark, fontFamily: "'Open Sans', sans-serif", overflow: "hidden", position: "relative" }}>
       
+      {/* 🚨 KỊCH BẢN MÀN CHÀO HỎI (INTRO CURTAIN DROP) */}
+      <motion.div 
+        initial={{ y: 0 }}
+        animate={{ y: introComplete ? "-100vh" : 0 }}
+        transition={{ duration: 1.2, ease: [0.77, 0, 0.175, 1] }}
+        style={{
+          position: "fixed", inset: 0, zIndex: 999999, background: "#050505", display: "flex", flexDirection: "column",
+          alignItems: "center", justifyContent: "center", boxShadow: "0 20px 50px rgba(0,0,0,0.8)"
+        }}
+      >
+        <motion.div 
+          initial={{ opacity: 0, scale: 0.8 }} 
+          animate={{ opacity: [0, 1, 1, 0], scale: [0.8, 1.1, 1.1, 1.2] }} 
+          transition={{ duration: 2.0, ease: "easeInOut" }}
+          style={{ textAlign: "center" }}
+        >
+          <div style={{ 
+            width: 100, height: 100, borderRadius: '50%', border: '2px solid #D4AF37', margin: '0 auto 24px auto',
+            display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 0 30px rgba(212, 175, 55, 0.5)' 
+          }}>
+            <Title level={2} style={{ margin: 0, color: '#D4AF37', fontFamily: "'Noto Serif', serif" }}>IT</Title>
+          </div>
+          <Title level={1} style={{ margin: 0, color: '#ffffff', letterSpacing: '8px', fontSize: 42, fontFamily: "'Noto Serif', serif", textShadow: '0 0 20px rgba(255,255,255,0.3)' }}>
+            IT HOTEL
+          </Title>
+          <Text style={{ color: '#D4AF37', letterSpacing: '6px', fontSize: 14, textTransform: 'uppercase', display: 'block', marginTop: 12 }}>
+            LUXURY RESORT & SPA
+          </Text>
+        </motion.div>
+      </motion.div>
+
       {/* ========================================= */}
       {/* HEADER TỰ ĐỘNG ĐỔI TRẠNG THÁI LOGIN */}
       {/* ========================================= */}
@@ -381,80 +432,107 @@ const HomePage = () => {
         style={{ width: "100%", height: "100%" }}
       >
         
-        {/* === SCENE 1: HERO === */}
+        {/* === SCENE 1: HERO VILLA NGÀY / ĐÊM === */}
         <SwiperSlide>
           <div style={{ position: "relative", width: "100%", height: "100%", overflow: "hidden" }}>
-            <motion.div variants={bgScaleVariant} initial="hidden" animate={activeScene === 0 ? "visible" : "hidden"}
-              style={{ position: "absolute", inset: 0, backgroundImage: "url('https://images.unsplash.com/photo-1499793983690-e29da59ef1c2?q=80&w=2000&auto=format&fit=crop')", backgroundSize: 'cover', backgroundPosition: 'center' }}>
-              <div style={{ position: "absolute", inset: 0, background: "radial-gradient(circle, rgba(0,0,0,0.1) 20%, rgba(0,0,0,0.8) 100%)" }}></div>
-            </motion.div>
             
-            <SunRays isActive={activeScene === 0} />
+            {/* Bức ảnh Ngày / Đêm chuyển cảnh hoàn hảo (True Camera Locked Pair) */}
+            <div style={{ 
+              position: "absolute", inset: 0, 
+              backgroundImage: `url('${isNightMode ? heroImages.night : heroImages.day}')`, 
+              backgroundSize: 'cover', backgroundPosition: 'center', filter: 'brightness(0.85)',
+              transition: 'background-image 0.8s ease-in-out'
+            }} />
+            
             <BlingBling isActive={activeScene === 0} />
-            
+
+            {/* THANH ĐIỀU HƯỚNG CHUYỂN NGÀY / ĐÊM */}
+            <div style={{ position: 'absolute', top: isMobile ? 180 : 120, right: isMobile ? 20 : 80, zIndex: 100 }}>
+              <div style={{ 
+                background: "rgba(15, 23, 42, 0.75)", backdropFilter: "blur(20px)", border: "1px solid rgba(255,255,255,0.2)",
+                borderRadius: 30, padding: "6px 8px", display: "flex", alignItems: "center", gap: 6, boxShadow: "0 10px 30px rgba(0,0,0,0.5)"
+              }}>
+                <div style={{ 
+                  padding: "8px 16px", borderRadius: 20, transition: "all 0.3s cubic-bezier(0.16, 1, 0.3, 1)", cursor: "pointer",
+                  background: !isNightMode ? COLORS.gold : "transparent",
+                  color: !isNightMode ? COLORS.dark : "#fff", fontWeight: "bold", fontSize: 12, letterSpacing: 1
+                }} onClick={() => setIsNightMode(false)}>
+                  ☀️ BAN NGÀY
+                </div>
+                <div style={{ 
+                  padding: "8px 16px", borderRadius: 20, transition: "all 0.3s cubic-bezier(0.16, 1, 0.3, 1)", cursor: "pointer",
+                  background: isNightMode ? "#3b82f6" : "transparent",
+                  color: isNightMode ? "#fff" : "#fff", fontWeight: "bold", fontSize: 12, letterSpacing: 1
+                }} onClick={() => setIsNightMode(true)}>
+                  🌙 BAN ĐÊM
+                </div>
+              </div>
+            </div>
+
+            {/* LỚP GIAO DIỆN CHỮ NẰM BÊN TRÁI (LEFT-ALIGNED TYPOGRAPHY & BOOKING BAR) */}
             <motion.div variants={staggerContainer} initial="hidden" animate={activeScene === 0 ? "visible" : "hidden"}
-              style={{ position: "relative", zIndex: 10, height: "100%", display: "flex", flexDirection: "column", justifyContent: "center", alignItems: "center", textAlign: "center", padding: "0 20px" }}>
+              style={{ position: "relative", zIndex: 10, height: "100%", display: "flex", flexDirection: "column", justifyContent: "center", alignItems: "flex-start", textAlign: "left", paddingLeft: isMobile ? "24px" : "8vw", paddingRight: isMobile ? "24px" : "20vw" }}>
               <motion.div variants={pushUpVariant}>
-                 <Text style={{ color: COLORS.gold, textTransform: "uppercase", letterSpacing: "3px", fontWeight: "bold", marginBottom: 20 }}>LUXURY RESORT & SPA — ĐÀ NẴNG</Text>
+                 <Text style={{ color: COLORS.gold, textTransform: "uppercase", letterSpacing: "3px", fontWeight: "bold", marginBottom: 16, display: 'block' }}>LUXURY RESORT & SPA — ĐÀ NẴNG</Text>
               </motion.div>
               <motion.div variants={pushUpVariant}>
-                  <Title level={1} style={{ color: '#fff', fontSize: isMobile ? 40 : 80, fontWeight: 400, fontFamily: "'Noto Serif', serif", maxWidth: 900, lineHeight: 1.2 }}>Trải Nghiệm Nghỉ Dưỡng<br/>Đẳng Cấp Thế Giới</Title>
+                  <Title level={1} style={{ color: '#fff', fontSize: isMobile ? 32 : 56, fontWeight: 400, fontFamily: "'Noto Serif', serif", maxWidth: 800, lineHeight: 1.2, margin: 0 }}>Trải Nghiệm Nghỉ Dưỡng<br/>Đẳng Cấp Thế Giới</Title>
               </motion.div>
               <motion.div variants={pushUpVariant}>
-                  <Paragraph style={{ color: '#e0e0e0', fontSize: 18, maxWidth: 600, marginTop: 20 }}>Nơi kiến trúc tinh tế gặp gỡ dịch vụ hoàn hảo. Mỗi khoảnh khắc tại IT Hotel đều mang đến sự bình yên.</Paragraph>
+                  <Paragraph style={{ color: '#e0e0e0', fontSize: 15, maxWidth: 550, marginTop: 16, marginBottom: 0 }}>Nơi kiến trúc tinh tế gặp gỡ dịch vụ hoàn hảo. Mỗi khoảnh khắc tại IT Hotel đều mang đến sự bình yên và thăng hoa.</Paragraph>
               </motion.div>
               
-              <motion.div variants={pushUpVariant} style={{ width: "100%", maxWidth: 800 }}>
+              <motion.div variants={pushUpVariant} style={{ width: "100%", maxWidth: 600 }}>
                   <div style={{ 
-                    marginTop: 30, background: "rgba(255,255,255,0.15)", backdropFilter: "blur(20px)", 
-                    border: "1px solid rgba(255,255,255,0.2)", borderRadius: isMobile ? 24 : 50, 
-                    padding: isMobile ? "20px" : "10px 30px", display: "flex", 
+                    marginTop: 24, background: "rgba(255,255,255,0.15)", backdropFilter: "blur(20px)", 
+                    border: "1px solid rgba(255,255,255,0.2)", borderRadius: isMobile ? 20 : 40, 
+                    padding: isMobile ? "16px" : "8px 20px", display: "flex", 
                     flexDirection: isMobile ? "column" : "row", justifyContent: "space-between", 
-                    alignItems: isMobile ? "stretch" : "center", gap: isMobile ? "16px" : "10px" 
+                    alignItems: isMobile ? "stretch" : "center", gap: isMobile ? "12px" : "10px" 
                   }}>
                       
                       {/* KHUNG NHẬP NGÀY NHẬN PHÒNG */}
-                      <div style={{ flex: 1, minWidth: '120px', textAlign: 'left' }}>
-                          <Text style={{color: COLORS.gray, display: 'block', fontSize: 12, marginBottom: 4}}>NHẬN PHÒNG</Text>
+                      <div style={{ flex: 1, minWidth: '100px', textAlign: 'left' }}>
+                          <Text style={{color: COLORS.gray, display: 'block', fontSize: 10, letterSpacing: 1, marginBottom: 2, fontWeight: 600}}>NHẬN PHÒNG</Text>
                           <DatePicker 
                               bordered={false} 
                               placeholder="Chọn ngày" 
-                              style={{ padding: 0, width: '100%' }}
+                              style={{ padding: 0, width: '100%', fontSize: 13 }}
                               onChange={(date) => setCheckIn(date)}
                           />
                       </div>
                       
-                      {!isMobile && <div style={{ width: 1, height: 40, background: "rgba(255,255,255,0.2)" }}></div>}
+                      {!isMobile && <div style={{ width: 1, height: 28, background: "rgba(255,255,255,0.2)" }}></div>}
                       
                       {/* KHUNG NHẬP NGÀY TRẢ PHÒNG */}
-                      <div style={{ flex: 1, minWidth: '120px', textAlign: 'left' }}>
-                          <Text style={{color: COLORS.gray, display: 'block', fontSize: 12, marginBottom: 4}}>TRẢ PHÒNG</Text>
+                      <div style={{ flex: 1, minWidth: '100px', textAlign: 'left' }}>
+                          <Text style={{color: COLORS.gray, display: 'block', fontSize: 10, letterSpacing: 1, marginBottom: 2, fontWeight: 600}}>TRẢ PHÒNG</Text>
                           <DatePicker 
                               bordered={false} 
                               placeholder="Chọn ngày" 
-                              style={{ padding: 0, width: '100%' }}
+                              style={{ padding: 0, width: '100%', fontSize: 13 }}
                               onChange={(date) => setCheckOut(date)}
                           />
                       </div>
                       
-                      {!isMobile && <div style={{ width: 1, height: 40, background: "rgba(255,255,255,0.2)" }}></div>}
+                      {!isMobile && <div style={{ width: 1, height: 28, background: "rgba(255,255,255,0.2)" }}></div>}
                       
                       {/* KHUNG NHẬP SỐ KHÁCH */}
-                      <div style={{ flex: 1, minWidth: '100px', textAlign: 'left' }}>
-                          <Text style={{color: COLORS.gray, display: 'block', fontSize: 12, marginBottom: 4}}>SỐ KHÁCH</Text>
+                      <div style={{ flex: 1, minWidth: '80px', textAlign: 'left' }}>
+                          <Text style={{color: COLORS.gray, display: 'block', fontSize: 10, letterSpacing: 1, marginBottom: 2, fontWeight: 600}}>SỐ KHÁCH</Text>
                           <InputNumber 
                               min={1} max={10} 
                               value={guests}
                               bordered={false}
-                              style={{ padding: 0, width: '50px' }}
+                              style={{ padding: 0, width: '40px', fontSize: 13 }}
                               onChange={(val) => setGuests(val)}
                           /> 
-                          <Text strong style={{ color: '#fff' }}>khách</Text>
+                          <Text strong style={{ color: '#fff', fontSize: 13 }}>khách</Text>
                       </div>
 
                       {/* NÚT TÌM KIẾM */}
-                      <Button shape={isMobile ? "round" : "circle"} size="large" onClick={handleSearchRooms} style={{ background: '#fff', border: 'none', color: COLORS.dark, width: isMobile ? '100%' : 'auto', height: isMobile ? 44 : 'auto', fontWeight: 'bold' }}>
-                        {isMobile ? "TÌM PHÒNG NGAY" : <ArrowRightOutlined />}
+                      <Button shape={isMobile ? "round" : "circle"} size="middle" onClick={handleSearchRooms} style={{ background: '#fff', border: 'none', color: COLORS.dark, width: isMobile ? '100%' : 40, height: isMobile ? 40 : 40, fontWeight: 'bold', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                        {isMobile ? "TÌM PHÒNG NGAY" : <ArrowRightOutlined style={{ fontSize: 16 }} />}
                       </Button>
                   
                   </div>

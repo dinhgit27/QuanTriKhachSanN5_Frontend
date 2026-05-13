@@ -330,6 +330,7 @@ const UserListPage = () => {
             onChange: (page, pageSize) => handleTableChange({ current: page, pageSize })
         }} 
         size="middle" 
+        scroll={{ x: 900 }}
       />
     </>
   );
@@ -346,6 +347,7 @@ const UserListPage = () => {
       rowKey="id"
       pagination={false}
       bordered
+      scroll={{ x: 600 }}
     />
   );
 

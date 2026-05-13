@@ -1,6 +1,7 @@
-﻿import React, { useEffect, useState } from 'react';
-import { Layout, Breadcrumb, Card, List, Typography, Tag, Space, Divider, Button, message, Spin } from 'antd';
+import React, { useEffect, useState } from 'react';
+import { Layout, Breadcrumb, Card, List, Typography, Tag, Space, Divider, Button, message, Spin, Modal, Row, Col } from 'antd';
 import { Link } from 'react-router-dom';
+import { QrcodeOutlined, CheckCircleOutlined } from '@ant-design/icons';
 import dayjs from 'dayjs';
 
 const { Content } = Layout;
@@ -10,6 +11,8 @@ const GuestInvoicePage = () => {
   const [invoices, setInvoices] = useState([]);
   const [loading, setLoading] = useState(false);
   const [paymentRequests, setPaymentRequests] = useState([]);
+  const [isQrModalOpen, setIsQrModalOpen] = useState(false);
+  const [selectedInvoice, setSelectedInvoice] = useState(null);
 
   useEffect(() => {
     fetchInvoices();
@@ -50,23 +53,33 @@ const GuestInvoicePage = () => {
     }
   };
 
-  const handlePayment = (invoice) => {
+  const handlePaymentClick = (invoice) => {
+    setSelectedInvoice(invoice);
+    setIsQrModalOpen(true);
+  };
+
+  const handleConfirmQrPayment = () => {
+    if (!selectedInvoice) return;
     try {
       const savedRequests = JSON.parse(localStorage.getItem('guestPaymentRequests') || '[]');
-      if (!savedRequests.includes(invoice.id)) {
-        savedRequests.push(invoice.id);
+      if (!savedRequests.includes(selectedInvoice.id)) {
+        savedRequests.push(selectedInvoice.id);
         localStorage.setItem('guestPaymentRequests', JSON.stringify(savedRequests));
       }
       
+      // 🚨 LƯU TIỀN TRẢ TRƯỚC VÀO HỆ THỐNG CHO ADMIN THẤY
+      localStorage.setItem(`bookingPrepaid_${selectedInvoice.id}`, String(selectedInvoice.totalAmount));
+
       setPaymentRequests(savedRequests);
       setInvoices(prev => prev.map(inv => {
-        if (inv.id === invoice.id) {
+        if (inv.id === selectedInvoice.id) {
           return { ...inv, isPaymentRequested: true };
         }
         return inv;
       }));
 
-      message.success('Đã gửi yêu cầu thanh toán. Vui lòng đợi Quản lý xác nhận!');
+      setIsQrModalOpen(false);
+      message.success('Đã gửi yêu cầu xác nhận thanh toán. Tiền trả trước đã được ghi nhận vào đơn!');
     } catch (e) {
       message.error("Lỗi khi gửi yêu cầu.");
     }
@@ -131,7 +144,7 @@ const GuestInvoicePage = () => {
                     />
                     <Space direction="vertical" align="end">
                       {invoice.status !== 'Completed' && invoice.status !== 'Cancelled' && !invoice.isPaymentRequested && (
-                        <Button type="primary" onClick={() => handlePayment(invoice)}>
+                        <Button type="primary" onClick={() => handlePaymentClick(invoice)}>
                           Thanh toán
                         </Button>
                       )}
@@ -146,6 +159,45 @@ const GuestInvoicePage = () => {
               />
             )}
           </Spin>
+
+          {/* 🚨 MODAL HIỂN THỊ MÃ QR THANH TOÁN */}
+          <Modal
+            title={<Title level={4} style={{ margin: 0 }}><QrcodeOutlined /> Thanh toán trực tuyến (Mã VietQR)</Title>}
+            open={isQrModalOpen}
+            onCancel={() => setIsQrModalOpen(false)}
+            footer={[
+              <Button key="cancel" onClick={() => setIsQrModalOpen(false)}>Quay lại</Button>,
+              <Button key="submit" type="primary" style={{ background: '#52c41a', borderColor: '#52c41a' }} icon={<CheckCircleOutlined />} onClick={handleConfirmQrPayment}>
+                Xác nhận đã chuyển khoản
+              </Button>
+            ]}
+            centered
+            width={500}
+            destroyOnClose
+          >
+            {selectedInvoice && (
+              <div style={{ textAlign: 'center', padding: '20px 0' }}>
+                <div style={{ background: '#fafafa', padding: 16, borderRadius: 12, display: 'inline-block', border: '1px solid #f0f0f0', marginBottom: 20 }}>
+                  <img 
+                    src={`https://img.vietqr.io/image/970407-000000000000-compact2.png?amount=${selectedInvoice.totalAmount}&addInfo=${encodeURIComponent(`Thanh toan don ${selectedInvoice.bookingCode}`)}&accountName=HOTEL%20IT%20CODE`} 
+                    alt="VietQR" 
+                    style={{ width: 240, height: 240, objectFit: 'contain' }} 
+                  />
+                </div>
+                <Title level={5} style={{ margin: 0 }}>Ngân hàng Techcombank - HOTEL IT CODE</Title>
+                <Text type="secondary">Số tài khoản: 000000000000</Text>
+                <Divider style={{ margin: '16px 0' }} />
+                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 16 }}>
+                  <Text>Mã đơn đặt phòng:</Text>
+                  <Text strong style={{ color: '#1890ff' }}>{selectedInvoice.bookingCode}</Text>
+                </div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 18, marginTop: 8 }}>
+                  <Text strong>Tổng tiền cần thanh toán:</Text>
+                  <Text strong style={{ color: '#ff4d4f' }}>{new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(selectedInvoice.totalAmount)}</Text>
+                </div>
+              </div>
+            )}
+          </Modal>
         </Card>
       </Content>
     </Layout>

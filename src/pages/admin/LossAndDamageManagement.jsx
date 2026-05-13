@@ -1,4 +1,4 @@
-﻿import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   Table, Button, Tag, Space, message, Typography, 
   Popconfirm, Card, Image, Tooltip, Empty 
@@ -249,6 +249,7 @@ const LossAndDamageManagement = () => {
           locale={{ 
             emptyText: <Empty description="Hiện không có biên bản đền bù nào cần xử lý." /> 
           }}
+          scroll={{ x: 1000 }}
         />
       </Card>
     </div>

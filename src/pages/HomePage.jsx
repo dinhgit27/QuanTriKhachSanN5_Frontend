@@ -1,5 +1,5 @@
 import React, { useRef, useState, useEffect } from 'react';
-import { Layout, Button, Typography, Row, Col, Space, Tag, Avatar, Divider, Dropdown, DatePicker, InputNumber, Modal, Drawer } from 'antd';
+import { Layout, Button, Typography, Row, Col, Space, Tag, Avatar, Divider, Dropdown, DatePicker, InputNumber, Modal, Drawer, message } from 'antd';
 import { 
   ArrowRightOutlined, ArrowLeftOutlined, EnvironmentOutlined, MenuOutlined,
   FacebookFilled, InstagramFilled, TwitterOutlined,
@@ -152,6 +152,23 @@ const HomePage = () => {
     
     // Chuyển hướng sang trang Rooms kèm theo tham số lọc
     navigate(`/rooms?${params.toString()}`);
+  }; 
+
+  // Hàm xử lý khi bấm nút ĐẶT NGAY
+  const handleBookRoom = (e, roomName) => {
+    e.stopPropagation();
+    const token = localStorage.getItem("token");
+    if (!token) {
+      message.warning("Vui lòng đăng nhập với tài khoản Khách hàng (Guest) để đặt phòng trực tuyến.");
+      navigate("/login");
+      return;
+    }
+    const roles = getUserRoles();
+    if (!roles.includes("Guest")) {
+      message.error("Chỉ có tài khoản Khách hàng (Guest) mới có quyền đặt phòng trực tuyến!");
+      return;
+    }
+    navigate(`/guest/book-room?roomType=${encodeURIComponent(roomName)}`);
   }; 
 
   // 🚨 1. KIỂM TRA ĐĂNG NHẬP KHI VÀO TRANG
@@ -515,10 +532,7 @@ const HomePage = () => {
                                         <Button 
                                           type="primary" 
                                           size="large" 
-                                          onClick={(e) => {
-                                            e.stopPropagation(); // Ngăn sự kiện click lan ra thẻ div
-                                            navigate('/booking');
-                                          }} 
+                                          onClick={(e) => handleBookRoom(e, room.name)} 
                                           style={{ background: COLORS.gold, border: "none", color: COLORS.dark, fontWeight: 'bold' }}
                                         >
                                           ĐẶT NGAY

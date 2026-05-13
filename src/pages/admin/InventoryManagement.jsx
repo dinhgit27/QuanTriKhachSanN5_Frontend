@@ -413,7 +413,7 @@ const InventoryManagement = () => {
         <div style={{ marginBottom: 16, padding: '12px 16px', backgroundColor: '#f5f7fa', borderRadius: 8, border: '1px solid #e8e8e8' }}>
           <Text strong>Kết quả: {filteredInventory.length} / {roomInventory.length} vật tư</Text>
         </div>
-        <Table columns={columns} dataSource={filteredInventory} rowKey="id" pagination={false} bordered loading={loadingDetails} />
+        <Table columns={columns} dataSource={filteredInventory} rowKey="id" pagination={false} bordered loading={loadingDetails} scroll={{ x: 650 }} />
       </Modal>
 
 

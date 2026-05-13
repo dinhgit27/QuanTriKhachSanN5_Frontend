@@ -77,7 +77,7 @@ const RoomsPage = () => {
       message.error("Chỉ có tài khoản Khách hàng (Guest) mới có quyền đặt phòng trực tuyến!");
       return;
     }
-    navigate("/guest/book-room");
+    navigate(`/guest/book-room?roomType=${encodeURIComponent(room.name)}`);
   };
 
   // ==========================================

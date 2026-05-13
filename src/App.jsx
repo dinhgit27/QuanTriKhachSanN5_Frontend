@@ -10,6 +10,7 @@ import LoginPage from "./pages/LoginPage";
 import UserListPage from "./pages/admin/UserListPage";
 import RoomManagement from "./pages/admin/RoomManagement";
 import InventoryManagement from "./pages/admin/InventoryManagement";
+import AdminDashboard from "./pages/admin/AdminDashboard";
 import ReceptionistDashboard from "./pages/receptionist/ReceptionistDashboard";
 import HousekeeperDashboard from "./pages/housekeeper/HousekeeperDashboard";
 import GuestDashboard from "./pages/guest/GuestDashboard";
@@ -90,6 +91,7 @@ function App() {
           {/* --- KHU VỰC DÀNH RIÊNG CHO ADMIN --- */}
           <Route element={<RoleBasedRoute allowedRoles={["Admin"]} />}>
             <Route element={<AdminLayout />}>
+              <Route path="/admin/dashboard" element={<AdminDashboard />} />
               <Route path="/admin/users" element={<UserListPage />} />
               <Route path="/admin/inventory" element={<InventoryManagement />} />
               <Route path="/admin/audit" element={<AuditLogsPage />} />

@@ -1,7 +1,7 @@
 import React, { useRef, useState, useEffect } from 'react';
-import { Layout, Button, Typography, Row, Col, Space, Tag, Avatar, Divider, Dropdown, DatePicker, InputNumber } from 'antd';
+import { Layout, Button, Typography, Row, Col, Space, Tag, Avatar, Divider, Dropdown, DatePicker, InputNumber, Modal, Drawer } from 'antd';
 import { 
-  ArrowRightOutlined, ArrowLeftOutlined, EnvironmentOutlined, 
+  ArrowRightOutlined, ArrowLeftOutlined, EnvironmentOutlined, MenuOutlined,
   FacebookFilled, InstagramFilled, TwitterOutlined,
   PhoneOutlined, MailOutlined, UserOutlined, LogoutOutlined
 } from '@ant-design/icons';
@@ -82,7 +82,14 @@ const BlingBling = React.memo(({ isActive }) => {
 // ==========================================
 const HomePage = () => {
   const navigate = useNavigate();
-  const isMobile = window.innerWidth <= 768;
+  const [isMobile, setIsMobile] = useState(window.innerWidth <= 768);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+
+  useEffect(() => {
+    const handleResize = () => setIsMobile(window.innerWidth <= 768);
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
 
   // --- STATE DỮ LIỆU ---
   const [roomsData, setRoomsData] = useState([]);
@@ -95,6 +102,30 @@ const HomePage = () => {
   // --- STATE KHÁM PHÁ (ATTRACTIONS) ---
   const [attractionsData, setAttractionsData] = useState([]);
   const [loadingAttractions, setLoadingAttractions] = useState(true);
+  const [selectedAttraction, setSelectedAttraction] = useState(null);
+  const [isMapModalOpen, setIsMapModalOpen] = useState(false);
+
+  const getMapEmbed = (dest) => {
+    if (dest?.mapEmbedLink && dest.mapEmbedLink.includes('<iframe')) {
+      const match = dest.mapEmbedLink.match(/src="([^"]+)"/);
+      if (match) return match[1];
+    }
+    if (dest?.mapEmbedLink && dest.mapEmbedLink.startsWith('http')) {
+      return dest.mapEmbedLink;
+    }
+    const name = dest?.name ? dest.name.toLowerCase() : '';
+    if (name.includes('bà nà') || name.includes('ba na')) {
+      return "https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3835.733390389332!2d107.98504031536067!3d15.996803988925586!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x31421b0615555555%3A0x3f5c3fa910900000!2sSun%20World%20Ba%20Na%20Hills!5e0!3m2!1sen!2s!4v1620000000000!5m2!1sen!2s";
+    } else if (name.includes('mỹ khê') || name.includes('my khe')) {
+      return "https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3833.834460515152!2d108.24138091536187!3d16.07361198887824!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x3142177f2ced6d8b%3A0xeac35f2960ca74a4!2sMy%20Khe%20Beach!5e0!3m2!1sen!2s!4v1620000000001!5m2!1sen!2s";
+    } else if (name.includes('rồng') || name.includes('dragon')) {
+      return "https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3834.110435405456!2d108.22684831536173!3d16.060280988886326!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x3142183313936999%3A0x892a0885e3b56754!2sDragon%20Bridge!5e0!3m2!1sen!2s!4v1620000000002!5m2!1sen!2s";
+    } else if (name.includes('sơn trà') || name.includes('son tra')) {
+      return "https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3832.61053186259!2d108.27718031536267!3d16.12217698884902!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x3142171120000000%3A0x1000000000000000!2sLinh%20Ung%20Pagoda!5e0!3m2!1sen!2s!4v1620000000003!5m2!1sen!2s";
+    } else {
+      return "https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d122691.5152281729!2d108.15175825227747!3d16.05975819777978!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x314219c792252a13%3A0x1df0cb4b86727e06!2sDa%20Nang%2C%20Vietnam!5e0!3m2!1sen!2s!4v1620000000004!5m2!1sen!2s";
+    }
+  };
 
   // --- STATE TIN TỨC TRANG CHỦ ---
   const [newsData, setNewsData] = useState([]);
@@ -275,20 +306,26 @@ const HomePage = () => {
           <Title level={4} style={{ margin: 0, color: '#fff', letterSpacing: '2px', fontFamily: "'Noto Serif', serif" }}>IT HOTEL</Title>
         </div>
         
-        <div style={{ display: 'flex', flex: 1, justifyContent: 'center', gap: isMobile ? '15px' : '40px' }}>
-          {menuItems.map((item) => {
-            const isScrollActive = item.type === 'scroll' && activeScene === item.key;
-            return (
-              <Text key={item.key} onClick={() => item.type === 'scroll' ? scrollToScene(item.key) : navigate(item.path)}
-                style={{ color: isScrollActive ? COLORS.gold : '#fff', cursor: 'pointer', fontWeight: 500, fontSize: 15, transition: "color 0.3s" }} 
-                onMouseEnter={(e) => e.target.style.color = COLORS.gold}
-                onMouseLeave={(e) => e.target.style.color = isScrollActive ? COLORS.gold : '#fff'}
-              >
-                {item.label}
-              </Text>
-            );
-          })}
-        </div>
+        {!isMobile ? (
+          <div style={{ display: 'flex', flex: 1, justifyContent: 'center', gap: '40px' }}>
+            {menuItems.map((item) => {
+              const isScrollActive = item.type === 'scroll' && activeScene === item.key;
+              return (
+                <Text key={item.key} onClick={() => item.type === 'scroll' ? scrollToScene(item.key) : navigate(item.path)}
+                  style={{ color: isScrollActive ? COLORS.gold : '#fff', cursor: 'pointer', fontWeight: 500, fontSize: 15, transition: "color 0.3s" }} 
+                  onMouseEnter={(e) => e.target.style.color = COLORS.gold}
+                  onMouseLeave={(e) => e.target.style.color = isScrollActive ? COLORS.gold : '#fff'}
+                >
+                  {item.label}
+                </Text>
+              );
+            })}
+          </div>
+        ) : (
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+            <Button type="text" icon={<MenuOutlined style={{ fontSize: 24, color: COLORS.gold }} />} onClick={() => setMobileMenuOpen(true)} />
+          </div>
+        )}
 
         <div style={{ display: 'flex', alignItems: 'center' }}>
           {/* NẾU ĐÃ ĐĂNG NHẬP -> HIỆN AVATAR FACEBOOK STYLE */}
@@ -351,7 +388,13 @@ const HomePage = () => {
               </motion.div>
               
               <motion.div variants={pushUpVariant} style={{ width: "100%", maxWidth: 800 }}>
-                  <div style={{ marginTop: 30, background: "rgba(255,255,255,0.1)", backdropFilter: "blur(15px)", border: "1px solid rgba(255,255,255,0.2)", borderRadius: 50, padding: "10px 30px", display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: "10px" }}>
+                  <div style={{ 
+                    marginTop: 30, background: "rgba(255,255,255,0.15)", backdropFilter: "blur(20px)", 
+                    border: "1px solid rgba(255,255,255,0.2)", borderRadius: isMobile ? 24 : 50, 
+                    padding: isMobile ? "20px" : "10px 30px", display: "flex", 
+                    flexDirection: isMobile ? "column" : "row", justifyContent: "space-between", 
+                    alignItems: isMobile ? "stretch" : "center", gap: isMobile ? "16px" : "10px" 
+                  }}>
                       
                       {/* KHUNG NHẬP NGÀY NHẬN PHÒNG */}
                       <div style={{ flex: 1, minWidth: '120px', textAlign: 'left' }}>
@@ -364,7 +407,7 @@ const HomePage = () => {
                           />
                       </div>
                       
-                      <div style={{ width: 1, height: 40, background: "rgba(255,255,255,0.2)" }}></div>
+                      {!isMobile && <div style={{ width: 1, height: 40, background: "rgba(255,255,255,0.2)" }}></div>}
                       
                       {/* KHUNG NHẬP NGÀY TRẢ PHÒNG */}
                       <div style={{ flex: 1, minWidth: '120px', textAlign: 'left' }}>
@@ -377,7 +420,7 @@ const HomePage = () => {
                           />
                       </div>
                       
-                      <div style={{ width: 1, height: 40, background: "rgba(255,255,255,0.2)" }}></div>
+                      {!isMobile && <div style={{ width: 1, height: 40, background: "rgba(255,255,255,0.2)" }}></div>}
                       
                       {/* KHUNG NHẬP SỐ KHÁCH */}
                       <div style={{ flex: 1, minWidth: '100px', textAlign: 'left' }}>
@@ -392,8 +435,10 @@ const HomePage = () => {
                           <Text strong style={{ color: '#fff' }}>khách</Text>
                       </div>
 
-                      {/* NÚT TÌM KIẾM SẼ GỌI HÀM handleSearchRooms */}
-                      <Button shape="circle" size="large" onClick={handleSearchRooms} style={{ background: '#fff', border: 'none', color: COLORS.dark }} icon={<ArrowRightOutlined />} />
+                      {/* NÚT TÌM KIẾM */}
+                      <Button shape={isMobile ? "round" : "circle"} size="large" onClick={handleSearchRooms} style={{ background: '#fff', border: 'none', color: COLORS.dark, width: isMobile ? '100%' : 'auto', height: isMobile ? 44 : 'auto', fontWeight: 'bold' }}>
+                        {isMobile ? "TÌM PHÒNG NGAY" : <ArrowRightOutlined />}
+                      </Button>
                   
                   </div>
               </motion.div>
@@ -688,15 +733,33 @@ const HomePage = () => {
                           const imgUrl = fallbackImages[index % fallbackImages.length];
                           return (
                             <SwiperSlide key={dest.id}>
-                                <div style={{ position: 'relative', height: isMobile ? "40vh" : "55vh", borderRadius: 16, overflow: "hidden" }}>
-                                    <img alt={dest.name} src={imgUrl} loading="lazy" style={{ width: '100%', height: '100%', objectFit: "cover" }} />
-                                    <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(to top, rgba(0,0,0,0.9) 0%, transparent 60%)' }}></div>
-                                    <div style={{ position: 'absolute', bottom: 30, left: 30, right: 30, color: '#fff' }}>
-                                        <Text style={{ color: COLORS.gold, fontSize: 12 }}>
-                                          <EnvironmentOutlined /> {dest.distanceKm ? `${dest.distanceKm} KM` : 'Lân cận'}
-                                        </Text>
-                                        <Title level={2} style={{ textAlign: "center", marginBottom: "40px", fontWeight: "bold" }}>Vì Sao Chọn IT HOTEL?</Title>
-                                        <Text style={{ color: '#e0e0e0', fontSize: 13 }}>{dest.description}</Text>
+                                <div style={{ position: 'relative', height: isMobile ? "42vh" : "58vh", borderRadius: 24, overflow: "hidden", boxShadow: '0 10px 30px rgba(0,0,0,0.4)', border: '1px solid rgba(255,255,255,0.1)' }}>
+                                    <img alt={dest.name} src={imgUrl} loading="lazy" style={{ width: '100%', height: '100%', objectFit: "cover", transition: 'transform 0.5s' }} onMouseEnter={e => e.currentTarget.style.transform = 'scale(1.05)'} onMouseLeave={e => e.currentTarget.style.transform = 'scale(1)'} />
+                                    <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(to top, rgba(10,10,15,0.95) 0%, rgba(10,10,15,0.7) 40%, transparent 100%)' }}></div>
+                                    <div style={{ position: 'absolute', bottom: 25, left: 25, right: 25, color: '#fff', textAlign: 'left' }}>
+                                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+                                          <Tag style={{ background: COLORS.gold, color: COLORS.dark, border: 'none', fontWeight: 700, padding: '4px 12px', borderRadius: 20 }}>
+                                            <EnvironmentOutlined /> {dest.distanceKm ? `${dest.distanceKm} KM` : 'Lân cận'}
+                                          </Tag>
+                                          {dest.address && <Text style={{ color: COLORS.gray, fontSize: 12 }} ellipsis={{ tooltip: dest.address }}>{dest.address}</Text>}
+                                        </div>
+                                        <Title level={3} style={{ color: '#fff', fontFamily: "'Noto Serif', serif", margin: '0 0 10px 0', fontSize: isMobile ? 22 : 26, fontWeight: 600 }}>
+                                          {dest.name}
+                                        </Title>
+                                        <Paragraph ellipsis={{ rows: 2 }} style={{ color: '#e0e0e0', fontSize: 14, lineHeight: 1.5, marginBottom: 20 }}>
+                                          {dest.description || "Điểm đến hấp dẫn không thể bỏ qua khi lưu trú tại khách sạn."}
+                                        </Paragraph>
+                                        <Button 
+                                          type="primary" 
+                                          icon={<EnvironmentOutlined />}
+                                          onClick={() => {
+                                            setSelectedAttraction(dest);
+                                            setIsMapModalOpen(true);
+                                          }}
+                                          style={{ background: 'rgba(255,255,255,0.15)', backdropFilter: 'blur(10px)', borderColor: COLORS.gold, color: COLORS.gold, fontWeight: 'bold', borderRadius: 20, width: '100%', height: 42 }}
+                                        >
+                                          XEM BẢN ĐỒ & CHI TIẾT
+                                        </Button>
                                     </div>
                                 </div>
                             </SwiperSlide>
@@ -709,95 +772,108 @@ const HomePage = () => {
           </div>
         </SwiperSlide>
 
-        {/* === SCENE 5: TIN TỨC PREVIEW BANNER === */}
+        {/* === SCENE 5: TIN TỨC & ƯU ĐÃI ĐẶC QUYỀN === */}
         <SwiperSlide>
           <div style={{ position: "relative", width: "100%", height: "100%", overflow: "hidden", display: "flex", flexDirection: "column", justifyContent: "center" }}>
             <motion.div variants={bgScaleVariant} initial="hidden" animate={activeScene === 4 ? "visible" : "hidden"}
               style={{ position: "absolute", inset: 0, backgroundImage: "url('https://images.unsplash.com/photo-1540555700478-4be289fbecef?q=80&w=2000&auto=format&fit=crop')", backgroundSize: 'cover', backgroundPosition: 'center' }}>
-              <div style={{ position: "absolute", inset: 0, background: "rgba(0,0,0,0.85)" }}></div>
+              <div style={{ position: "absolute", inset: 0, background: "linear-gradient(to bottom, rgba(10,10,12,0.92) 0%, rgba(15,15,20,0.95) 100%)" }}></div>
             </motion.div>
 
             <motion.div variants={staggerContainer} initial="hidden" animate={activeScene === 4 ? "visible" : "hidden"}
-              style={{ position: "relative", padding: isMobile ? "80px 20px 20px" : "80px 80px 20px" }}>
-              <motion.div variants={pushUpVariant} style={{ marginBottom: 40 }}>
-                <Text style={{ color: COLORS.gold, textTransform: "uppercase", letterSpacing: "2px" }}>TIN TỨC & SỰ KIỆN</Text>
-                <Title level={2} style={{ margin: "10px 0 0 0", fontSize: isMobile ? 32 : 48, color: '#fff', fontFamily: "'Noto Serif', serif" }}>Truyền Thông & Ưu Đãi</Title>
+              style={{ position: "relative", padding: isMobile ? "60px 20px 20px" : "60px 80px 20px" }}>
+              
+              <motion.div variants={pushUpVariant} style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end", marginBottom: 36 }}>
+                <div style={{ textAlign: 'left' }}>
+                  <Text style={{ color: COLORS.gold, textTransform: "uppercase", letterSpacing: "3px", fontSize: 13, fontWeight: 600 }}>CỔNG THÔNG TIN & TRUYỀN THÔNG</Text>
+                  <Title level={2} style={{ margin: "8px 0 0 0", fontSize: isMobile ? 30 : 44, color: '#fff', fontFamily: "'Noto Serif', serif", fontWeight: 300 }}>
+                    Ưu Đãi & <span style={{ color: COLORS.gold }}>Trải Nghiệm Đặc Quyền</span>
+                  </Title>
+                </div>
+                <Button 
+                  type="primary" 
+                  size="large"
+                  onClick={() => navigate('/news')}
+                  style={{ background: 'transparent', borderColor: COLORS.gold, color: COLORS.gold, borderRadius: 30, padding: '0 30px', fontWeight: 600 }}
+                >
+                  XEM TOÀN BỘ TIN TỨC →
+                </Button>
               </motion.div>
 
               {loadingNews ? (
                 <div style={{ textAlign: 'center', padding: '60px 0' }}>
-                  <Text style={{ color: COLORS.gold }}>Đang tải tin tức mới nhất...</Text>
+                  <Text style={{ color: COLORS.gold }}>Đang tải thông tin truyền thông...</Text>
                 </div>
               ) : (
                 <motion.div variants={pushUpVariant}>
-                  <Row gutter={[40, 40]} align="middle">
-                    <Col xs={24} lg={12}>
-                      {newsData.length > 0 ? (
-                        <div style={{
-                          background: 'rgba(255, 255, 255, 0.03)',
-                          border: '1px solid rgba(255, 255, 255, 0.08)',
-                          borderRadius: 24,
-                          padding: isMobile ? '24px' : '40px',
-                          backdropFilter: 'blur(10px)',
-                          textAlign: 'left'
-                        }}>
-                          <Tag style={{ background: COLORS.gold, color: COLORS.dark, border: 'none', fontWeight: 'bold', padding: '4px 12px', marginBottom: 20 }}>
-                            TIN MỚI NHẤT
-                          </Tag>
-                          <Title level={3} style={{ color: '#fff', fontFamily: "'Noto Serif', serif", fontSize: isMobile ? 20 : 28, lineHeight: 1.4, margin: '0 0 15px 0', fontWeight: 400 }}>
-                            {newsData[0].title}
-                          </Title>
-                          <Paragraph ellipsis={{ rows: 3 }} style={{ color: COLORS.gray, fontSize: 15, lineHeight: 1.6, marginBottom: 30 }}>
-                            {newsData[0].content}
-                          </Paragraph>
-                          <Button 
-                            type="primary" 
-                            size="large"
-                            onClick={() => navigate('/news')}
-                            style={{ background: COLORS.gold, borderColor: COLORS.gold, color: COLORS.dark, fontWeight: 'bold', borderRadius: 24, padding: '0 35px' }}
-                          >
-                            XEM CHI TIẾT →
-                          </Button>
-                        </div>
-                      ) : (
-                        <div style={{ color: COLORS.gray }}>Chưa có bài đăng nào được cập nhật.</div>
-                      )}
-                    </Col>
+                  <Row gutter={[30, 30]}>
+                    {newsData.slice(0, 3).map((article, index) => {
+                      const fallbackImages = [
+                        "https://images.unsplash.com/photo-1512917774080-9991f1c4c750?q=80&w=1000&auto=format&fit=crop", // Luxury Villa
+                        "https://images.unsplash.com/photo-1541971875076-8f970d573be6?q=80&w=1000&auto=format&fit=crop", // Fine Dining
+                        "https://images.unsplash.com/photo-1540555700478-4be289fbecef?q=80&w=1000&auto=format&fit=crop", // Spa/Wellness
+                      ];
+                      const img = article.imageUrl || fallbackImages[index % fallbackImages.length];
+                      const tags = ['ƯU ĐÃI NGHỈ DƯỠNG', 'ẨM THỰC THƯỢNG HẠNG', 'SỰ KIỆN ĐẶC QUYỀN'];
+                      const tagText = (typeof article.category === 'object' ? article.category?.name : article.category) || tags[index % tags.length];
 
-                    <Col xs={24} lg={12}>
-                      <div style={{
-                        position: 'relative',
-                        height: isMobile ? '220px' : '320px',
-                        borderRadius: 24,
-                        overflow: 'hidden',
-                        boxShadow: '0 10px 30px rgba(0,0,0,0.5)'
-                      }}>
-                        <img 
-                          src="https://images.unsplash.com/photo-1540555700478-4be289fbecef?q=80&w=1000&auto=format&fit=crop" 
-                          alt="Grand Media" 
-                          style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-                        />
-                        <div style={{
-                          position: 'absolute',
-                          inset: 0,
-                          background: 'linear-gradient(to top, rgba(0,0,0,0.85) 0%, transparent 100%)',
-                          display: 'flex',
-                          flexDirection: 'column',
-                          justifyContent: 'flex-end',
-                          padding: '30px',
-                          textAlign: 'left'
-                        }}>
-                          <Title level={4} style={{ color: '#fff', fontFamily: "'Noto Serif', serif", margin: '0 0 10px 0', fontWeight: 300 }}>Cổng Thông Tin IT HOTEL</Title>
-                          <Text style={{ color: COLORS.gray, fontSize: 14 }}>Tìm hiểu thêm nhiều chương trình ưu đãi nghỉ dưỡng hấp dẫn khác.</Text>
-                          <Text 
-                            onClick={() => navigate('/news')} 
-                            style={{ color: COLORS.gold, marginTop: 15, fontWeight: 'bold', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6 }}
+                      return (
+                        <Col xs={24} md={8} key={article.id || index}>
+                          <div 
+                            onClick={() => navigate('/news')}
+                            style={{
+                              background: 'rgba(255, 255, 255, 0.03)',
+                              border: '1px solid rgba(255, 255, 255, 0.08)',
+                              borderRadius: 24,
+                              overflow: 'hidden',
+                              cursor: 'pointer',
+                              transition: 'all 0.4s cubic-bezier(0.16, 1, 0.3, 1)',
+                              textAlign: 'left',
+                              display: 'flex',
+                              flexDirection: 'column',
+                              height: isMobile ? '38vh' : '48vh'
+                            }}
+                            onMouseEnter={e => {
+                              e.currentTarget.style.transform = 'translateY(-10px)';
+                              e.currentTarget.style.borderColor = 'rgba(193, 155, 74, 0.4)';
+                              e.currentTarget.style.boxShadow = '0 20px 40px rgba(0,0,0,0.6)';
+                            }}
+                            onMouseLeave={e => {
+                              e.currentTarget.style.transform = 'translateY(0)';
+                              e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.08)';
+                              e.currentTarget.style.boxShadow = 'none';
+                            }}
                           >
-                            XEM TOÀN BỘ TIN TỨC →
-                          </Text>
-                        </div>
-                      </div>
-                    </Col>
+                            <div style={{ position: 'relative', height: '55%', overflow: 'hidden' }}>
+                              <img 
+                                src={img} 
+                                alt={article.title} 
+                                style={{ width: '100%', height: '100%', objectFit: 'cover', transition: 'transform 0.5s' }} 
+                              />
+                              <div style={{ position: 'absolute', top: 16, left: 16 }}>
+                                <Tag style={{ background: COLORS.gold, color: COLORS.dark, border: 'none', fontWeight: 700, padding: '4px 12px', borderRadius: 20 }}>
+                                  {tagText}
+                                </Tag>
+                              </div>
+                            </div>
+                            <div style={{ padding: '24px 24px 20px', flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
+                              <div>
+                                <Title level={4} ellipsis={{ rows: 2 }} style={{ color: '#fff', fontFamily: "'Noto Serif', serif", fontSize: 20, margin: '0 0 10px 0', lineHeight: 1.4, fontWeight: 500 }}>
+                                  {article.title}
+                                </Title>
+                                <Paragraph ellipsis={{ rows: 2 }} style={{ color: COLORS.gray, fontSize: 14, lineHeight: 1.6, margin: 0 }}>
+                                  {article.content || article.summary || "Khám phá những đặc quyền dành riêng cho khách hàng lưu trú tại khách sạn."}
+                                </Paragraph>
+                              </div>
+                              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderTop: '1px solid rgba(255,255,255,0.08)', paddingTop: 16 }}>
+                                <Text style={{ color: COLORS.gold, fontWeight: 600, fontSize: 13, letterSpacing: 1 }}>XEM CHI TIẾT</Text>
+                                <ArrowRightOutlined style={{ color: COLORS.gold }} />
+                              </div>
+                            </div>
+                          </div>
+                        </Col>
+                      );
+                    })}
                   </Row>
                 </motion.div>
               )}
@@ -873,6 +949,76 @@ const HomePage = () => {
         </SwiperSlide>
 
       </Swiper>
+
+      {/* MODAL BẢN ĐỒ GOOGLE MAPS & CHI TIẾT ĐIỂM ĐẾN */}
+      <Modal
+        title={<div style={{ fontSize: 22, fontWeight: 700, fontFamily: "'Noto Serif', serif", color: '#1f2937' }}>🗺️ {selectedAttraction?.name}</div>}
+        open={isMapModalOpen}
+        onCancel={() => setIsMapModalOpen(false)}
+        footer={[
+          <Button key="close" type="primary" onClick={() => setIsMapModalOpen(false)} style={{ borderRadius: 12, background: COLORS.gold, borderColor: COLORS.gold, color: COLORS.dark, fontWeight: 'bold', padding: '0 30px', height: 40 }}>
+            Đóng Bản Đồ
+          </Button>
+        ]}
+        width={800}
+        style={{ top: 30 }}
+        bodyStyle={{ padding: '20px 0' }}
+      >
+        {selectedAttraction && (
+          <div style={{ padding: '0 24px', fontSize: 15, color: '#374151', textAlign: 'left' }}>
+            <div style={{ display: 'flex', gap: 12, alignItems: 'center', marginBottom: 16 }}>
+              <Tag color="gold" style={{ fontSize: 14, fontWeight: 600, padding: '4px 12px', borderRadius: 12 }}>
+                Khoảng cách: {selectedAttraction.distanceKm ? `${selectedAttraction.distanceKm} KM` : 'Lân cận'}
+              </Tag>
+              {selectedAttraction.address && (
+                <Text style={{ color: '#4b5563', fontSize: 14 }}><EnvironmentOutlined /> {selectedAttraction.address}</Text>
+              )}
+            </div>
+            <Paragraph style={{ fontSize: 16, lineHeight: 1.6, color: '#374151', marginBottom: 24 }}>
+              {selectedAttraction.description}
+            </Paragraph>
+            <div style={{ width: '100%', height: 400, borderRadius: 16, overflow: 'hidden', boxShadow: '0 4px 20px rgba(0,0,0,0.15)', border: '1px solid #e5e7eb' }}>
+              <iframe
+                src={getMapEmbed(selectedAttraction)}
+                width="100%"
+                height="100%"
+                style={{ border: 0 }}
+                allowFullScreen=""
+                loading="lazy"
+                referrerPolicy="no-referrer-when-downgrade"
+                title={selectedAttraction.name}
+              />
+            </div>
+          </div>
+        )}
+      </Modal>
+
+      {/* MOBILE DRAWER MENU */}
+      <Drawer
+        title={<div style={{ fontSize: 20, fontWeight: 700, fontFamily: "'Noto Serif', serif", color: COLORS.gold }}>IT HOTEL</div>}
+        placement="left"
+        onClose={() => setMobileMenuOpen(false)}
+        open={mobileMenuOpen}
+        bodyStyle={{ background: COLORS.dark, padding: '40px 24px', display: 'flex', flexDirection: 'column', gap: 24 }}
+        headerStyle={{ background: COLORS.dark, borderBottom: '1px solid rgba(255,255,255,0.1)' }}
+        closeIcon={<span style={{ color: '#fff', fontSize: 20 }}>✕</span>}
+      >
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
+          {menuItems.map((item) => (
+            <Text
+              key={item.key}
+              onClick={() => {
+                setMobileMenuOpen(false);
+                if (item.type === 'scroll') scrollToScene(item.key);
+                else navigate(item.path);
+              }}
+              style={{ color: activeScene === item.key ? COLORS.gold : '#fff', fontSize: 18, fontWeight: 500, cursor: 'pointer' }}
+            >
+              {item.label}
+            </Text>
+          ))}
+        </div>
+      </Drawer>
     </div>
   );
 };

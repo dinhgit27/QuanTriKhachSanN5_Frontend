@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { Layout, Typography, Row, Col, Card, Button, Space, Tag, Spin, Divider, Slider, Checkbox } from 'antd';
+import { Layout, Typography, Row, Col, Card, Button, Space, Tag, Spin, Divider, Slider, Checkbox, message } from 'antd';
 import { ArrowRightOutlined, FilterOutlined } from '@ant-design/icons';
 import axios from 'axios';
 import { useNavigate, useSearchParams } from 'react-router-dom';
+import { getUserRoles } from "../utils/auth";
 
 const { Content } = Layout;
 const { Title, Text, Paragraph } = Typography;
@@ -40,18 +41,12 @@ const RoomsPage = () => {
         
         let initialFiltered = response.data;
 
-        // Nếu khách có bấm chọn số khách từ HomePage -> Tự động lọc luôn
         if (guestQuery) {
           const guestCount = parseInt(guestQuery);
           initialFiltered = response.data.filter(room => {
             const totalCap = room.capacityAdults + (room.capacityChildren || 0);
-            return totalCap >= guestCount; // Chỉ giữ phòng đủ chỗ
+            return totalCap >= guestCount;
           });
-
-          // Tự động check sẵn vào thanh Sidebar bên trái cho đồng bộ UI
-          if (guestCount <= 2) setSelectedCapacities(["1"]);
-          else if (guestCount <= 4) setSelectedCapacities(["2"]);
-          else setSelectedCapacities(["3"]);
         }
 
         setFilteredRooms(initialFiltered);
@@ -64,27 +59,26 @@ const RoomsPage = () => {
     fetchRooms();
   }, [guestQuery]);
 
-  // 2. STATE QUẢN LÝ BỘ LỌC
+  // STATE QUẢN LÝ BỘ LỌC
   const [priceRange, setPriceRange] = useState([0, 10000000]); // Mặc định từ 0 đến 10 triệu
   const [selectedCapacities, setSelectedCapacities] = useState([]);
   const [selectedAmenities, setSelectedAmenities] = useState([]);
 
-  // GỌI API LẤY DANH SÁCH PHÒNG TỪ SQL SERVER
-  useEffect(() => {
-    window.scrollTo(0, 0);
-    const fetchRooms = async () => {
-      try {
-        const response = await axios.get(`${import.meta.env.VITE_API_URL}/RoomTypes/public`);
-        setAllRooms(response.data);
-        setFilteredRooms(response.data); // Mới vào trang thì hiển thị tất cả
-      } catch (error) {
-        console.error("Lỗi khi tải danh sách phòng:", error);
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchRooms();
-  }, []);
+  // HÀM XỬ LÝ KHI BẤM "ĐẶT NGAY"
+  const handleBookClick = (room) => {
+    const token = localStorage.getItem("token");
+    if (!token) {
+      message.warning("Vui lòng đăng nhập với tài khoản Khách hàng (Guest) để đặt phòng trực tuyến.");
+      navigate("/login");
+      return;
+    }
+    const roles = getUserRoles();
+    if (!roles.includes("Guest")) {
+      message.error("Chỉ có tài khoản Khách hàng (Guest) mới có quyền đặt phòng trực tuyến!");
+      return;
+    }
+    navigate("/guest/book-room");
+  };
 
   // ==========================================
   // HÀM XỬ LÝ KHI BẤM NÚT "ÁP DỤNG BỘ LỌC"
@@ -316,7 +310,7 @@ const RoomsPage = () => {
                               <Button 
                                 type="primary" 
                                 size="large"
-                                onClick={() => navigate(`/booking`)}
+                                onClick={() => handleBookClick(room)}
                                 style={{ background: COLORS.gold, borderColor: COLORS.gold, color: COLORS.dark, fontWeight: 'bold', padding: '0 30px' }}
                               >
                                 ĐẶT NGAY <ArrowRightOutlined />

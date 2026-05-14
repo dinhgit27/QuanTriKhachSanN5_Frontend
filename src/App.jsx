@@ -47,10 +47,10 @@ const UnauthorizedPage = () => (
 function App() {
   return (
     <BrowserRouter>
-      <Routes>
-        <Route path="/" element={<Navigate to="/homepage" replace />} />
+    <Routes>
+      <Route path="/" element={<Navigate to="/homepage" replace />} />
 
-        {/* 2. TUYẾN ĐƯỜNG TỰ DO (AI CŨNG VÀO ĐƯỢC) */}
+      {/* 2. TUYẾN ĐƯỜNG TỰ DO (AI CŨNG VÀO ĐƯỢC) */}
         <Route path="/login" element={<LoginPage />} />
         <Route path="/homepage" element={<HomePage />} />
         <Route path="/rooms" element={<RoomsPage />} /> {/* 👈 ĐÃ THÊM ROUTE VÀO ĐÂY */}

@@ -1,4 +1,4 @@
-﻿import React, { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { 
   Table, Button, Space, Tag, Modal, Form, Input, 
   Select, message, Card, Typography, InputNumber, Upload, Row, Col, Popconfirm 
@@ -306,7 +306,7 @@ const WarehouseManagement = () => {
         </Space>
       </div>
 
-      <Table columns={columns} dataSource={data} rowKey="id" loading={loading} pagination={{ pageSize: 8 }} />
+      <Table columns={columns} dataSource={data} rowKey="id" loading={loading} pagination={{ pageSize: 8 }} scroll={{ x: 1100 }} />
 
       <Modal
         title={editingItem ? "Cập Nhật Vật Tư" : "Thêm Vật Tư Vào Kho"}

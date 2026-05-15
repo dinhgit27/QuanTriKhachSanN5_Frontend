@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { 
   Table, Modal, Form, Input, Select, Button, Tag, Space, 
-  Typography, message, Card, Popconfirm, Tabs, Row, Col, Checkbox
+  Typography, message, Card, Popconfirm, Tabs, Row, Col, Checkbox, Switch
 } from 'antd';
 import { 
   PlusOutlined, EditOutlined, DeleteOutlined, 
@@ -127,9 +127,10 @@ const UserListPage = () => {
   };
 
   const handleToggleStatus = (user) => {
+    const actionName = user.isActive ? 'TẮT (Disable)' : 'MỞ (Enable)';
     Modal.confirm({
       title: 'Xác nhận thay đổi trạng thái',
-      content: `Bạn có chắc chắn muốn ${user.isActive ? 'KHÓA' : 'MỞ KHÓA'} tài khoản ${user.email}?`,
+      content: `Bạn có chắc chắn muốn ${actionName} tài khoản ${user.email}?`,
       okText: 'Đồng ý',
       okType: user.isActive ? 'danger' : 'primary',
       cancelText: 'Hủy',
@@ -139,13 +140,16 @@ const UserListPage = () => {
           setLocalLoading(true);
           await userManagementAPI.toggleStatus(user.id);
           
-          auditLogger.success(`Đã ${user.isActive ? 'khóa' : 'mở khóa'} tài khoản thành công!`, {
+          const successMsg = `Đã ${user.isActive ? 'tắt' : 'mở'} tài khoản thành công!`;
+          message.success(successMsg);
+          
+          auditLogger.success(successMsg, {
             actionType: 'UPDATE',
             module: 'Nhân viên & Quyền',
             objectName: user.fullName,
-            description: `[${user.email}] Trạng thái: ${user.isActive ? 'Hoạt động → Đã khóa' : 'Đã khóa → Hoạt động'}`,
-            oldValue: { status: user.isActive ? 'Active' : 'Locked' },
-            newValue: { status: user.isActive ? 'Locked' : 'Active' },
+            description: `[${user.email}] Trạng thái: ${user.isActive ? 'Hoạt động → Đã tắt' : 'Đã tắt → Hoạt động'}`,
+            oldValue: { status: user.isActive ? 'Active' : 'Disabled' },
+            newValue: { status: user.isActive ? 'Disabled' : 'Active' },
           });
           
           fetchUsers();
@@ -255,22 +259,27 @@ const UserListPage = () => {
       key: 'status',
       render: (isActive) => (
         <Tag color={isActive ? 'green' : 'red'} style={{ borderRadius: 10 }}>
-          {isActive ? '● Hoạt động' : '● Đã khóa'}
+          {isActive ? '● Hoạt động' : '● Đang tắt'}
         </Tag>
       ),
     },
     {
       title: 'Thao tác',
       key: 'actions',
-      width: 200,
+      width: 250,
       render: (_, user) => (
         <Space size="middle">
           <Button ghost type="primary" icon={<EditOutlined />} size="small" onClick={() => handleEdit(user)}>Sửa</Button>
-          {user.isActive ? (
-             <Button danger icon={<DeleteOutlined />} size="small" onClick={() => handleToggleStatus(user)}>Khóa</Button>
-          ) : (
-             <Button type="primary" ghost icon={<UnlockOutlined />} size="small" onClick={() => handleToggleStatus(user)}>Mở khóa</Button>
-          )}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <Text type="secondary" style={{ fontSize: 12 }}>{user.isActive ? 'Bật' : 'Tắt'}</Text>
+            <Switch 
+              checked={user.isActive} 
+              onChange={() => handleToggleStatus(user)}
+              loading={localLoading}
+              checkedChildren="ON"
+              unCheckedChildren="OFF"
+            />
+          </div>
         </Space>
       ),
     },
@@ -304,7 +313,7 @@ const UserListPage = () => {
           allowClear
         >
           <Option value="true">Hoạt động</Option>
-          <Option value="false">Đã khóa</Option>
+          <Option value="false">Đang tắt</Option>
         </Select>
       </div>
 
@@ -321,6 +330,7 @@ const UserListPage = () => {
             onChange: (page, pageSize) => handleTableChange({ current: page, pageSize })
         }} 
         size="middle" 
+        scroll={{ x: 900 }}
       />
     </>
   );
@@ -337,6 +347,7 @@ const UserListPage = () => {
       rowKey="id"
       pagination={false}
       bordered
+      scroll={{ x: 600 }}
     />
   );
 

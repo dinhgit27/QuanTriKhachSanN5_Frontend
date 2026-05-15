@@ -146,7 +146,12 @@ const BookingManagement = () => {
       localStorage.setItem('adminPaidBookings', JSON.stringify([...paidBookings, id]));
     }
 
-    message.success("Đã xác nhận khách thanh toán thành công! Có thể thực hiện trả phòng.");
+    const rec = bookingsList.find(b => b.id === id);
+    if (rec) {
+      localStorage.setItem(`bookingPrepaid_${id}`, String(rec.totalAmount));
+    }
+
+    message.success("Đã xác nhận khách thanh toán thành công! Tiền trả trước đã được cập nhật vào hệ thống.");
     fetchBookingsList();
   };
 
@@ -355,9 +360,14 @@ const BookingManagement = () => {
                 <Descriptions.Item label="Khách hàng" span={2}>{bookingDetail.guestName || 'N/A'}</Descriptions.Item>
                 <Descriptions.Item label="Số điện thoại">{bookingDetail.guestPhone || 'N/A'}</Descriptions.Item>
                 <Descriptions.Item label="Trạng thái">{getStatusTag(bookingDetail.status)}</Descriptions.Item>
-                <Descriptions.Item label="Tổng tiền" span={2}>
+                <Descriptions.Item label="Tổng tiền">
                   <Text type="danger" strong style={{ fontSize: 16 }}>
                     {new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(bookingDetail.totalAmount)}
+                  </Text>
+                </Descriptions.Item>
+                <Descriptions.Item label="Tiền trả trước">
+                  <Text style={{ color: '#52c41a', fontWeight: 'bold', fontSize: 16 }}>
+                    {new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(Number(localStorage.getItem(`bookingPrepaid_${bookingDetail.id}`) || bookingDetail.depositAmount || 0))}
                   </Text>
                 </Descriptions.Item>
               </Descriptions>

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { Link, Outlet, useNavigate, useLocation } from "react-router-dom";
-import { Layout, Menu, Avatar, Dropdown, Space, Typography, message, Tooltip, Button } from "antd";
+import { Layout, Menu, Avatar, Dropdown, Space, Typography, message, Tooltip, Button, Drawer } from "antd";
 import {
   DashboardOutlined,
   UserOutlined,
@@ -50,10 +50,22 @@ const AdminLayout = () => {
 
   const [collapsed, setCollapsed] = useState(false);
   const [openKeys, setOpenKeys] = useState([]);
+  const [isMobile, setIsMobile] = useState(window.innerWidth < 992);
 
   useEffect(() => {
     const roles = getUserRoles();
     setUserRoles(Array.isArray(roles) ? roles : [roles]);
+
+    const handleResize = () => {
+      const mobile = window.innerWidth < 992;
+      setIsMobile(mobile);
+      if (mobile) {
+        setCollapsed(true);
+      }
+    };
+    handleResize();
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
   }, []);
 
   // Tự động tính toán và mở đúng thư mục mỗi khi chuyển trang
@@ -95,11 +107,9 @@ const AdminLayout = () => {
       label: <span style={{ fontWeight: 'bold' }}>MENU CHÍNH</span>,
       children: [
         isAdmin && { key: "/admin/dashboard", icon: <DashboardOutlined />, label: <Link to="/admin/dashboard">Tổng quan</Link> },
-        isAdmin && { key: "/admin/rooms", icon: <HomeOutlined />, label: <Link to="/admin/rooms">Quản lý Phòng</Link> },
         isAdmin && { key: "/admin/users", icon: <UserOutlined />, label: <Link to="/admin/users">Nhân viên & Quyền</Link> },
         isAdmin && { key: "/admin/accounting", icon: <LineChartOutlined />, label: <Link to="/admin/accounting">Kế toán</Link> },
-        isAdmin && { key: "/admin/audit", icon: <SafetyCertificateOutlined />, label: <Link to="/admin/audit">Audit Logs</Link> },
-        (isAdmin || isHousekeeping) && { key: "/admin/housekeeping", icon: <ClearOutlined />, label: <Link to="/admin/housekeeping">Dọn Phòng</Link> }
+        isAdmin && { key: "/admin/audit", icon: <SafetyCertificateOutlined />, label: <Link to="/admin/audit">Audit Logs</Link> }
       ].filter(Boolean)
     },
 
@@ -108,6 +118,8 @@ const AdminLayout = () => {
       icon: <SolutionOutlined />,
       label: <span style={{ fontWeight: 'bold' }}>QUẦY LỄ TÂN</span>,
       children: [
+        (isAdmin || isReceptionist) && { key: "/admin/rooms", icon: <HomeOutlined />, label: <Link to="/admin/rooms">Quản lý Phòng</Link> },
+        (isAdmin || isReceptionist || isHousekeeping) && { key: "/admin/housekeeping", icon: <ClearOutlined />, label: <Link to="/admin/housekeeping">Dọn Phòng</Link> },
         { key: "/admin/bookings", icon: <CalendarOutlined />, label: <Link to="/admin/bookings">Quản lý Đặt phòng</Link> },
         { key: "/admin/arrivals", icon: <UsergroupAddOutlined />, label: <Link to="/admin/arrivals">Khách đến hôm nay</Link> },
         { key: "/admin/in-house", icon: <TeamOutlined />, label: <Link to="/admin/in-house">Khách đang lưu trú</Link> },
@@ -149,61 +161,50 @@ const AdminLayout = () => {
     setOpenKeys(keys);
   };
 
-  return (
-    <Layout style={{ minHeight: "100vh", fontFamily: "'Inter', sans-serif" }}>
-      <Sider
-        trigger={null}
-        collapsible
-        collapsed={collapsed}
-        width={250}
-        collapsedWidth={80}
-        style={{
-          background: COLORS.siderBg,
-          display: 'flex', flexDirection: 'column', height: '100vh',
-          position: 'fixed', left: 0, top: 0, bottom: 0, zIndex: 100,
-          transition: 'all 0.2s ease'
-        }}
-      >
-        <div style={{ padding: collapsed ? '24px 0' : '24px 20px', display: 'flex', justifyContent: collapsed ? 'center' : 'flex-start', alignItems: 'center', gap: 12, transition: 'all 0.2s' }}>
-          <div style={{ width: 40, height: 40, background: COLORS.activeItemBg, borderRadius: 8, display: 'flex', justifyContent: 'center', alignItems: 'center', flexShrink: 0 }}>
-            <HomeOutlined style={{ color: COLORS.activeItemColor, fontSize: 20 }} />
+  const siderContent = (
+    <>
+      <div style={{ padding: collapsed && !isMobile ? '24px 0' : '24px 20px', display: 'flex', justifyContent: collapsed && !isMobile ? 'center' : 'flex-start', alignItems: 'center', gap: 12, transition: 'all 0.2s' }}>
+        <div style={{ width: 40, height: 40, background: COLORS.activeItemBg, borderRadius: 8, display: 'flex', justifyContent: 'center', alignItems: 'center', flexShrink: 0 }}>
+          <HomeOutlined style={{ color: COLORS.activeItemColor, fontSize: 20 }} />
+        </div>
+        {(!collapsed || isMobile) && (
+          <div style={{ overflow: 'hidden', whiteSpace: 'nowrap' }}>
+            <div style={{ color: 'white', fontWeight: 'bold', fontSize: 16, lineHeight: 1.2 }}>IT CODE</div>
+            <div style={{ color: '#8c8c8c', fontSize: 12 }}>Hotel Management</div>
           </div>
-          {!collapsed && (
-            <div style={{ overflow: 'hidden', whiteSpace: 'nowrap' }}>
-              <div style={{ color: 'white', fontWeight: 'bold', fontSize: 16, lineHeight: 1.2 }}>IT CODE</div>
-              <div style={{ color: '#8c8c8c', fontSize: 12 }}>Hotel Management</div>
-            </div>
-          )}
-        </div>
+        )}
+      </div>
 
-        <div className="custom-menu-scroll" style={{ flex: 1, overflowY: 'auto', overflowX: 'hidden' }}>
-          <Menu
-            theme="dark"
-            mode="inline"
-            selectedKeys={[location.pathname]}
-            openKeys={openKeys}
-            onOpenChange={onOpenChange}
-            items={menuItems}
-            style={{ background: COLORS.siderMenuBg, borderRight: 'none', padding: collapsed ? '0' : '0 10px' }}
-          />
-        </div>
+      <div className="custom-menu-scroll" style={{ flex: 1, overflowY: 'auto', overflowX: 'hidden' }}>
+        <Menu
+          theme="dark"
+          mode="inline"
+          selectedKeys={[location.pathname]}
+          openKeys={openKeys}
+          onOpenChange={onOpenChange}
+          onClick={() => { if (isMobile) setCollapsed(true); }}
+          items={menuItems}
+          style={{ background: COLORS.siderMenuBg, borderRight: 'none', padding: (collapsed && !isMobile) ? '0' : '0 10px' }}
+        />
+      </div>
 
-        <div style={{ padding: collapsed ? '16px 0' : '16px 20px', borderTop: '1px solid #333', background: '#0d0d0d', display: 'flex', justifyContent: collapsed ? 'center' : 'space-between', alignItems: 'center' }}>
-          {!collapsed && (
-            <Dropdown menu={{ items: userMenuItems }} placement="topRight">
-              <div style={{ display: 'flex', alignItems: 'center', gap: 12, cursor: 'pointer' }}>
-                <Avatar size={32} style={{ backgroundColor: COLORS.activeItemBg, color: COLORS.activeItemColor, fontWeight: 'bold' }}>
-                  {userRoles[0]?.charAt(0).toUpperCase() || 'U'}
-                </Avatar>
-                <div style={{ overflow: 'hidden' }}>
-                  <div style={{ color: 'white', fontWeight: 'bold', fontSize: 13, whiteSpace: 'nowrap', textOverflow: 'ellipsis' }}>
-                    {isAdmin ? 'Quản Lý' : (isHousekeeping ? 'Buồng Phòng' : 'Nhân Viên')}
-                  </div>
+      <div style={{ padding: (collapsed && !isMobile) ? '16px 0' : '16px 20px', borderTop: '1px solid #333', background: '#0d0d0d', display: 'flex', justifyContent: (collapsed && !isMobile) ? 'center' : 'space-between', alignItems: 'center' }}>
+        {(!collapsed || isMobile) && (
+          <Dropdown menu={{ items: userMenuItems }} placement="topRight">
+            <div style={{ display: 'flex', alignItems: 'center', gap: 12, cursor: 'pointer' }}>
+              <Avatar size={32} style={{ backgroundColor: COLORS.activeItemBg, color: COLORS.activeItemColor, fontWeight: 'bold' }}>
+                {userRoles[0]?.charAt(0).toUpperCase() || 'U'}
+              </Avatar>
+              <div style={{ overflow: 'hidden' }}>
+                <div style={{ color: 'white', fontWeight: 'bold', fontSize: 13, whiteSpace: 'nowrap', textOverflow: 'ellipsis' }}>
+                  {isAdmin ? 'Quản Lý' : (isHousekeeping ? 'Buồng Phòng' : 'Nhân Viên')}
                 </div>
               </div>
-            </Dropdown>
-          )}
+            </div>
+          </Dropdown>
+        )}
 
+        {!isMobile && (
           <Tooltip title={collapsed ? "Mở rộng" : "Thu gọn"} placement="right">
             <Button
               type="text"
@@ -212,11 +213,62 @@ const AdminLayout = () => {
               style={{ color: '#8c8c8c', fontSize: '18px', width: 40, height: 40 }}
             />
           </Tooltip>
-        </div>
-      </Sider>
+        )}
+      </div>
+    </>
+  );
 
-      <Layout style={{ marginLeft: collapsed ? 80 : 250, background: COLORS.contentBg, transition: 'all 0.2s ease' }}>
-        <Header style={{ background: COLORS.headerBg, padding: '0 24px', display: 'flex', alignItems: 'center', justifyContent: 'flex-end', boxShadow: '0 1px 3px rgba(0,0,0,0.1)', height: 64, position: 'sticky', top: 0, zIndex: 10 }}>
+  return (
+    <Layout style={{ minHeight: "100vh", fontFamily: "'Inter', sans-serif" }}>
+      {!isMobile ? (
+        <Sider
+          trigger={null}
+          collapsible
+          collapsed={collapsed}
+          width={250}
+          collapsedWidth={80}
+          style={{
+            background: COLORS.siderBg,
+            display: 'flex', flexDirection: 'column', height: '100vh',
+            position: 'fixed', left: 0, top: 0, bottom: 0, zIndex: 100,
+            transition: 'all 0.2s ease'
+          }}
+        >
+          {siderContent}
+        </Sider>
+      ) : (
+        <Drawer
+          title={null}
+          placement="left"
+          closable={false}
+          onClose={() => setCollapsed(true)}
+          open={!collapsed}
+          width={260}
+          styles={{
+            body: { background: COLORS.siderBg, padding: 0, display: 'flex', flexDirection: 'column' },
+            mask: { background: 'rgba(0, 0, 0, 0.6)' }
+          }}
+        >
+          {siderContent}
+        </Drawer>
+      )}
+
+      <Layout style={{ marginLeft: isMobile ? 0 : (collapsed ? 80 : 250), background: COLORS.contentBg, transition: 'all 0.2s ease', minHeight: '100vh' }}>
+        <Header style={{ background: COLORS.headerBg, padding: '0 24px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', boxShadow: '0 1px 3px rgba(0,0,0,0.1)', height: 64, position: 'sticky', top: 0, zIndex: 10 }}>
+          <div style={{ display: 'flex', alignItems: 'center' }}>
+            {isMobile && (
+              <Button
+                type="text"
+                icon={collapsed ? <MenuUnfoldOutlined /> : <MenuFoldOutlined />}
+                onClick={() => setCollapsed(!collapsed)}
+                style={{ fontSize: '18px', width: 40, height: 40, marginRight: 16 }}
+              />
+            )}
+            <Typography.Title level={5} style={{ margin: 0, color: '#262626' }}>
+              {isMobile ? "Quản lý Khách sạn" : ""}
+            </Typography.Title>
+          </div>
+
           <Space size={16} style={{ alignItems: 'center' }}>
             <NotificationBell />
             <div style={{ height: 28, width: 1, background: '#e8e8e8' }}></div>
@@ -236,8 +288,8 @@ const AdminLayout = () => {
           </Space>
         </Header>
 
-        <Content style={{ padding: '24px' }}>
-          <div style={{ background: COLORS.cardBg, borderRadius: 12, minHeight: 'calc(100vh - 48px)', overflow: 'hidden' }}>
+        <Content style={{ padding: isMobile ? '12px' : '24px' }}>
+          <div style={{ background: COLORS.cardBg, borderRadius: 12, minHeight: 'calc(100vh - 48px)', overflow: isMobile ? 'auto' : 'hidden' }}>
             <Outlet />
           </div>
         </Content>

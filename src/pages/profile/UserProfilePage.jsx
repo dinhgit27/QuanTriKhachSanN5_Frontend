@@ -16,15 +16,21 @@ export const UserProfilePage = () => {
   const [form] = Form.useForm();
 
   useEffect(() => {
-    const fetchMyProfile = async () => {
-      try {
-        const res = await axiosClient.get('/UserProfile/my-profile');
-        setProfile(res.data);
-      } catch (error) {
-        message.error('Lỗi khi tải thông tin hồ sơ');
-      }
+    const storedUser = JSON.parse(localStorage.getItem('user') || '{}');
+    const userEmail = storedUser.email || localStorage.getItem('userEmail') || 'guest@hotel.com';
+    const userName = storedUser.fullName || localStorage.getItem('userName') || 'Khách hàng';
+    const userPhone = storedUser.phoneNumber || '0901234567';
+    const userAvatar = storedUser.avatarUrl || `https://i.pravatar.cc/150?u=${encodeURIComponent(userEmail)}`;
+
+    const initialProfile = {
+      fullName: userName,
+      email: userEmail,
+      phoneNumber: userPhone,
+      avatarUrl: userAvatar,
+      rank: storedUser.rank || 'Khách Mới'
     };
-    fetchMyProfile();
+
+    setProfile(initialProfile);
   }, []);
 
   useEffect(() => {

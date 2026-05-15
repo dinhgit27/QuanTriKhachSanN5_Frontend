@@ -1,4 +1,4 @@
-﻿import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   Table, Button, Space, Tag, Modal, Form, Input, InputNumber,
   Select, message, Card, Typography, Popconfirm, Row, Col, Dropdown, Segmented, Statistic 
@@ -282,7 +282,7 @@ const RoomManagement = () => {
           </Select>
         </div>
 
-        {viewMode === 'table' ? <Table columns={columns} dataSource={filteredRooms} rowKey="id" loading={loading} pagination={{ pageSize: 10 }} bordered /> : renderGridView()}
+        {viewMode === 'table' ? <Table columns={columns} dataSource={filteredRooms} rowKey="id" loading={loading} pagination={{ pageSize: 10 }} bordered scroll={{ x: 800 }} /> : renderGridView()}
 
         {/* ======================================================== */}
         {/* MODAL THÊM/SỬA PHÒNG ĐÃ NÂNG CẤP TÍNH NĂNG THÊM HÀNG LOẠT */}

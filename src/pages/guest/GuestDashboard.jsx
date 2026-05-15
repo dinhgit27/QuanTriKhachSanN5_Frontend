@@ -17,6 +17,7 @@ const COLORS = {
 const GuestDashboard = () => {
   const navigate = useNavigate();
   const [bookedRooms, setBookedRooms] = useState([]);
+  const [loading, setLoading] = useState(false);
 
   const storedUser = React.useMemo(() => {
     try {
@@ -56,16 +57,29 @@ const GuestDashboard = () => {
   };
 
   useEffect(() => {
-    const saved = localStorage.getItem(`guestBookedRooms_${userEmail}`);
-    if (saved) {
+    const fetchBookings = async () => {
+      setLoading(true);
       try {
-        setBookedRooms(JSON.parse(saved));
-      } catch {
-        setBookedRooms([]);
+        const token = localStorage.getItem('token');
+        const storedUserObj = JSON.parse(localStorage.getItem('user')) || {};
+        const emailToUse = storedUserObj.email || localStorage.getItem('userEmail') || 'guest@hotel.com';
+
+        const response = await fetch('http://localhost:5070/api/Bookings', {
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+
+        if (response.ok) {
+          const data = await response.json();
+          const myBookings = data.filter(b => b.guestEmail === emailToUse || b.guestName === storedUserObj.fullName);
+          setBookedRooms(myBookings);
+        }
+      } catch (err) {
+        console.error("Lỗi khi tải danh sách đặt phòng:", err);
+      } finally {
+        setLoading(false);
       }
-    } else {
-      setBookedRooms([]);
-    }
+    };
+    fetchBookings();
 
     if (localStorage.getItem(`userPoints_${userEmail}`) === null) {
       localStorage.setItem(`userPoints_${userEmail}`, String(userPoints));
@@ -104,7 +118,7 @@ const GuestDashboard = () => {
           <div style={{ width: 40, height: 40, background: COLORS.gold, borderRadius: 8, display: 'flex', justifyContent: 'center', alignItems: 'center', marginRight: 10 }}>
             <span style={{ color: '#fff', fontWeight: 'bold' }}>G</span>
           </div>
-          <Title level={4} style={{ margin: 0, color: COLORS.dark, letterSpacing: '1px' }}>GRAND HOTEL</Title>
+          <Title level={4} style={{ margin: 0, color: COLORS.dark, letterSpacing: '1px' }}>IT HOTEL</Title>
         </div>
         <Menu mode="horizontal" defaultSelectedKeys={['3']} items={headerMenuItems} style={{ border: 'none', flex: 1, justifyContent: 'center' }} />
         <Space size="middle">
@@ -165,7 +179,7 @@ const GuestDashboard = () => {
                   <div>
                     <Text type="secondary" block>Hóa đơn đã thanh toán</Text>
                     <Title level={2} style={{ margin: 0 }}>
-                      {bookedRooms.filter(r => r.status === 'Đã thanh toán').length}
+                      {bookedRooms.filter(r => r.status === 'Completed').length}
                     </Title>
                   </div>
                 </Space>
@@ -179,20 +193,31 @@ const GuestDashboard = () => {
             ) : (
               <List
                 dataSource={bookedRooms}
+                loading={loading}
                 renderItem={(room) => (
                   <List.Item style={{ padding: 20, borderRadius: 16, marginBottom: 16, background: '#fff', boxShadow: '0 1px 4px rgba(0,0,0,0.05)' }}>
                     <List.Item.Meta
-                      avatar={<img src={room.image || room.imageUrl || 'https://via.placeholder.com/100x70?text=Ảnh+phòng'} alt={room.name} style={{ width: 100, height: 70, borderRadius: 8, objectFit: 'cover', background: '#f5f5f5' }} />}
-                      title={room.name}
+                      avatar={<Avatar size={64} style={{ background: COLORS.gold, color: '#fff', fontWeight: 'bold', fontSize: 20 }}>P</Avatar>}
+                      title={
+                        <Space>
+                          <Text strong style={{ fontSize: 18 }}>{room.details?.[0]?.roomTypeName || "Phòng nghỉ cao cấp"}</Text>
+                          <Tag color="purple">Mã đơn: {room.bookingCode}</Tag>
+                        </Space>
+                      }
                       description={
-                        <Space size="large" split={<Divider type="vertical" />}>
-                          <Text>{room.date}</Text>
-                          <Text>{room.capacity} khách</Text>
-                          <Text strong>{room.price}</Text>
+                        <Space size="large" split={<Divider type="vertical" />} style={{ marginTop: 8 }}>
+                          <Text>Từ: {new Date(room.checkInDate).toLocaleDateString('vi-VN')} - Đến: {new Date(room.checkOutDate).toLocaleDateString('vi-VN')}</Text>
+                          <Text strong style={{ color: '#1890ff' }}>{new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(room.totalAmount)}</Text>
                         </Space>
                       }
                     />
-                    <Tag color="blue">{room.status}</Tag>
+                    <div>
+                      {room.status === 'Pending' && <Tag color="orange">Chờ xác nhận</Tag>}
+                      {room.status === 'Confirmed' && <Tag color="blue">Đã xác nhận</Tag>}
+                      {room.status === 'Checked_in' && <Tag color="geekblue">Đang ở</Tag>}
+                      {room.status === 'Completed' && <Tag color="green">Đã thanh toán</Tag>}
+                      {room.status === 'Cancelled' && <Tag color="red">Đã hủy</Tag>}
+                    </div>
                   </List.Item>
                 )}
               />

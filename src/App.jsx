@@ -10,6 +10,7 @@ import LoginPage from "./pages/LoginPage";
 import UserListPage from "./pages/admin/UserListPage";
 import RoomManagement from "./pages/admin/RoomManagement";
 import InventoryManagement from "./pages/admin/InventoryManagement";
+import AdminDashboard from "./pages/admin/AdminDashboard";
 import ReceptionistDashboard from "./pages/receptionist/ReceptionistDashboard";
 import HousekeeperDashboard from "./pages/housekeeper/HousekeeperDashboard";
 import GuestDashboard from "./pages/guest/GuestDashboard";
@@ -46,10 +47,10 @@ const UnauthorizedPage = () => (
 function App() {
   return (
     <BrowserRouter>
-      <Routes>
-        <Route path="/" element={<Navigate to="/homepage" replace />} />
+    <Routes>
+      <Route path="/" element={<Navigate to="/homepage" replace />} />
 
-        {/* 2. TUYẾN ĐƯỜNG TỰ DO (AI CŨNG VÀO ĐƯỢC) */}
+      {/* 2. TUYẾN ĐƯỜNG TỰ DO (AI CŨNG VÀO ĐƯỢC) */}
         <Route path="/login" element={<LoginPage />} />
         <Route path="/homepage" element={<HomePage />} />
         <Route path="/rooms" element={<RoomsPage />} /> {/* 👈 ĐÃ THÊM ROUTE VÀO ĐÂY */}
@@ -74,19 +75,26 @@ function App() {
               <Route path="/admin/arrivals" element={<Arrivals />} />
               <Route path="/admin/in-house" element={<InHouse />} />
               <Route path="/admin/invoices" element={<InvoicePage />} />
-
+              
+              <Route path="/admin/rooms" element={<RoomManagement />} />
               <Route path="/receptionist/invoice-draft/:bookingId" element={<InvoicePage />} />
+            </Route>
+          </Route>
+
+          {/* --- KHU VỰC DÙNG CHUNG CHO ADMIN, LỄ TÂN & BUỒNG PHÒNG --- */}
+          <Route element={<RoleBasedRoute allowedRoles={["Admin", "Receptionist", "Housekeeping"]} />}>
+            <Route element={<AdminLayout />}>
+              <Route path="/admin/housekeeping" element={<HousekeepingManagement />} />
             </Route>
           </Route>
 
           {/* --- KHU VỰC DÀNH RIÊNG CHO ADMIN --- */}
           <Route element={<RoleBasedRoute allowedRoles={["Admin"]} />}>
             <Route element={<AdminLayout />}>
+              <Route path="/admin/dashboard" element={<AdminDashboard />} />
               <Route path="/admin/users" element={<UserListPage />} />
-              <Route path="/admin/rooms" element={<RoomManagement />} />
               <Route path="/admin/inventory" element={<InventoryManagement />} />
               <Route path="/admin/audit" element={<AuditLogsPage />} />
-              <Route path="/admin/housekeeping" element={<HousekeepingManagement />} />
             </Route>
           </Route>
 
@@ -101,7 +109,6 @@ function App() {
           {/* --- KHU VỰC DÀNH CHO HOUSEKEEPER --- */}
           <Route element={<RoleBasedRoute allowedRoles={["Housekeeping"]} />}>
             <Route path="/housekeeper/dashboard" element={<HousekeeperDashboard />} />
-            <Route path="/admin/housekeeping" element={<HousekeepingManagement />} />
           </Route>
 
           {/* --- KHU VỰC DÀNH CHO GUEST --- */}

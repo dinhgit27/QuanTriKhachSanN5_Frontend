@@ -19,8 +19,9 @@ import {
   Empty,
   Spin,
   InputNumber,
+  Input,
 } from "antd";
-import { HomeOutlined, CalendarOutlined, SearchOutlined, UserOutlined, TeamOutlined } from "@ant-design/icons";
+import { HomeOutlined, CalendarOutlined, SearchOutlined, UserOutlined, TeamOutlined, MailOutlined, PhoneOutlined } from "@ant-design/icons";
 
 const { Content } = Layout;
 const { Title, Text } = Typography;
@@ -38,20 +39,30 @@ const RoomBookingPage = () => {
     fetchRoomTypes();
     const today = dayjs();
     const tomorrow = today.add(2, 'day');
+    const storedUser = JSON.parse(localStorage.getItem('user') || '{}');
+    const userEmail = storedUser.email || localStorage.getItem('userEmail') || "guest@hotel.com";
+
     form.setFieldsValue({ 
       date: [today, tomorrow], 
       roomType: "All",
       adults: 2,
-      children: 0
+      children: 0,
+      guestName: storedUser.fullName || storedUser.userName || "Khách hàng",
+      guestEmail: userEmail,
+      guestPhone: storedUser.phoneNumber || "0901234567"
     });
     handleSearchAuto(today, tomorrow);
   }, []);
 
   const fetchRoomTypes = async () => {
     try {
+<<<<<<< HEAD
       const token = localStorage.getItem('token');
       const headers = token ? { 'Authorization': `Bearer ${token}` } : {};
       const response = await fetch('http://localhost:5070/api/RoomTypes', { headers });
+=======
+      const response = await fetch('http://localhost:5070/api/RoomTypes/public');
+>>>>>>> origin/dinh_nguyen
       if (response.ok) {
         const data = await response.json();
         const types = data.map(t => ({ value: t.name, label: t.name }));
@@ -161,7 +172,8 @@ const RoomBookingPage = () => {
         guestEmail: storedUser.email || localStorage.getItem('userEmail') || "guest@hotel.com",
         checkIn: checkIn.format('YYYY-MM-DDTHH:mm:ss'),
         checkOut: checkOut.format('YYYY-MM-DDTHH:mm:ss'),
-        selectedRoomIds: [selectedRoomId]
+        selectedRoomIds: [selectedRoomId],
+        userId: storedUser.id
       };
 
       const response = await fetch('http://localhost:5070/api/Bookings/create', {
@@ -213,6 +225,22 @@ const RoomBookingPage = () => {
             style={{ marginTop: 24 }}
           >
             <Row gutter={[24, 16]} align="bottom">
+              <Col xs={24} md={8}>
+                <Form.Item name="guestName" label="Họ và tên khách hàng">
+                  <Input readOnly style={{ background: '#f5f5f5', color: '#595959', fontWeight: 'bold' }} prefix={<UserOutlined />} />
+                </Form.Item>
+              </Col>
+              <Col xs={24} md={8}>
+                <Form.Item name="guestEmail" label="Địa chỉ Email">
+                  <Input readOnly style={{ background: '#f5f5f5', color: '#595959', fontWeight: 'bold' }} prefix={<MailOutlined />} />
+                </Form.Item>
+              </Col>
+              <Col xs={24} md={8}>
+                <Form.Item name="guestPhone" label="Số điện thoại">
+                  <Input readOnly style={{ background: '#f5f5f5', color: '#595959', fontWeight: 'bold' }} prefix={<PhoneOutlined />} />
+                </Form.Item>
+              </Col>
+
               <Col xs={24} md={10}>
                 <Form.Item
                   name="date"

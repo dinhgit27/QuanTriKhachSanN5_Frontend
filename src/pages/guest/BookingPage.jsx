@@ -153,7 +153,8 @@ const BookingPage = () => {
       'Cancelled': { c: 'red', t: 'Đã hủy' } 
     };
     const { c, t } = map[status] || { c: 'default', t: status };
-    return <Tag color={c}>{t}</Tag>;
+    // TÙY CHỈNH TAG SANG TRỌNG HƠN
+    return <Tag color={c} style={{ borderRadius: 4, fontWeight: 'bold', padding: '2px 10px' }}>{t}</Tag>;
   };
 
   const showReviewModal = (room) => {
@@ -203,7 +204,7 @@ const BookingPage = () => {
   };
 
   return (
-    <Layout style={{ minHeight: "100vh", background: "#f4f5f7" }}>
+    <Layout style={{ minHeight: "100vh", background: "#f8f9fa" }}>
       <Content style={{ padding: "40px 50px" }}>
         <Breadcrumb separator=">" style={{ marginBottom: 24 }}>
           <Breadcrumb.Item>
@@ -213,8 +214,8 @@ const BookingPage = () => {
         </Breadcrumb>
 
         <Card
-          title="Lịch sử đặt phòng của tôi"
-          style={{ marginTop: 24, borderRadius: 18, boxShadow: "0 8px 24px rgba(0,0,0,0.08)" }}
+          title={<Title level={4} style={{ margin: 0 }}>Lịch sử đặt phòng của tôi</Title>}
+          style={{ marginTop: 24, borderRadius: 18, border: '1px solid #eee', boxShadow: "0 4px 12px rgba(0,0,0,0.05)" }}
         >
           <Spin spinning={loading}>
             {bookedRooms.length === 0 ? (

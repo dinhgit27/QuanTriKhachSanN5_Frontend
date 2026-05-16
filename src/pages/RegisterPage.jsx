@@ -166,7 +166,7 @@ const RegisterPage = () => {
 
       {/* CỘT PHẢI: HÌNH ẢNH BACKGROUND TỪ CLOUDINARY */}
       <Col xs={0} md={14} style={{
-        backgroundImage: `url('https://res.cloudinary.com/dqx8hqmcv/image/upload/v1774629245/trang-dang-ky_hs5ann.jpg')`, 
+        backgroundImage: `url('https://res.cloudinary.com/dqx8hqmcv/image/upload/f_auto,q_auto/v1774629245/trang-dang-ky_hs5ann.jpg')`, 
         backgroundSize: 'cover',
         backgroundPosition: 'center',
         position: 'relative'

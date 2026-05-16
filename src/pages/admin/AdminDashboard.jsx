@@ -192,6 +192,7 @@ const AdminDashboard = () => {
         </div>
         <Space size={12}>
           <Select value={period} onChange={setPeriod} style={{ width: 140 }} size="large">
+            <Option value="day">Hôm nay</Option>
             <Option value="week">Tuần này</Option>
             <Option value="month">Tháng này</Option>
             <Option value="year">Năm nay</Option>
@@ -540,7 +541,7 @@ const AdminDashboard = () => {
                 style={{ width: 220, borderRadius: 8 }}
                 allowClear
               />
-              <Select value={statusFilter} onChange={setStatusFilter} style={{ width: 140 }} style={{ borderRadius: 8 }}>
+              <Select value={statusFilter} onChange={setStatusFilter} style={{ width: 140, borderRadius: 8 }}>
                 <Option value="all">Tất cả trạng thái</Option>
                 <Option value="Hoàn thành">Hoàn thành</Option>
                 <Option value="Chờ xử lý">Chờ xử lý</Option>

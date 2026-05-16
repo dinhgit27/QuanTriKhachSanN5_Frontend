@@ -108,28 +108,32 @@ const WarehouseManagement = () => {
     }
   }, [lastDamageUpdate, fetchDamagedCount]);
 
-  // --- 2. UPLOAD ẢNH LÊN CLOUDINARY ---
+  // --- 2. UPLOAD ẢNH QUA BACKEND LÊN CLOUDINARY ---
   const handleUploadCloudinary = async (options) => {
     const { file, onSuccess, onError } = options;
     setUploading(true);
     
-    const CLOUDINARY_URL = 'https://api.cloudinary.com/v1_1/dqx8hqmcv/image/upload';
-    const UPLOAD_PRESET = 'QuanTriKhachSanN5_IMG'; 
+    const API_UPLOAD_URL = `${import.meta.env.VITE_API_URL}/Upload/image`;
+    const token = localStorage.getItem('token');
 
     const formData = new FormData();
     formData.append('file', file);
-    formData.append('upload_preset', UPLOAD_PRESET);
 
     try {
-      const res = await axios.post(CLOUDINARY_URL, formData);
-      const uploadedUrl = res.data.secure_url;
+      const res = await axios.post(API_UPLOAD_URL, formData, {
+        headers: { 
+          'Content-Type': 'multipart/form-data',
+          'Authorization': `Bearer ${token}`
+        }
+      });
+      const uploadedUrl = res.data.url;
       setImageUrl(uploadedUrl); 
       form.setFieldsValue({ imageUrl: uploadedUrl }); 
       onSuccess("Ok");
       message.success('Tải ảnh lên Cloud thành công!');
     } catch (err) {
       onError({ err });
-      message.error('Tải ảnh thất bại! Kiểm tra lại cấu hình Unsigned.');
+      message.error('Tải ảnh thất bại! ' + (err.response?.data?.message || err.message));
     } finally {
       setUploading(false);
     }

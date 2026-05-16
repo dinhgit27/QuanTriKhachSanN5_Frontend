@@ -20,11 +20,12 @@ const { Title, Text, Paragraph } = Typography;
 
 const COLORS = {
   gold: "#c19b4a",
-  dark: "#0a0a0a",
-  darkGrey: "#141414",
-  gray: "#b3b3b3",
-  border: "rgba(255, 255, 255, 0.08)",
-  cardBg: "rgba(25, 25, 25, 0.65)"
+  dark: "#1a1a1a",
+  light: "#ffffff",
+  lightGrey: "#f8f9fa",
+  gray: "#595959",
+  border: "rgba(0, 0, 0, 0.08)",
+  cardBg: "#ffffff"
 };
 
 // Khai báo tập ảnh fallback chất lượng cao từ Unsplash cho các bài đăng
@@ -158,7 +159,7 @@ const NewsPage = () => {
     .news-hot-swiper .swiper-button-next,
     .news-hot-swiper .swiper-button-prev {
       color: ${COLORS.gold} !important;
-      background: rgba(0, 0, 0, 0.6) !important;
+      background: rgba(255, 255, 255, 0.8) !important;
       width: 46px !important;
       height: 46px !important;
       border-radius: 50% !important;
@@ -193,7 +194,7 @@ const NewsPage = () => {
   `;
 
   return (
-    <Layout style={{ minHeight: "100vh", background: COLORS.dark, fontFamily: "'Open Sans', sans-serif" }}>
+    <Layout style={{ minHeight: "100vh", background: "#fff", fontFamily: "'Open Sans', sans-serif" }}>
       {/* Khối style CSS tùy chỉnh */}
       <style>{customSwiperStyles}</style>
       
@@ -224,7 +225,7 @@ const NewsPage = () => {
         </div>
       </div>
 
-      <Content style={{ padding: isMobile ? "30px 15px" : "40px 80px", background: COLORS.dark }}>
+      <Content style={{ padding: isMobile ? "30px 15px" : "40px 80px", background: "#fff" }}>
         {/* NÚT BACK VỀ HOME */}
         <Button 
           type="link" 
@@ -389,7 +390,7 @@ const NewsPage = () => {
 
             {/* 3. THANH BỘ LỌC VÀ TÌM KIẾM CHUYÊN NGHIỆP */}
             <div style={{ 
-              background: "rgba(20, 20, 20, 0.8)", 
+              background: "#f9f9f9", 
               borderRadius: 16, 
               padding: isMobile ? "20px" : "25px 35px", 
               marginBottom: 40,
@@ -408,9 +409,9 @@ const NewsPage = () => {
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   style={{ 
-                    background: 'rgba(255,255,255,0.05)', 
-                    borderColor: 'rgba(255,255,255,0.1)', 
-                    color: '#fff',
+                    background: '#fff', 
+                    borderColor: 'rgba(0,0,0,0.1)', 
+                    color: COLORS.dark,
                     height: 46,
                     borderRadius: 23,
                     fontSize: 14
@@ -432,7 +433,7 @@ const NewsPage = () => {
                   style={{
                     background: selectedCategoryId === "all" ? COLORS.gold : "rgba(255,255,255,0.04)",
                     borderColor: selectedCategoryId === "all" ? COLORS.gold : "transparent",
-                    color: selectedCategoryId === "all" ? COLORS.dark : "#fff",
+                    color: selectedCategoryId === "all" ? "#fff" : COLORS.dark,
                     borderRadius: 20,
                     fontWeight: 600,
                     height: 38,
@@ -448,7 +449,7 @@ const NewsPage = () => {
                     style={{
                       background: selectedCategoryId === cat.id.toString() ? COLORS.gold : "rgba(255,255,255,0.04)",
                       borderColor: selectedCategoryId === cat.id.toString() ? COLORS.gold : "transparent",
-                      color: selectedCategoryId === cat.id.toString() ? COLORS.dark : "#fff",
+                      color: selectedCategoryId === cat.id.toString() ? "#fff" : COLORS.dark,
                       borderRadius: 20,
                       fontWeight: 600,
                       height: 38,
@@ -463,7 +464,7 @@ const NewsPage = () => {
 
             {/* 4. DANH SÁCH LƯỚI TIN TỨC (NEWS GRID) */}
             <div style={{ textAlign: 'left', marginBottom: 25 }}>
-              <Title level={3} style={{ color: '#fff', fontFamily: "'Noto Serif', serif", margin: 0, fontWeight: 300 }}>
+              <Title level={3} style={{ color: COLORS.dark, fontFamily: "'Noto Serif', serif", margin: 0, fontWeight: 300 }}>
                 {searchQuery !== "" || selectedCategoryId !== "all" ? `Kết Quả Tìm Kiếm (${filteredArticles.length})` : "Tất Cả Tin Tức"}
               </Title>
               <div style={{ width: 40, height: 2, background: COLORS.gold, marginTop: 8 }}></div>
@@ -519,7 +520,7 @@ const NewsPage = () => {
                             </Space>
 
                             <Title level={4} style={{ 
-                              color: '#fff', 
+                              color: COLORS.dark, 
                               margin: "0 0 12px 0", 
                               fontFamily: "'Noto Serif', serif",
                               fontSize: 17,
@@ -573,10 +574,10 @@ const NewsPage = () => {
             onCancel={() => setDetailModalOpen(false)}
             footer={null}
             width={850}
-            bodyStyle={{ padding: 0, background: COLORS.darkGrey }}
+            bodyStyle={{ padding: 0, background: '#fff' }}
             centered
             className="premium-article-modal"
-            closeIcon={<span style={{ color: '#fff', fontSize: 18, background: 'rgba(0,0,0,0.5)', padding: '5px 10px', borderRadius: '50%' }}>✕</span>}
+            closeIcon={<span style={{ color: COLORS.dark, fontSize: 18, background: 'rgba(255,255,255,0.8)', padding: '5px 10px', borderRadius: '50%' }}>✕</span>}
           >
             {/* Ảnh cover trong modal */}
             <div style={{ height: isMobile ? 220 : 380, position: 'relative', overflow: 'hidden' }}>
@@ -592,7 +593,7 @@ const NewsPage = () => {
             </div>
 
             {/* Nội dung bài viết */}
-            <div style={{ padding: isMobile ? "25px 20px" : "35px 45px", background: COLORS.darkGrey, color: '#fff' }}>
+            <div style={{ padding: isMobile ? "25px 20px" : "35px 45px", background: "#fff", color: COLORS.dark }}>
               <Space size="large" style={{ color: COLORS.gray, marginBottom: 20, fontSize: 13, display: 'flex', flexWrap: 'wrap' }}>
                 <span style={{ display: 'flex', alignItems: 'center' }}><CalendarOutlined style={{ color: COLORS.gold, marginRight: 6 }} /> {formatVietnameseDate(selectedArticle.publishedAt)}</span>
                 <span style={{ display: 'flex', alignItems: 'center' }}>
@@ -609,7 +610,7 @@ const NewsPage = () => {
 
               {/* Phần nội dung chi tiết dạng văn bản */}
               <div style={{ 
-                color: 'rgba(255,255,255,0.85)', 
+                color: COLORS.dark, 
                 fontSize: 16, 
                 lineHeight: 1.8, 
                 textAlign: 'justify',

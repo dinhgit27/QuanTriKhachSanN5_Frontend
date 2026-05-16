@@ -33,11 +33,14 @@ import GuestReviewsPage from "./pages/guest/GuestReviewsPage";
 
 // 🚨 IMPORT TRANG DANH SÁCH PHÒNG
 import RoomsPage from './pages/RoomsPage';
-import NewsPage from './pages/NewsPage'; // 👈 THÊM IMPORT TRANG TIN TỨC
+import NewsPage from './pages/NewsPage';
+import AboutPage from './pages/AboutPage';
+import ContactPage from './pages/ContactPage';
 
 // IMPORT 2 TRANG LỄ TÂN
 import Arrivals from "./pages/admin/Arrivals";
 import InHouse from "./pages/admin/InHouse";
+import RoomDetailPage from "./pages/guest/RoomDetailPage";
 
 const NotFoundPage = () => <h1>404 - Đường dẫn này không tồn tại 😢</h1>;
 const UnauthorizedPage = () => (
@@ -53,10 +56,13 @@ function App() {
       {/* 2. TUYẾN ĐƯỜNG TỰ DO (AI CŨNG VÀO ĐƯỢC) */}
         <Route path="/login" element={<LoginPage />} />
         <Route path="/homepage" element={<HomePage />} />
-        <Route path="/rooms" element={<RoomsPage />} /> {/* 👈 ĐÃ THÊM ROUTE VÀO ĐÂY */}
-        <Route path="/news" element={<NewsPage />} /> {/* 👈 ĐÃ THÊM ROUTE TIN TỨC Ở ĐÂY */}
+        <Route path="/rooms" element={<RoomsPage />} />
+        <Route path="/news" element={<NewsPage />} />
+        <Route path="/about" element={<AboutPage />} />
+        <Route path="/contact" element={<ContactPage />} />
         <Route path="/register" element={<RegisterPage />} />
         <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+        <Route path="/room/:id" element={<RoomDetailPage />} />
         <Route path="/unauthorized" element={<UnauthorizedPage />} />
 
         {/* 3. VÙNG CẤM CHUNG (PHẢI ĐĂNG NHẬP MỚI VÀO ĐƯỢC) */}

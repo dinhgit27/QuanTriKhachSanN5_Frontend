@@ -23,24 +23,51 @@ const GuestRankPage = () => {
   const [currentRank, setCurrentRank] = useState(ranks[0]);
   const [nextRank, setNextRank] = useState(ranks[1]);
 
-  useEffect(() => {
-    const storedUser = JSON.parse(localStorage.getItem('user')) || {};
-    const userEmail = storedUser?.email || localStorage.getItem('userEmail') || 'guest@hotel.com';
-    const points = Number(storedUser?.points ?? localStorage.getItem(`userPoints_${userEmail}`) ?? 0);
-    setUserPoints(points);
+  const fetchUserProfile = async () => {
+    try {
+      const token = localStorage.getItem('token');
+      const storedUser = JSON.parse(localStorage.getItem('user')) || {};
+      const userEmail = storedUser?.email || localStorage.getItem('userEmail') || 'guest@hotel.com';
+      
+      // Gọi API lấy profile mới nhất để có điểm thực tế
+      const response = await fetch(`http://localhost:5070/api/UserProfile?email=${userEmail}`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      
+      let points = 0;
+      if (response.ok) {
+        const userData = await response.json();
+        points = userData.points || 0;
+        // Cập nhật lại localStorage để các trang khác cũng đồng bộ
+        const newUser = { ...storedUser, points };
+        localStorage.setItem('user', JSON.stringify(newUser));
+      } else {
+        // Fallback nếu API lỗi
+        points = Number(storedUser?.points ?? localStorage.getItem(`userPoints_${userEmail}`) ?? 0);
+      }
+      
+      setUserPoints(points);
+      updateRank(points);
+    } catch (err) {
+      console.error("Lỗi khi lấy thông tin hạng thành viên:", err);
+    }
+  };
 
+  const updateRank = (points) => {
     let current = ranks[0];
     let next = ranks[1];
-    
     for (let i = 0; i < ranks.length; i++) {
       if (points >= ranks[i].threshold) {
         current = ranks[i];
         next = i + 1 < ranks.length ? ranks[i + 1] : null;
       }
     }
-
     setCurrentRank(current);
     setNextRank(next);
+  };
+
+  useEffect(() => {
+    fetchUserProfile();
   }, []);
 
   const progressPercent = nextRank 
@@ -48,7 +75,7 @@ const GuestRankPage = () => {
     : 100;
 
   return (
-    <Layout style={{ minHeight: "100vh", background: "#f4f5f7" }}>
+    <Layout style={{ minHeight: "100vh", background: "#f8f9fa" }}>
       <Content style={{ padding: "40px 50px" }}>
         <Breadcrumb separator=">" style={{ marginBottom: 24 }}>
           <Breadcrumb.Item>
@@ -57,7 +84,15 @@ const GuestRankPage = () => {
           <Breadcrumb.Item>Hạng thành viên</Breadcrumb.Item>
         </Breadcrumb>
 
-        <Card style={{ borderRadius: 18, boxShadow: "0 8px 24px rgba(0,0,0,0.08)", marginBottom: 24 }}>
+        <Card 
+          style={{ 
+            borderRadius: 18, 
+            border: '1px solid #eee',
+            boxShadow: "0 4px 12px rgba(0,0,0,0.05)", 
+            marginBottom: 24,
+            background: "#fff"
+          }}
+        >
           <Row gutter={[24, 24]} align="middle">
             <Col xs={24} md={8} style={{ textAlign: 'center' }}>
               <Avatar 
@@ -75,7 +110,7 @@ const GuestRankPage = () => {
             </Col>
             
             <Col xs={24} md={16}>
-              <Card type="inner" style={{ borderRadius: 12, background: '#fafafa' }}>
+              <Card type="inner" style={{ borderRadius: 12, background: '#f9f9f9', border: '1px solid #f0f0f0' }}>
                 <Space direction="vertical" size="middle" style={{ width: '100%' }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                     <Space>
@@ -115,7 +150,15 @@ const GuestRankPage = () => {
           </Row>
         </Card>
 
-        <Card title={<><TrophyOutlined /> Hệ thống Hạng thành viên</>} style={{ borderRadius: 18, boxShadow: "0 8px 24px rgba(0,0,0,0.08)" }}>
+        <Card 
+          title={<span style={{ color: '#1a1a1a' }}><TrophyOutlined style={{ marginRight: 8, color: '#c19b4a' }} /> Hệ thống Hạng thành viên</span>} 
+          style={{ 
+            borderRadius: 18, 
+            border: '1px solid #eee',
+            boxShadow: "0 4px 12px rgba(0,0,0,0.05)",
+            background: "#fff"
+          }}
+        >
           <Row gutter={[16, 16]}>
             {ranks.map((rank, index) => (
               <Col xs={24} sm={12} md={8} lg={6} key={index}>

@@ -20,6 +20,9 @@ import {
   Spin,
   InputNumber,
   Input,
+  Modal,
+  QRCode,
+  Descriptions
 } from "antd";
 import { HomeOutlined, CalendarOutlined, SearchOutlined, UserOutlined, TeamOutlined, MailOutlined, PhoneOutlined } from "@ant-design/icons";
 
@@ -34,6 +37,10 @@ const RoomBookingPage = () => {
   const [searched, setSearched] = useState(false);
   const [form] = Form.useForm();
   const navigate = useNavigate();
+
+  // STATE CHO BIÊN LAI ĐẶT CỌC
+  const [isReceiptVisible, setIsReceiptVisible] = useState(false);
+  const [pendingBookingData, setPendingBookingData] = useState(null);
 
   useEffect(() => {
     fetchRoomTypes();
@@ -51,7 +58,7 @@ const RoomBookingPage = () => {
       guestEmail: userEmail,
       guestPhone: storedUser.phoneNumber || "0901234567"
     });
-    handleSearchAuto(today, tomorrow);
+    // ĐÃ GỠ BỎ: Không tự động tìm kiếm khi vừa vào trang
   }, []);
 
   const fetchRoomTypes = async () => {
@@ -144,13 +151,38 @@ const RoomBookingPage = () => {
     }
   };
 
-  const handleBookRoom = async (roomTypeData) => {
+  // 🚨 HÀM MỞ BIÊN LAI XÁC NHẬN VÀ ĐẶT CỌC
+  const handleOpenReceipt = async (roomTypeData) => {
     try {
       const values = await form.validateFields();
       const [checkIn, checkOut] = values.date;
+      const numNights = checkOut.diff(checkIn, 'day') || 1;
+      const totalPrice = roomTypeData.pricePerNight * numNights;
+      const depositAmount = totalPrice * 0.3; // 30% ĐẶT CỌC
 
-      const storedUser = JSON.parse(localStorage.getItem('user') || '{}');
+      setPendingBookingData({
+        ...roomTypeData,
+        checkIn: checkIn.format('DD/MM/YYYY'),
+        checkOut: checkOut.format('DD/MM/YYYY'),
+        numNights,
+        totalPrice,
+        depositAmount,
+        guestName: values.guestName,
+        guestEmail: values.guestEmail,
+        guestPhone: values.guestPhone
+      });
+      setIsReceiptVisible(true);
+    } catch (error) {
+      message.error("Vui lòng điền đầy đủ thông tin tìm kiếm trước khi đặt.");
+    }
+  };
+
+  const handleBookRoom = async () => {
+    if (!pendingBookingData) return;
+    setLoading(true);
+    try {
       const token = localStorage.getItem('token');
+      const storedUser = JSON.parse(localStorage.getItem('user') || '{}');
       
       if (!token) {
         message.warning("Vui lòng đăng nhập để đặt phòng.");
@@ -158,12 +190,13 @@ const RoomBookingPage = () => {
         return;
       }
 
-      const selectedRoomId = roomTypeData.availableRooms[0].id;
+      const selectedRoomId = pendingBookingData.availableRooms[0].id;
+      const [checkIn, checkOut] = form.getFieldValue('date');
 
       const payload = {
-        guestName: storedUser.fullName || storedUser.userName || "Khách Guest",
-        guestPhone: storedUser.phoneNumber || "0123456789",
-        guestEmail: storedUser.email || localStorage.getItem('userEmail') || "guest@hotel.com",
+        guestName: pendingBookingData.guestName,
+        guestPhone: pendingBookingData.guestPhone,
+        guestEmail: pendingBookingData.guestEmail,
         checkIn: checkIn.format('YYYY-MM-DDTHH:mm:ss'),
         checkOut: checkOut.format('YYYY-MM-DDTHH:mm:ss'),
         selectedRoomIds: [selectedRoomId],
@@ -185,16 +218,18 @@ const RoomBookingPage = () => {
         throw new Error(resData.message || "Lỗi khi tạo đơn đặt phòng.");
       }
 
-      message.success(`Đặt phòng ${roomTypeData.roomTypeName} thành công!`);
+      message.success(`Đặt phòng ${pendingBookingData.roomTypeName} thành công!`);
+      setIsReceiptVisible(false);
       navigate('/guest/bookings');
     } catch (errorInfo) {
-      console.error(errorInfo);
       message.error(errorInfo.message || 'Lỗi đặt phòng. Vui lòng thử lại.');
+    } finally {
+      setLoading(false);
     }
   };
 
   return (
-    <Layout style={{ minHeight: "100vh", background: "#f4f5f7" }}>
+    <Layout style={{ minHeight: "100vh", background: "#f8f9fa" }}>
       <Content style={{ padding: "40px 50px" }}>
         <Breadcrumb separator=">" style={{ marginBottom: 24 }}>
           <Breadcrumb.Item>
@@ -203,12 +238,19 @@ const RoomBookingPage = () => {
           <Breadcrumb.Item>Đặt phòng</Breadcrumb.Item>
         </Breadcrumb>
 
-        <Card style={{ borderRadius: 18, boxShadow: "0 8px 24px rgba(0,0,0,0.08)" }}>
-          <Title level={3} style={{ margin: 0 }}>
-            <HomeOutlined style={{ marginRight: 8, color: '#1890ff' }} />
+        <Card 
+          style={{ 
+            borderRadius: 18, 
+            border: '1px solid #eee',
+            boxShadow: "0 4px 12px rgba(0,0,0,0.05)",
+            background: "#fff"
+          }}
+        >
+          <Title level={3} style={{ margin: 0, color: '#1a1a1a' }}>
+            <HomeOutlined style={{ marginRight: 8, color: '#c19b4a' }} />
             Tìm phòng trống
           </Title>
-          <Text type="secondary">
+          <Text type="secondary" style={{ color: '#8c8c8c' }}>
             Nhập thông tin để xem danh sách phòng còn trống cho chuyến đi của bạn.
           </Text>
 
@@ -266,7 +308,10 @@ const RoomBookingPage = () => {
                   size="large"
                   loading={loading}
                   icon={<SearchOutlined />}
-                  style={{ width: "100%", height: 50, borderRadius: 10, fontSize: 18 }}
+                  style={{ 
+                    width: "100%", height: 50, borderRadius: 10, fontSize: 18,
+                    background: '#1890ff', border: 'none', fontWeight: 'bold'
+                  }}
                 >
                   Kiểm tra phòng trống
                 </Button>
@@ -275,19 +320,27 @@ const RoomBookingPage = () => {
           </Form>
         </Card>
 
-        <Card
-          title={
-            <span>
-              Kết quả tìm kiếm
-              {filteredResults.length > 0 && (
-                <Tag color="blue" style={{ marginLeft: 8 }}>
-                  {filteredResults.reduce((acc, curr) => acc + (curr.availableRooms?.length || 0), 0)} phòng trống
-                </Tag>
-              )}
-            </span>
-          }
-          style={{ marginTop: 24, borderRadius: 18 }}
-        >
+        {/* CHỈ HIỂN THỊ KẾT QUẢ KHI ĐÃ BẤM TÌM KIẾM (SEARCHED === TRUE) */}
+        {searched && (
+          <Card
+            title={
+              <span style={{ color: '#1a1a1a' }}>
+                Kết quả tìm kiếm
+                {filteredResults.length > 0 && (
+                  <Tag color="blue" style={{ marginLeft: 8, borderRadius: 4 }}>
+                    {filteredResults.reduce((acc, curr) => acc + (curr.availableRooms?.length || 0), 0)} phòng trống
+                  </Tag>
+                )}
+              </span>
+            }
+            style={{ 
+              marginTop: 24, 
+              borderRadius: 18, 
+              border: '1px solid #eee',
+              boxShadow: "0 4px 12px rgba(0,0,0,0.05)",
+              background: "#fff"
+            }}
+          >
           <Spin spinning={loading}>
             {filteredResults.length === 0 && searched && !loading ? (
               <Empty description="Không tìm thấy phòng phù hợp với tiêu chí của bạn." />
@@ -311,8 +364,8 @@ const RoomBookingPage = () => {
                           key="book"
                           type="primary"
                           size="large"
-                          onClick={() => handleBookRoom(type)}
-                          style={{ borderRadius: 8 }}
+                          onClick={() => handleOpenReceipt(type)}
+                          style={{ borderRadius: 8, background: '#c19b4a', border: 'none', fontWeight: 'bold' }}
                         >
                           Đặt ngay
                         </Button>
@@ -348,7 +401,72 @@ const RoomBookingPage = () => {
               />
             )}
           </Spin>
-        </Card>
+          </Card>
+        )}
+
+        {/* 🚨 MODAL BIÊN LAI XÁC NHẬN & ĐẶT CỌC 30% 🚨 */}
+        <Modal
+          title={<Title level={4} style={{ margin: 0, textAlign: 'center' }}>Xác nhận đặt phòng & Đặt cọc</Title>}
+          open={isReceiptVisible}
+          onCancel={() => setIsReceiptVisible(false)}
+          width={700}
+          centered
+          footer={[
+            <Button key="cancel" onClick={() => setIsReceiptVisible(false)}>Hủy bỏ</Button>,
+            <Button key="confirm" type="primary" loading={loading} onClick={handleBookRoom} style={{ background: '#c19b4a', border: 'none' }}>
+              Xác nhận đã chuyển khoản & Đặt phòng
+            </Button>
+          ]}
+        >
+          {pendingBookingData && (
+            <div style={{ padding: '10px 0' }}>
+              <Row gutter={24}>
+                <Col span={14}>
+                  <Descriptions title="Thông tin biên lai" column={1} bordered size="small">
+                    <Descriptions.Item label="Khách hàng"><b>{pendingBookingData.guestName}</b></Descriptions.Item>
+                    <Descriptions.Item label="Email">{pendingBookingData.guestEmail}</Descriptions.Item>
+                    <Descriptions.Item label="Loại phòng">{pendingBookingData.roomTypeName}</Descriptions.Item>
+                    <Descriptions.Item label="Thời gian">{pendingBookingData.checkIn} - {pendingBookingData.checkOut}</Descriptions.Item>
+                    <Descriptions.Item label="Số đêm">{pendingBookingData.numNights} đêm</Descriptions.Item>
+                  </Descriptions>
+
+                  <div style={{ marginTop: 20, padding: 15, background: '#f9f9f9', borderRadius: 8 }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8 }}>
+                      <Text>Tổng tiền phòng:</Text>
+                      <Text strong>{new Intl.NumberFormat('vi-VN').format(pendingBookingData.totalPrice)}đ</Text>
+                    </div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', borderTop: '1px dashed #ddd', paddingTop: 8 }}>
+                      <Text type="danger" strong>Số tiền cần đặt cọc (30%):</Text>
+                      <Title level={4} type="danger" style={{ margin: 0 }}>
+                        {new Intl.NumberFormat('vi-VN').format(pendingBookingData.depositAmount)}đ
+                      </Title>
+                    </div>
+                  </div>
+                </Col>
+
+                <Col span={10} style={{ textAlign: 'center' }}>
+                  <div style={{ padding: 15, background: '#fff', border: '1px solid #eee', borderRadius: 12 }}>
+                    <Text strong style={{ display: 'block', marginBottom: 10, fontSize: 12 }}>QUÉT MÃ ĐẶT CỌC (MOMO)</Text>
+                    <QRCode 
+                      value={`2|99|0901234567|HOTEL_IT||0|0|${pendingBookingData.depositAmount}|Dat coc phong ${pendingBookingData.roomTypeName}`} 
+                      size={160}
+                      color="#a50064"
+                    />
+                    <div style={{ marginTop: 10 }}>
+                      <Text type="secondary" style={{ fontSize: 11 }}>Chủ TK: HOTEL IT RESORT</Text><br/>
+                      <Text type="secondary" style={{ fontSize: 11 }}>STK: 090 123 4567</Text>
+                    </div>
+                  </div>
+                </Col>
+              </Row>
+              <div style={{ marginTop: 20, padding: '10px 15px', background: '#fff7e6', border: '1px solid #ffd591', borderRadius: 8 }}>
+                <Text italic style={{ fontSize: 13 }}>
+                  * Lưu ý: Đơn đặt phòng sẽ ở trạng thái <b>"Chờ xác nhận"</b> cho đến khi bộ phận lễ tân kiểm tra giao dịch đặt cọc của bạn.
+                </Text>
+              </div>
+            </div>
+          )}
+        </Modal>
       </Content>
     </Layout>
   );
